@@ -1,0 +1,1069 @@
+{
+  "schema_version": 1,
+  "profile": "desktop-embedder-core",
+  "description": "Executable capability and dependency contract for the Navis Desktop Gecko Embedder runtime.",
+  "profiles": {
+    "desktop-embedder-core": {
+      "description": "Default Navis 1.0 browsing profile without product observability, real media capture, PeerConnection, data channels, or native libwebrtc."
+    },
+    "desktop-embedder-core-esr140": {
+      "description": "General-browsing profile on ESR 140, whose release channel compiles JPEG XL out upstream.",
+      "overrides": {
+        "jpeg-xl-image-decoding": {
+          "state": "excluded",
+          "contract": "JPEG XL image decoding is absent because upstream ESR 140 restricts its decoder to Nightly builds.",
+          "checks": {
+            "config": {
+              "MOZ_JXL": false
+            },
+            "graph_forbidden": [
+              "^image/rust/jxl/"
+            ]
+          }
+        }
+      }
+    },
+    "desktop-embedder-core-esr140-no-observability": {
+      "description": "ESR 140 general-browsing profile with the Glean/FOG, DAP, and Gecko Trace runtime integrations removed.",
+      "inherits": "desktop-embedder-core-esr140",
+      "overrides": {
+        "observability-runtime": {
+          "state": "excluded",
+          "contract": "No executable observability collector, store, archive, or submission pipeline is present; only constant-off ABI and process-clock compatibility surfaces remain."
+        }
+      }
+    },
+    "desktop-embedder-minimal-no-webrtc": {
+      "description": "Experimental general-media profile without real camera/microphone capture, PeerConnection, data channels, or native libwebrtc.",
+      "overrides": {
+        "media-capture": {
+          "state": "excluded",
+          "contract": "Real camera/microphone capture and its product permission/indicator actors are absent; the nonfunctional web entry point is locked off.",
+          "checks": {
+            "config": {
+              "MOZ_WEBRTC": false
+            },
+            "omni_forbidden": [
+              "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
+              "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
+            ],
+            "omni_content_required": {
+              "defaults/pref/navis.js": [
+                "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
+                "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
+              ]
+            },
+            "omni_content_forbidden": {
+              "defaults/pref/navis.js": [
+                "^#ifn?def MOZ_WEBRTC$"
+              ]
+            }
+          }
+        },
+        "webrtc-peer-connection": {
+          "state": "excluded",
+          "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent.",
+          "checks": {
+            "config": {
+              "MOZ_WEBRTC": false
+            },
+            "graph_forbidden": [
+              "^media/webrtc/",
+              "^third_party/libwebrtc/"
+            ],
+            "generated_required": {
+              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+                "MediaEngineFake\\.cpp",
+                "MediaEngineSource\\.cpp",
+                "MediaTrackConstraints\\.cpp"
+              ]
+            },
+            "generated_forbidden": {
+              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+                "MediaEngineRemoteVideoSource\\.cpp",
+                "MediaEngineWebRTCAudio\\.cpp",
+                "RTCCertificate\\.cpp",
+                "RTCIdentityProviderRegistrar\\.cpp",
+                "PWebrtcGlobal(Child|Parent)?\\.cpp"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "desktop-embedder-controlled-content": {
+      "description": "Experimental controlled-content profile without real-time communication or JPEG XL decoding.",
+      "overrides": {
+        "jpeg-xl-image-decoding": {
+          "state": "excluded",
+          "contract": "JPEG XL image decoding is absent even when content enables the otherwise opt-in preference.",
+          "checks": {
+            "config": {
+              "MOZ_JXL": false
+            },
+            "graph_forbidden": [
+              "^image/rust/jxl/"
+            ]
+          }
+        },
+        "media-capture": {
+          "state": "excluded",
+          "contract": "Real camera/microphone capture and its product permission/indicator actors are absent; the nonfunctional web entry point is locked off.",
+          "checks": {
+            "config": {
+              "MOZ_WEBRTC": false
+            },
+            "omni_forbidden": [
+              "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
+              "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
+            ],
+            "omni_content_required": {
+              "defaults/pref/navis.js": [
+                "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
+                "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
+              ]
+            },
+            "omni_content_forbidden": {
+              "defaults/pref/navis.js": [
+                "^#ifn?def MOZ_WEBRTC$"
+              ]
+            }
+          }
+        },
+        "webrtc-peer-connection": {
+          "state": "excluded",
+          "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent.",
+          "checks": {
+            "config": {
+              "MOZ_WEBRTC": false
+            },
+            "graph_forbidden": [
+              "^media/webrtc/",
+              "^third_party/libwebrtc/"
+            ],
+            "generated_required": {
+              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+                "MediaEngineFake\\.cpp",
+                "MediaEngineSource\\.cpp",
+                "MediaTrackConstraints\\.cpp"
+              ]
+            },
+            "generated_forbidden": {
+              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+                "MediaEngineRemoteVideoSource\\.cpp",
+                "MediaEngineWebRTCAudio\\.cpp",
+                "RTCCertificate\\.cpp",
+                "RTCIdentityProviderRegistrar\\.cpp",
+                "PWebrtcGlobal(Child|Parent)?\\.cpp"
+              ]
+            }
+          }
+        }
+      }
+    },
+    "desktop-embedder-controlled-content-no-observability": {
+      "description": "Controlled-content profile with the Glean/FOG, DAP, and Gecko Trace runtime integrations removed.",
+      "inherits": "desktop-embedder-controlled-content",
+      "overrides": {
+        "observability-runtime": {
+          "state": "excluded",
+          "contract": "No executable observability collector, store, archive, or submission pipeline is present; only constant-off ABI and process-clock compatibility surfaces remain."
+        }
+      }
+    }
+  },
+  "states": {
+    "required": "Part of the published web/embedder contract and must stay in the graph.",
+    "retained-substrate": "Not a product capability, but retained because Gecko core consumes its policy or security substrate.",
+    "excluded": "Outside the runtime contract and required to be absent from the build or package checks listed here.",
+    "candidate": "A reviewed removal candidate; no absence claim is made yet.",
+    "deferred": "Required eventually, but the listed platform evidence is not complete."
+  },
+  "capabilities": [
+    {
+      "id": "desktop-embedder-api",
+      "classification": "embedder-boundary",
+      "state": "required",
+      "contract": "Runtime, Session, live attachable View and bounded Delegate APIs with no Gecko objects crossing into products.",
+      "checks": {
+        "config": {
+          "MOZ_DESKTOP_EMBEDDER": true
+        },
+        "graph_required": [
+          "^desktop-embedder/",
+          "^navis/"
+        ],
+        "omni_required": [
+          "modules/DesktopEngine.sys.mjs",
+          "modules/DesktopEmbedderStartup.sys.mjs"
+        ],
+        "omni_content_required": {
+          "modules/DesktopEngine.sys.mjs": [
+            "^export const DESKTOP_EMBEDDER_API_VERSION = 2;$",
+            "^export class EngineRuntime \\{$",
+            "^export class EngineSession \\{$",
+            "^export class EngineView \\{$",
+            "^  get windowCount\\(\\) \\{$",
+            "^  get session\\(\\) \\{$",
+            "^  attach\\(session\\) \\{$",
+            "^  detach\\(\\) \\{$",
+            "^  stop\\(\\) \\{$",
+            "^  get visible\\(\\) \\{$",
+            "^  get focused\\(\\) \\{$",
+            "^  get bounds\\(\\) \\{$",
+            "^  focus\\(\\) \\{$",
+            "^  blur\\(\\) \\{$",
+            "jpegXL: AppConstants\\.MOZ_JXL",
+            "source API 2 requires an explicit EngineView",
+            "\\.swapDocShells\\(sourceBrowser\\)",
+            "#cancelAllPrompts\\(\"session-closed\"\\)[\\s\\S]*?#syncNavigationState\\(\\{[\\s\\S]*?closed: true[\\s\\S]*?#destroyBrowser\\(\\)",
+            "\\bonSessionCreated\\b",
+            "permanentKey = new \\(Cu\\.getGlobalForObject\\(Services\\)\\.Object\\)\\(\\)",
+            "destinationBrowser\\.permanentKey = sourcePermanentKey"
+          ]
+        },
+        "omni_content_forbidden": {
+          "modules/DesktopEngine.sys.mjs": [
+            "^export class Engine(Runtime|Session) extends EventTarget",
+            "^  respondToPrompt\\("
+          ]
+        }
+      }
+    },
+    {
+      "id": "web-platform-core",
+      "classification": "runtime-core",
+      "state": "required",
+      "contract": "Interoperable HTML, CSS, JavaScript, DOM, layout, networking, storage and graphics remain Gecko responsibilities.",
+      "checks": {
+        "graph_required": [
+          "^dom/",
+          "^gfx/",
+          "^js/src/",
+          "^layout/",
+          "^netwerk/"
+        ],
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"dom\\.security\\.featurePolicy\\.header\\.enabled\", true, locked\\);",
+            "pref\\(\"dom\\.security\\.featurePolicy\\.webidl\\.enabled\", true, locked\\);"
+          ]
+        }
+      }
+    },
+    {
+      "id": "fission-remote-content",
+      "classification": "runtime-core",
+      "state": "required",
+      "contract": "Top-level and iframe content use Gecko's site-isolated remote process model; process details remain private.",
+      "checks": {
+        "graph_required": [
+          "^dom/ipc/",
+          "^ipc/glue/"
+        ]
+      }
+    },
+    {
+      "id": "content-sandbox",
+      "classification": "security-core",
+      "state": "required",
+      "contract": "Content processes retain Gecko's native platform sandbox; Linux uses seccomp and Win64 retains the broker/target policy compiled into xul.dll.",
+      "checks": {
+        "config": {
+          "MOZ_SANDBOX": true
+        },
+        "graph_required": [
+          "^security/sandbox/"
+        ],
+        "platform_checks": {
+          "Linux": {
+            "files_required": [
+              "libmozsandbox.so"
+            ]
+          },
+          "WINNT": {
+            "files_required": [
+              "xul.dll"
+            ]
+          }
+        }
+      }
+    },
+    {
+      "id": "accessibility",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "contract": "Web content remains exposed through Gecko's platform accessibility implementation.",
+      "checks": {
+        "config": {
+          "ACCESSIBILITY": true
+        },
+        "graph_required": [
+          "^accessible/"
+        ]
+      }
+    },
+    {
+      "id": "media-playback",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "contract": "Decoded AV1, H.264/AAC, VP9, Opus and Vorbis playback plus cross-process DOM fullscreen remain part of every current desktop browsing profile; Unix H.264/AAC requires an FFmpeg major supported by the selected ESR.",
+      "checks": {
+        "graph_required": [
+          "^dom/media/",
+          "^media/ffvpx/",
+          "^media/libaom/",
+          "^media/libdav1d/",
+          "^media/libmkv/",
+          "^media/libogg/",
+          "^media/libopus/",
+          "^media/libvpx/",
+          "^media/libvorbis/",
+          "^media/psshparser/"
+        ],
+        "omni_required": [
+          "modules/DesktopFullscreenChild.sys.mjs",
+          "modules/DesktopFullscreenParent.sys.mjs"
+        ],
+        "omni_content_required": {
+          "modules/DesktopEmbedderActorRegistry.sys.mjs": [
+            "registerWindowActor\\(\"DesktopFullscreen\""
+          ],
+          "modules/DesktopFullscreenChild.sys.mjs": [
+            "handleFullscreenRequests\\(\\)",
+            "MozDOMFullscreen:Request"
+          ],
+          "modules/DesktopFullscreenParent.sys.mjs": [
+            "remoteFrameFullscreenChanged\\(",
+            "remoteFrameFullscreenReverted\\("
+          ]
+        }
+      }
+    },
+    {
+      "id": "encrypted-media",
+      "classification": "excluded-web-capability",
+      "state": "excluded",
+      "contract": "Encrypted Media Extensions, ClearKey and packaged CDMs are absent from Navis 1.0 and cannot be restored with a content preference.",
+      "checks": {
+        "config": {
+          "MOZ_EME_API": false
+        },
+        "graph_forbidden": [
+          "^dom/media/eme/clearkey/",
+          "^dom/media/fake-cdm/",
+          "^media/gmp-clearkey/"
+        ],
+        "files_forbidden": [
+          "(?i)(^|/)gmp-(?:clearkey|widevinecdm(?:-l1)?)(?:/|$)"
+        ],
+        "omni_forbidden": [
+          "^chrome/toolkit/content/global/gmp-sources/(?:widevinecdm(?:_l1)?|openh264)\\.json$",
+          "^modules/(?:GMPExtractor\\.worker\\.js|GMPInstallManager|GMPUtils)\\.sys\\.mjs$",
+          "^modules/addons/GMPProvider\\.sys\\.mjs$"
+        ],
+        "omni_content_forbidden": {
+          "components/components.manifest": [
+            "category addon-provider-module GMPProvider"
+          ]
+        }
+      }
+    },
+    {
+      "id": "web-push",
+      "classification": "excluded-web-capability",
+      "state": "excluded",
+      "contract": "PushManager, push service-worker events and the provider-backed Push runtime are absent from Navis 1.0 and cannot be restored with a content preference.",
+      "checks": {
+        "config": {
+          "MOZ_WEB_PUSH": false
+        },
+        "graph_forbidden": [
+          "^dom/push/"
+        ],
+        "omni_forbidden": [
+          "^modules/(?:ChromePushSubscription|Push(?:BroadcastService|Components|Crypto|DB|Record|Service|ServiceWebSocket)?)\\.sys\\.mjs$"
+        ]
+      }
+    },
+    {
+      "id": "safe-browsing-reputation",
+      "classification": "excluded-product-capability",
+      "state": "excluded",
+      "contract": "Safe Browsing providers, update clients, malware/phishing tables and download reputation are absent from Navis 1.0; TLS, certificate validation and the generic URL-classifier substrate remain.",
+      "checks": {
+        "config": {
+          "MOZ_SAFE_BROWSING": false
+        },
+        "graph_forbidden": [
+          "^toolkit/components/reputationservice/"
+        ],
+        "omni_forbidden": [
+          "(?i)aboutUrlClassifier",
+          "^modules/(?:SafeBrowsing|UrlClassifierHashCompleter|UrlClassifierLib|UrlClassifierListManager|UrlClassifierRemoteSettingsService)\\.sys\\.mjs$"
+        ],
+        "omni_content_forbidden": {
+          "greprefs.js": [
+            "browser\\.safebrowsing\\.",
+            "urlclassifier\\.(?:malwareTable|phishTable|downloadBlockTable|downloadAllowTable)",
+            "safebrowsing\\.provider\\."
+          ]
+        }
+      }
+    },
+    {
+      "id": "jpeg-xl-image-decoding",
+      "classification": "optional-web-capability",
+      "state": "candidate",
+      "contract": "The compiled JPEG XL decoder is available when a product explicitly enables Gecko's opt-in image.jxl.enabled preference.",
+      "checks": {
+        "config": {
+          "MOZ_JXL": true
+        },
+        "graph_required": [
+          "^image/rust/jxl/"
+        ]
+      }
+    },
+    {
+      "id": "webgpu",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "contract": "The Navis 1.0 baseline retains WebGPU WebIDL, DOM, Canvas/IPC, wgpu, and composition integration; exposure still follows the selected ESR's compatibility policy.",
+      "checks": {
+        "graph_required": [
+          "^dom/webgpu/",
+          "^gfx/wgpu_bindings/"
+        ]
+      }
+    },
+    {
+      "id": "media-capture",
+      "classification": "declared-web-capability",
+      "state": "excluded",
+      "contract": "Real camera/microphone capture and its product permission/indicator actors are absent from the Navis 1.0 baseline; ordinary media playback remains available.",
+      "checks": {
+        "config": {
+          "MOZ_WEBRTC": false
+        },
+        "omni_forbidden": [
+          "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
+          "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
+        ],
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
+            "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
+          ]
+        },
+        "omni_content_forbidden": {
+          "defaults/pref/navis.js": [
+            "^#ifn?def MOZ_WEBRTC$"
+          ]
+        }
+      }
+    },
+    {
+      "id": "webrtc-peer-connection",
+      "classification": "declared-web-capability",
+      "state": "excluded",
+      "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent from the Navis 1.0 baseline.",
+      "checks": {
+        "config": {
+          "MOZ_WEBRTC": false
+        },
+        "graph_forbidden": [
+          "^media/webrtc/",
+          "^third_party/libwebrtc/"
+        ],
+        "generated_required": {
+          "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+            "MediaEngineFake\\.cpp",
+            "MediaEngineSource\\.cpp",
+            "MediaTrackConstraints\\.cpp"
+          ]
+        },
+        "generated_forbidden": {
+          "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
+            "MediaEngineRemoteVideoSource\\.cpp",
+            "MediaEngineWebRTCAudio\\.cpp",
+            "RTCCertificate\\.cpp",
+            "RTCIdentityProviderRegistrar\\.cpp",
+            "PWebrtcGlobal(Child|Parent)?\\.cpp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "webauthn",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "contract": "Passkeys, security-key authentication and conditional mediation remain available to web content through Gecko's native backends and the bounded Navis presentation contract.",
+      "checks": {
+        "graph_required": [
+          "^dom/webauthn/"
+        ],
+        "omni_required": [
+          "modules/DesktopCredentialChild.sys.mjs",
+          "modules/DesktopCredentialParent.sys.mjs",
+          "modules/DesktopWebAuthnPrompt.sys.mjs",
+          "modules/DesktopEngine.sys.mjs"
+        ],
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "security\\.webauth\\.webauthn\", true, locked",
+            "security\\.webauthn\\.enable_conditional_mediation\", true, locked",
+            "security\\.webauth\\.webauthn_enable_softtoken\", false, locked",
+            "security\\.webauth\\.webauthn_enable_usbtoken\", true, locked"
+          ],
+          "modules/DesktopCredentialParent.sys.mjs": [
+            "hasPendingConditionalGet",
+            "selectAutoFillEntry",
+            "resumeConditionalGet"
+          ],
+          "modules/DesktopEngine.sys.mjs": [
+            "setWebAuthnDelegate",
+            "projectConditionalWebAuthnDescriptor"
+          ]
+        }
+      }
+    },
+    {
+      "id": "deferred-browser-mediated-web-apis",
+      "classification": "deferred-web-capability",
+      "state": "excluded",
+      "contract": "Navis 1.0 retains the pinned ESR source for browser-mediated device, headset, payment, federated-identity and digital-credential APIs but exposes none of them to content until a later capability decision supplies the corresponding product permission, chooser and lifecycle contracts.",
+      "checks": {
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"dom\\.webmidi\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.webmidi\\.gated\", true, locked\\);",
+            "pref\\(\"dom\\.webserial\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.webserial\\.gated\", true, locked\\);",
+            "pref\\(\"dom\\.vr\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.vr\\.webxr\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.payments\\.request\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.security\\.credentialmanagement\\.digital\\.enabled\", false, locked\\);",
+            "pref\\(\"dom\\.security\\.credentialmanagement\\.identity\\.enabled\", false, locked\\);"
+          ]
+        }
+      }
+    },
+    {
+      "id": "shared-rust-control-core",
+      "classification": "core-runtime",
+      "state": "required",
+      "contract": "Runtime, Session, and View identity, ownership, activation, binding, crash state, and shutdown are linked from the platform-neutral Navis Core state machine.",
+      "checks": {
+        "rust_graph_required": [
+          "^navis-core/rust/(?:runtime|ffi)/"
+        ]
+      }
+    },
+    {
+      "id": "desktop-history",
+      "classification": "embedder-service",
+      "state": "required",
+      "contract": "Gecko visited-link/Fission history semantics are backed by the embedder HistoryDelegate rather than Places.",
+      "checks": {
+        "config": {
+          "MOZ_DESKTOP_EMBEDDER_HISTORY": true,
+          "MOZ_PLACES": false
+        },
+        "graph_forbidden": [
+          "^toolkit/components/places/Unified_"
+        ],
+        "omni_forbidden": [
+          "^modules/PlacesUtils\\.sys\\.mjs$"
+        ]
+      }
+    },
+    {
+      "id": "firefox-frontend",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Firefox browser UI and product services are not dependencies of the Desktop Embedder core.",
+      "checks": {
+        "graph_forbidden": [
+          "^browser/(?!app/winlauncher/)"
+        ],
+        "omni_forbidden": [
+          "^browser/",
+          "^chrome/browser/"
+        ]
+      }
+    },
+    {
+      "id": "application-services",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Firefox Accounts, Sync, suggestions and the desktop Application Services aggregation are product choices.",
+      "checks": {
+        "graph_forbidden": [
+          "^services/(fxaccounts|sync)/"
+        ],
+        "omni_forbidden": [
+          "(^|/)(FxAccounts|SyncedBookmarksMirror|PlacesSyncUtils)[^/]*\\.sys\\.mjs$"
+        ]
+      }
+    },
+    {
+      "id": "observability-runtime",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "No executable Glean/FOG, legacy Telemetry, DAP, Gecko Trace, collection, storage, archive, or submission pipeline is present; only constant-off ABI/process-clock compatibility surfaces remain.",
+      "checks": {
+        "config": {
+          "MOZ_OBSERVABILITY_RUNTIME": false
+        },
+        "graph_forbidden": [
+          "^third_party/opentelemetry-cpp/",
+          "^toolkit/components/glean/xpcom/",
+          "^toolkit/components/glean/Unified_cpp_components_glean1\\.cpp$",
+          "^toolkit/components/telemetry/dap/",
+          "^toolkit/components/telemetry/pingsender/"
+        ],
+        "generated_required": {
+          "toolkit/components/telemetry/backend.mk": [
+            "TelemetryNoop\\.cpp"
+          ],
+          "toolkit/components/telemetry/Unified_cpp_telemetry0.cpp": [
+            "TelemetryIPCAccumulatorStub\\.cpp",
+            "TelemetryIPCStub\\.cpp",
+            "CombinedStacks\\.cpp",
+            "ProcessedStack\\.cpp"
+          ]
+        },
+        "generated_forbidden": {
+          "toolkit/components/telemetry/backend.mk": [
+            "DIRS := pingsender",
+            "ArtifactDefinitions\\.json",
+            "TelemetryStartup\\.manifest"
+          ],
+          "toolkit/components/telemetry/Unified_cpp_telemetry0.cpp": [
+            "/Stopwatch\\.cpp\"",
+            "/Telemetry\\.cpp\"",
+            "/TelemetryCommon\\.cpp\"",
+            "/TelemetryEvent\\.cpp\"",
+            "/TelemetryHistogram\\.cpp\"",
+            "/TelemetryScalar\\.cpp\"",
+            "/TelemetryUserInteraction\\.cpp\"",
+            "/TelemetryIPC\\.cpp\"",
+            "/TelemetryIPCAccumulator\\.cpp\"",
+            "TelemetryIOInterposeObserver\\.cpp"
+          ],
+          "toolkit/components/antitracking/Unified_cpp_antitracking0.cpp": [
+            "ContentBlockingTelemetryService\\.cpp"
+          ],
+          "toolkit/library/rust/backend.mk": [
+            "gkrust-shared/observability_runtime"
+          ]
+        },
+        "files_forbidden": [
+          "(?i)(^|/)pingsender(?:\\.exe)?$"
+        ],
+        "omni_forbidden": [
+          "^chrome/toolkit/content/global/about(?:Glean|Telemetry)[^/]*$",
+          "^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\\.sys\\.mjs$",
+          "^modules/backgroundtasks/BackgroundTask_pingsender\\.sys\\.mjs$"
+        ],
+        "omni_content_forbidden": {
+          "modules/services-settings/UptakeTelemetry.sys.mjs": [
+            "\\bGlean\\."
+          ]
+        },
+        "omni_content_required": {
+          "modules/services-settings/UptakeTelemetry.sys.mjs": [
+            "^\\s*return;$"
+          ],
+          "defaults/pref/navis.js": [
+            "pref\\(\"datareporting\\.healthreport\\.uploadEnabled\", false, locked\\);",
+            "pref\\(\"toolkit\\.telemetry\\.enabled\", false, locked\\);",
+            "pref\\(\"toolkit\\.telemetry\\.archive\\.enabled\", false, locked\\);",
+            "pref\\(\"toolkit\\.telemetry\\.server\", \"\", locked\\);",
+            "pref\\(\"toolkit\\.coverage\\.enabled\", false, locked\\);"
+          ]
+        },
+        "rust_graph_forbidden": [
+          "^toolkit/components/glean/api/",
+          "^third_party/rust/firefox-on-glean/"
+        ]
+      }
+    },
+    {
+      "id": "local-machine-learning",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "ONNX Runtime, llama.cpp inference, translations and Firefox local-ML features are absent.",
+      "checks": {
+        "config": {
+          "MOZ_LOCAL_ML": false
+        },
+        "graph_forbidden": [
+          "^toolkit/components/ml/",
+          "^dom/(ai|ml)/"
+        ],
+        "files_forbidden": [
+          "(?i)(onnxruntime|mozinference)"
+        ],
+        "omni_forbidden": [
+          "(^|/)(MLEngine|ModelHubProvider)[^/]*$"
+        ]
+      }
+    },
+    {
+      "id": "firefox-credential-product-stack",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Firefox password storage, autofill and credential capture remain absent; Navis supplies a separate bounded local credential capability.",
+      "checks": {
+        "graph_forbidden": [
+          "^toolkit/components/passwordmgr/",
+          "^toolkit/components/formautofill/"
+        ],
+        "omni_forbidden": [
+          "(^|/)(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\\.sys\\.mjs$"
+        ]
+      }
+    },
+    {
+      "id": "navis-local-credential-manager",
+      "classification": "product-capability",
+      "state": "required",
+      "contract": "Navis owns encrypted profile-scoped credential storage, content capture/autofill binding and explicit Platform management without Firefox Login Manager or account sync.",
+      "checks": {
+        "graph_required": [
+          "^desktop-embedder/",
+          "^navis/"
+        ],
+        "omni_required": [
+          "modules/DesktopCredentialChild.sys.mjs",
+          "modules/DesktopCredentialParent.sys.mjs",
+          "modules/DesktopEngine.sys.mjs",
+          "modules/DesktopProfileStore.sys.mjs"
+        ],
+        "omni_content_required": {
+          "modules/DesktopEngine.sys.mjs": [
+            "passwordManager: true",
+            "async listCredentials\\(",
+            "async revealCredential\\(",
+            "fillCredential\\(id\\)"
+          ],
+          "modules/DesktopProfileStore.sys.mjs": [
+            "CREATE TABLE IF NOT EXISTS credentials",
+            "asyncEncryptBytes",
+            "asyncDecryptBytes",
+            "credential-key-id"
+          ]
+        }
+      }
+    },
+    {
+      "id": "printing",
+      "classification": "optional-web-capability",
+      "state": "excluded",
+      "contract": "Printing and print-preview are not promised by the current runtime profile.",
+      "checks": {
+        "config": {
+          "NS_PRINTING": false
+        },
+        "generated_forbidden": {
+          "dom/bindings/WindowBinding.cpp": [
+            "JS_FNSPEC\\(\"print\"",
+            "MOZ_KnownLive\\(self\\)->Print\\("
+          ]
+        },
+        "graph_forbidden": [
+          "^gfx/thebes/PrintTargetWindows\\.cpp$",
+          "^layout/printing/",
+          "^toolkit/components/printing/"
+        ],
+        "omni_forbidden": [
+          "(^|/)(Printing|PrintUtils)[^/]*\\.sys\\.mjs$"
+        ]
+      }
+    },
+    {
+      "id": "development-automation",
+      "classification": "product-testability",
+      "state": "required",
+      "contract": "The production runtime retains loopback-only Gecko WebDriver BiDi and Marionette plus the minimal devtools/platform SpiderMonkey Debugger bridge needed by script realms; tests, geckodriver, DevTools client/server/shared/startup code and privileged parent-process access remain outside the package. Desktop Embedder registers no extension mutation commands; SetContext remains available for content automation but rejects chrome context in production.",
+      "checks": {
+        "config": {
+          "ENABLE_TESTS": false,
+          "ENABLE_WEBDRIVER": true,
+          "MOZ_DEVTOOLS": "none"
+        },
+        "graph_required": [
+          "^remote/",
+          "^testing/marionette/",
+          "^devtools/platform/"
+        ],
+        "graph_forbidden": [
+          "^devtools/(?!platform(?:/|$))"
+        ],
+        "omni_required": [
+          "chrome/remote/content/components/Marionette.sys.mjs",
+          "chrome/remote/content/components/RemoteAgent.sys.mjs",
+          "chrome/remote/content/marionette/driver.sys.mjs",
+          "chrome/remote/content/shared/TabManager.sys.mjs",
+          "chrome/remote/content/shared/UserContextManager.sys.mjs",
+          "chrome/toolkit/content/extensions/parent/ext-storage.js",
+          "modules/AppConstants.sys.mjs",
+          "modules/jsdebugger.sys.mjs",
+          "chrome/remote/content/webdriver-bidi/WebDriverBiDi.sys.mjs"
+        ],
+        "omni_forbidden": [
+          "^chrome/remote/content/shared/Addon\\.sys\\.mjs$",
+          "^chrome/remote/content/webdriver-bidi/modules/root/webExtension\\.sys\\.mjs$"
+        ],
+        "omni_content_required": {
+          "chrome/remote/content/components/RemoteAgent.sys.mjs": [
+            "\\(!AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\|\\|\\s*AppConstants\\.ENABLE_TESTS\\)[\\s\\S]*?Services\\.env\\.exists\\(ENV_ALLOW_SYSTEM_ACCESS\\)",
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*&&\\s*!AppConstants\\.ENABLE_TESTS\\) \\{[\\s\\S]*?return;"
+          ],
+          "chrome/remote/content/marionette/driver.sys.mjs": [
+            "\\.\\.\\.\\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\?\\s*\\{\\}\\s*:\\s*\\{\\s*Addon:",
+            "if \\(!AppConstants\\.MOZ_DESKTOP_EMBEDDER\\)\\s*\\{\\s*lazy\\.Addon\\.cleanupTemporaryAddonFiles\\(\\);",
+            "\\.\\.\\.\\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\?\\s*\\{\\}\\s*:\\s*\\{[\\s\\S]*?Addon:Install[\\s\\S]*?Addon:Uninstall",
+            "\\\"Marionette:SetContext\\\":\\s*GeckoDriver\\.prototype\\.setContext"
+          ],
+          "chrome/toolkit/content/extensions/parent/ext-storage.js": [
+            "!AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\|\\|\\s*!AppConstants\\.ENABLE_TESTS",
+            "extensions\\.applicationBuiltins\\.testManagedStorage"
+          ],
+          "modules/AppConstants.sys.mjs": [
+            "ENABLE_TESTS:[\\s\\S]{0,120}?false,"
+          ],
+          "chrome/remote/content/webdriver-bidi/modules/ModuleRegistry.sys.mjs": [
+            "\\.\\.\\.\\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\?\\s*\\{\\}\\s*:\\s*\\{\\s*webExtension:"
+          ],
+          "chrome/remote/content/shared/TabManager.sys.mjs": [
+            "class DesktopEmbedderTabBrowser",
+            "DesktopExtensionTabs\\.sys\\.mjs",
+            "addEventListener\\(\\.\\.\\.args\\)",
+            "removeEventListener\\(\\.\\.\\.args\\)",
+            "getMostRecentWindow\\(\\)",
+            "AppConstants\\.MOZ_DESKTOP_EMBEDDER \\|\\|"
+          ],
+          "chrome/remote/content/shared/UserContextManager.sys.mjs": [
+            "AppConstants\\.MOZ_DESKTOP_EMBEDDER",
+            "Desktop Embedder exposes only the default user context",
+            "if \\(!AppConstants\\.MOZ_DESKTOP_EMBEDDER\\)"
+          ],
+          "modules/DesktopEngine.sys.mjs": [
+            "browser-idle-startup-tasks-finished"
+          ]
+        },
+        "files_forbidden": [
+          "(^|/)(geckodriver|xpcshell)(\\.exe)?$"
+        ]
+      }
+    },
+    {
+      "id": "updater-crash-submission",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Mozilla's updater, maintenance background-task runner, and crash-submission product services are not inherited by Navis.",
+      "checks": {
+        "config": {
+          "MOZ_BACKGROUNDTASKS": false,
+          "MOZ_BITS_DOWNLOAD": false,
+          "MOZ_CRASHREPORTER": false,
+          "MOZ_UPDATER": false
+        },
+        "graph_forbidden": [
+          "^toolkit/components/backgroundtasks/",
+          "^toolkit/components/bitsdownload/",
+          "^toolkit/mozapps/update/updater/"
+        ],
+        "files_forbidden": [
+          "(^|/)(crashreporter|updater)(\\.exe)?$"
+        ]
+      }
+    },
+    {
+      "id": "webextension-policy-substrate",
+      "classification": "security-core",
+      "state": "retained-substrate",
+      "contract": "Gecko's moz-extension URI policy, match-pattern security checks, shared extension IPC types and Necko StreamFilter endpoints remain both for core Gecko consumers and the restricted application-built-in runtime.",
+      "checks": {
+        "graph_required": [
+          "^toolkit/components/extensions/Unified_cpp_extensions0\\.cpp$",
+          "^toolkit/components/extensions/webrequest/Unified_cpp_webrequest0\\.cpp$"
+        ],
+        "generated_required": {
+          "toolkit/components/extensions/Unified_cpp_extensions0.cpp": [
+            "ExtensionPolicyService\\.cpp",
+            "MatchPattern\\.cpp",
+            "WebExtensionPolicy\\.cpp"
+          ],
+          "toolkit/components/extensions/webrequest/Unified_cpp_webrequest0.cpp": [
+            "StreamFilterParent\\.cpp",
+            "PStreamFilterChild\\.cpp",
+            "PStreamFilterParent\\.cpp"
+          ]
+        }
+      }
+    },
+    {
+      "id": "webextensions-runtime",
+      "classification": "core-private-product-substrate",
+      "state": "required",
+      "contract": "XPIProvider, remote application/profile extension lifecycle, the Navis 1.0 browser.* compatibility profile, extension storage and network interception are retained for reviewed built-ins and signed user-selected local XPI packages.",
+      "checks": {
+        "config": {
+          "MOZ_WEBEXTENSIONS_RUNTIME": true
+        },
+        "graph_required": [
+          "^toolkit/components/extensions/(schemas|storage|webidl-api)/",
+          "^toolkit/mozapps/extensions/Unified_cpp_mozapps_extensions"
+        ],
+        "generated_required": {
+          "toolkit/components/extensions/webrequest/Unified_cpp_webrequest0.cpp": [
+            "ChannelWrapper\\.cpp",
+            "webrequest/StreamFilterChild\\.cpp",
+            "StreamFilterEvents\\.cpp",
+            "WebNavigationContent\\.cpp",
+            "WebRequestService\\.cpp"
+          ]
+        },
+        "omni_required": [
+          "chrome/navis-extensions/content/ext-tabs.js",
+          "chrome/toolkit/content/extensions/ext-browser-content.js",
+          "modules/DesktopExtensionManager.sys.mjs",
+          "modules/DesktopExtensionActions.sys.mjs",
+          "modules/DesktopExtensionPopupHost.sys.mjs",
+          "modules/Extension.sys.mjs",
+          "modules/ExtensionParent.sys.mjs",
+          "modules/ExtensionStorage.sys.mjs",
+          "modules/Schemas.sys.mjs",
+          "modules/addons/XPIProvider.sys.mjs",
+          "chrome/toolkit/content/extensions/parent/ext-storage.js"
+        ],
+        "omni_content_required": {
+          "chrome/toolkit/content/extensions/parent/ext-storage.js": [
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\) \\{[\\s\\S]*?return null;"
+          ],
+          "components/components.manifest": [
+            "^category webextension-modules navis chrome://navis-extensions/content/ext-navis\\.json$",
+            "^category webextension-scripts c-navis chrome://navis-extensions/content/ext-navis\\.js$",
+            "^category webextension-scripts-addon navis chrome://navis-extensions/content/ext-c-navis\\.js$"
+          ]
+        },
+        "files_required": [
+          "extensions/uBlock0@raymondhill.net.xpi",
+          "builtin-extensions/extensions.json"
+        ]
+      }
+    },
+    {
+      "id": "local-extension-management",
+      "classification": "product-capability",
+      "state": "required",
+      "contract": "Navis exposes signed profile-extension installation, inspection, enable/disable, local-XPI update and uninstall only through navis://extensions; Web/MIME installation, foreign directory sideloading, an online store and autonomous code updates remain absent.",
+      "checks": {
+        "generated_forbidden": {
+          "dom/bindings/WindowBinding.cpp": [
+            "get_InstallTrigger\\(",
+            "JSPropertySpec::nativeAccessors\\(\"InstallTrigger\""
+          ]
+        },
+        "omni_forbidden": [
+          "^chrome/toolkit/content/mozapps/extensions/(?!OpenH264-license\\.txt$)",
+          "^chrome/toolkit/skin/classic/mozapps/extensions/",
+          "^modules/(AbuseReporter|ColorwayThemeMigration|LightweightThemeManager|amContentHandler|amWebAPI)\\.sys\\.mjs$"
+        ],
+        "omni_content_required": {
+          "chrome/toolkit/content/extensions/parent/ext-storage.js": [
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\) \\{[\\s\\S]*?return null;"
+          ],
+          "modules/addons/XPIProvider.sys.mjs": [
+            "!AppConstants\\.MOZ_DESKTOP_EMBEDDER"
+          ],
+          "defaults/pref/navis.js": [
+            "pref\\(\"xpinstall\\.enabled\", false, locked\\);",
+            "pref\\(\"extensions\\.enabledScopes\", 4, locked\\);",
+            "pref\\(\"extensions\\.sideloadScopes\", 0, locked\\);",
+            "pref\\(\"extensions\\.update\\.enabled\", false, locked\\);",
+            "pref\\(\"extensions\\.systemAddon\\.update\\.enabled\", false, locked\\);",
+            "pref\\(\"extensions\\.webextensions\\.remote\", true, locked\\);"
+          ]
+        }
+      }
+    },
+    {
+      "id": "extension-native-messaging",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Built-in extensions cannot request or reach native messaging hosts; Desktop Embedder omits host discovery, bridge modules, portal registration and the native portal interface.",
+      "checks": {
+        "graph_forbidden": [
+          "NativeMessagingPortal\\.cpp"
+        ],
+        "omni_forbidden": [
+          "^modules/NativeManifests\\.sys\\.mjs$",
+          "^modules/NativeMessaging\\.sys\\.mjs$"
+        ],
+        "files_forbidden": [
+          "(^|/)(NativeMessagingHosts|native-messaging-hosts)(/|$)"
+        ]
+      }
+    },
+    {
+      "id": "native-geolocation-and-notifications",
+      "classification": "platform-contract",
+      "state": "required",
+      "contract": "Geolocation retains the Web permission/API boundary but acquires coordinates only from operating-system providers; Web Notifications are delivered through the operating-system notification center. No Google/Mozilla network-geolocation fallback is reachable.",
+      "checks": {
+        "graph_required": [
+          "^dom/geolocation/"
+        ],
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"geo\\.provider\\.native_only\", true, locked\\);",
+            "pref\\(\"geo\\.provider\\.use_mls\", false, locked\\);",
+            "pref\\(\"alerts\\.useSystemBackend\", true, locked\\);"
+          ]
+        },
+        "platform_checks": {
+          "Linux": {
+            "graph_required": [
+              "^dom/system/linux/",
+              "^toolkit/system/gnome/"
+            ],
+            "omni_content_required": {
+              "defaults/pref/navis.js": [
+                "pref\\(\"geo\\.provider\\.use_geoclue\", true, locked\\);"
+              ]
+            }
+          },
+          "WINNT": {
+            "graph_required": [
+              "^dom/system/windows/location/",
+              "^widget/windows/backend\\.mk$"
+            ],
+            "generated_required": {
+              "widget/windows/backend.mk": [
+                "^CPPSRCS \\+= \\$\\(srcdir\\)/ToastNotification\\.cpp$",
+                "^CPPSRCS \\+= \\$\\(srcdir\\)/ToastNotificationHandler\\.cpp$"
+              ]
+            },
+            "omni_content_required": {
+              "defaults/pref/navis.js": [
+                "pref\\(\"geo\\.provider\\.ms-windows-location\", true, locked\\);",
+                "pref\\(\"geo\\.provider\\.use_winrt\", true, locked\\);"
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "native-windows-replay",
+      "classification": "platform-contract",
+      "state": "required",
+      "contract": "The current default reduced runtime must build and replay on native Windows with launcher, View, Fission, and sandbox behavior intact."
+    }
+  ]
+}

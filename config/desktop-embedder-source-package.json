@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "package_name": "desktop-gecko-embedder",
+  "version": "0.8.1",
+  "source_api_version": 2,
+  "upstream_pin": "vendor/gecko.json",
+  "semantic_ports": "config/gecko-semantic-ports.json",
+  "license": "LICENSE",
+  "readme": "docs/desktop-embedder-source-package.md",
+  "includes": [
+    {
+      "path": "LICENSE",
+      "role": "license"
+    },
+    {
+      "path": "embedder",
+      "role": "runtime-session-view-delegate-source"
+    },
+    {
+      "path": "core/rust/Cargo.toml",
+      "role": "platform-neutral-lifecycle-core-workspace"
+    },
+    {
+      "path": "core/rust/Cargo.lock",
+      "role": "platform-neutral-lifecycle-core-lockfile"
+    },
+    {
+      "path": "core/rust/runtime",
+      "role": "platform-neutral-lifecycle-core"
+    },
+    {
+      "path": "core/rust/ffi",
+      "role": "private-core-ffi"
+    },
+    {
+      "path": "patches/gecko",
+      "role": "selected-esr-semantic-adapter"
+    },
+    {
+      "path": "vendor/gecko.json",
+      "role": "selected-upstream-pin"
+    },
+    {
+      "path": "vendor/gecko-153.0.json",
+      "role": "validated-security-update-base-pin"
+    },
+    {
+      "path": "config/gecko-semantic-ports.json",
+      "role": "semantic-port-ledger"
+    },
+    {
+      "path": "config/gecko-esr-review-routes.json",
+      "role": "upstream-update-review-routing"
+    },
+    {
+      "path": "config/desktop-embedder-source-package.json",
+      "role": "source-package-definition"
+    },
+    {
+      "path": "scripts/prepare-desktop-embedder.py",
+      "role": "generic-gecko-bootstrap"
+    },
+    {
+      "path": "scripts/review-gecko-esr-update.py",
+      "role": "upstream-update-review-tool"
+    },
+    {
+      "path": "scripts/inject-embedder-shell-into-omnijar.sh",
+      "role": "cross-platform-conformance-harness"
+    },
+    {
+      "path": "scripts/m2-server.py",
+      "role": "cross-platform-conformance-harness"
+    },
+    {
+      "path": "scripts/navis-webdriver.py",
+      "role": "cross-platform-content-automation-client"
+    },
+    {
+      "path": "scripts/verify-core-abi.py",
+      "role": "cross-architecture-core-abi-gate"
+    },
+    {
+      "path": "tests/test_review_gecko_esr_update.py",
+      "role": "upstream-update-review-tool-test"
+    },
+    {
+      "path": "tests/embedder-shell",
+      "role": "product-independent-api-conformance-shell"
+    },
+    {
+      "path": "tests/m2-site",
+      "role": "cross-platform-web-contract-fixture"
+    },
+    {
+      "path": "scripts/package-embedder-source.py",
+      "role": "source-package-builder-verifier"
+    },
+    {
+      "path": "docs",
+      "role": "public-source-contracts"
+    }
+  ],
+  "forbidden_archive_prefixes": [
+    "artifacts/",
+    "gecko/",
+    "logs/",
+    "navis/",
+    "product/"
+  ]
+}

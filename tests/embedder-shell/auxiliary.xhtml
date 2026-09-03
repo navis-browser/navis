@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- This Source Code Form is subject to the terms of the Mozilla Public
+   - License, v. 2.0. If a copy of the MPL was not distributed with this
+   - file, You can obtain one at http://mozilla.org/MPL/2.0/. -->
+<!DOCTYPE html>
+<html
+  xmlns="http://www.w3.org/1999/xhtml"
+  id="desktop-embedder-auxiliary-shell"
+  windowtype="desktop-embedder:test-auxiliary"
+  width="320"
+  height="240"
+>
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'none'; style-src 'unsafe-inline'"
+    />
+    <title>Desktop Gecko Embedder auxiliary window</title>
+    <style>
+      html,
+      body,
+      #view-host {
+        display: flex;
+        flex: 1;
+        height: 100%;
+        margin: 0;
+        min-height: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="view-host"></main>
+  </body>
+</html>

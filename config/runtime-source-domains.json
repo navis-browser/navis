@@ -1,0 +1,513 @@
+{
+  "schema_version": 1,
+  "description": "Ordered ownership and capability-domain allowlist for every configured native source and RecursiveMake backend entry in the Desktop Gecko Embedder runtime.",
+  "forbidden_patterns": [
+    "^@foreign-generated(?:/|$)",
+    "^(?:@generated/)?browser/(?!app/winlauncher(?:/|$))",
+    "^(?:@generated/)?services/(?:fxaccounts|sync)(?:/|$)",
+    "^(?:@generated/)?toolkit/components/ml(?:/|$)",
+    "^(?:@generated/)?toolkit/components/places/Unified_",
+    "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)",
+    "^(?:@generated/)?devtools/(?!platform(?:/|$))"
+  ],
+  "domains": [
+    {
+      "id": "foreign-generated",
+      "classification": "invalid-build-provenance",
+      "state": "forbidden",
+      "patterns": [
+        "^@foreign-generated(?:/|$)"
+      ]
+    },
+    {
+      "id": "webdriver-automation",
+      "classification": "product-testability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?remote(?:/|$)",
+        "^(?:@generated/)?devtools/platform(?:/|$)",
+        "^(?:@generated/)?testing/(?:firefox-ui|marionette)(?:/|$)",
+        "^(?:@generated/)?toolkit/components/telemetry/tests/marionette(?:/|$)"
+      ]
+    },
+    {
+      "id": "webgpu",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?dom/webgpu(?:/|$)",
+        "^(?:@generated/)?gfx/wgpu_bindings(?:/|$)",
+        "^third_party/rust/(?:ash|gpu-allocator|naga|spirv|wgpu[^/]*)(?:/|$)"
+      ]
+    },
+    {
+      "id": "webrtc",
+      "classification": "optional-web-capability",
+      "state": "profile-dependent",
+      "patterns": [
+        "^(?:@generated/)?dom/media/(?:webrtc|webrtc-js)(?:/|$)",
+        "^(?:@generated/)?media/webrtc(?:/|$)",
+        "^(?:@generated/)?third_party/(?:libsrtp|libwebrtc|sipcc)(?:/|$)",
+        "^third_party/rust/(?:rsdparsa_capi|webrtc-sdp)(?:/|$)"
+      ]
+    },
+    {
+      "id": "jpeg-xl",
+      "classification": "optional-web-capability",
+      "state": "profile-dependent",
+      "patterns": [
+        "^(?:@generated/)?image/rust/jxl(?:/|$)",
+        "^third_party/rust/jxl[^/]*(?:/|$)"
+      ]
+    },
+    {
+      "id": "virtual-reality-xr",
+      "classification": "web-capability",
+      "state": "review-required",
+      "patterns": [
+        "^(?:@generated/)?(?:dom|gfx)/vr(?:/|$)"
+      ]
+    },
+    {
+      "id": "web-midi",
+      "classification": "web-capability",
+      "state": "review-required",
+      "patterns": [
+        "^(?:@generated/)?dom/midi(?:/|$)"
+      ]
+    },
+    {
+      "id": "device-and-specialized-web-apis",
+      "classification": "web-capability",
+      "state": "review-required",
+      "patterns": [
+        "^(?:@generated/)?dom/(?:battery|documentpip|gamepad|geolocation|modelcontext|payments|privateattribution|webserial|webtransport)(?:/|$)"
+      ]
+    },
+    {
+      "id": "spellcheck",
+      "classification": "optional-toolkit-capability",
+      "state": "review-required",
+      "patterns": [
+        "^(?:@generated/)?extensions/spellcheck(?:/|$)"
+      ]
+    },
+    {
+      "id": "content-analysis",
+      "classification": "product-integration",
+      "state": "review-required",
+      "patterns": [
+        "^(?:@generated/)?toolkit/components/contentanalysis(?:/|$)",
+        "^(?:@generated/)?third_party/content_analysis_sdk(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-codec-av1",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/(?:libaom|libdav1d)(?:/|$)",
+        "^(?:@generated/)?third_party/(?:aom|dav1d)(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-codec-vpx",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libvpx(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-codec-ffvpx",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/ffvpx(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-codec-opus",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libopus(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-codec-vorbis-ogg",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/(?:libogg|libvorbis)(?:/|$)"
+      ]
+    },
+    {
+      "id": "image-codec-jpeg",
+      "classification": "web-platform-core-format",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libjpeg(?:/|$)"
+      ]
+    },
+    {
+      "id": "image-codec-png",
+      "classification": "web-platform-core-format",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libpng(?:/|$)"
+      ]
+    },
+    {
+      "id": "image-codec-webp",
+      "classification": "web-platform-core-format",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libwebp(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-container-matroska",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libmkv(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-color-conversion",
+      "classification": "runtime-substrate",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/libyuv(?:/|$)"
+      ]
+    },
+    {
+      "id": "encrypted-media-clearkey",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?media/(?:gmp-clearkey|psshparser)(?:/|$)"
+      ]
+    },
+    {
+      "id": "navis-control-core",
+      "classification": "core-owned",
+      "state": "required",
+      "patterns": [
+        "^navis-core(?:/|$)"
+      ]
+    },
+    {
+      "id": "desktop-embedder",
+      "classification": "embedder-owned",
+      "state": "required",
+      "patterns": [
+        "^desktop-embedder(?:/|$)"
+      ]
+    },
+    {
+      "id": "navis-product",
+      "classification": "product-owned",
+      "state": "required-consumer",
+      "patterns": [
+        "^navis(?:/|$)"
+      ]
+    },
+    {
+      "id": "generated-native",
+      "classification": "generated-build-output",
+      "state": "derived",
+      "patterns": [
+        "^@generated(?:/|$)"
+      ]
+    },
+    {
+      "id": "build-metadata",
+      "classification": "build-only",
+      "state": "required-to-configure",
+      "patterns": [
+        "^@backend-meta(?:/|$)",
+        "^(?:_build_manifests|_tests|dist|python|taskcluster|testing)(?:/|$)"
+      ]
+    },
+    {
+      "id": "windows-launcher-substrate",
+      "classification": "platform-security-substrate",
+      "state": "required-on-windows",
+      "patterns": [
+        "^browser/app/winlauncher(?:/|$)"
+      ]
+    },
+    {
+      "id": "windows-rust-bindings",
+      "classification": "platform-runtime-substrate",
+      "state": "required-on-windows",
+      "patterns": [
+        "^@external/windows-rs(?:/|$)"
+      ]
+    },
+    {
+      "id": "observability-and-telemetry",
+      "classification": "constant-off-compatibility-facade",
+      "state": "retained-substrate",
+      "patterns": [
+        "^toolkit/components/(?:dap|gecko-trace|glean|telemetry)(?:/|$)",
+        "^third_party/application-services/components/(?:support/(?:error|tracing)|viaduct)(?:/|$)",
+        "^third_party/opentelemetry-cpp(?:/|$)"
+      ],
+      "reference_patterns": [
+        "#\\s*include\\s+[\"<]mozilla/glean/",
+        "#\\s*include\\s+[\"<]mozilla/Telemetry[^\">]*[\">]",
+        "#\\s*include\\s+[\"<]nsITelemetry\\.h[\">]",
+        "\\bmozilla::glean::",
+        "\\bGleanMetrics\\b",
+        "\\bGleanPings\\b",
+        "\\bTelemetry::",
+        "\\bTelemetryIPC\\b"
+      ]
+    },
+    {
+      "id": "web-security-and-privacy-services",
+      "classification": "web-security-substrate",
+      "state": "required",
+      "patterns": [
+        "^extensions/permissions(?:/|$)",
+        "^services/(?:common|crypto|interfaces|settings)(?:/|$)",
+        "^services/(?:Makefile|backend\\.mk)$",
+        "^toolkit/components/(?:antitracking|cascade_bloom_filter|cleardata|clearsitedata|content-classifier|credentialmanagement|doh|httpsonlyerror|reputationservice|resistfingerprinting|url-classifier)(?:/|$)"
+      ]
+    },
+    {
+      "id": "protobuf-abseil-runtime",
+      "classification": "shared-security-serialization-substrate",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/protobuf(?:/|$)",
+        "^third_party/abseil-cpp(?:/|$)"
+      ]
+    },
+    {
+      "id": "storage-and-session-state-runtime",
+      "classification": "runtime-storage-substrate",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/(?:contentprefs|kvstore|places|xulstore)(?:/|$)",
+        "^third_party/(?:skv|sqlite3)(?:/|$)"
+      ]
+    },
+    {
+      "id": "session-and-navigation-services",
+      "classification": "embedder-runtime-service",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/(?:autocomplete|browser|find|remotebrowserutils|sessionstore|statusfilter|typeaheadfind)(?:/|$)"
+      ]
+    },
+    {
+      "id": "prompt-and-desktop-integration",
+      "classification": "desktop-platform-service",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/(?:alerts|apppicker|downloads|parentalcontrols|prompts|tooltiptext|windowcreator|windowwatcher)(?:/|$)",
+        "^toolkit/mozapps/(?:downloads|handling)(?:/|$)",
+        "^toolkit/system/gnome(?:/|$)"
+      ]
+    },
+    {
+      "id": "native-notification-activation",
+      "classification": "desktop-platform-service",
+      "state": "required-on-windows",
+      "patterns": [
+        "^toolkit/mozapps/notificationserver(?:/|$)"
+      ]
+    },
+    {
+      "id": "startup-process-and-crash-runtime",
+      "classification": "process-lifecycle-substrate",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/(?:asyncshutdown|backgroundhangmonitor|commandlines|crashes|crashmonitor|finalizationwitness|processsingleton|processtools|remote|startup|terminator)(?:/|$)",
+        "^toolkit/(?:crashreporter|profile|xre)(?:/|$)",
+        "^toolkit/modules/subprocess(?:/|$)",
+        "^toolkit/mozapps/update(?:/|$)",
+        "^other-licenses/nsis/Contrib/CityHash(?:/|$)"
+      ]
+    },
+    {
+      "id": "extension-and-package-substrate",
+      "classification": "core-private-built-in-runtime",
+      "state": "required",
+      "patterns": [
+        "^extensions/pref(?:/|$)",
+        "^modules/(?:libjar|libpref)(?:/|$)",
+        "^toolkit/components/extensions(?:/|$)",
+        "^toolkit/mozapps/extensions(?:/|$)"
+      ]
+    },
+    {
+      "id": "network-auth-and-proxy-runtime",
+      "classification": "network-platform-substrate",
+      "state": "required",
+      "patterns": [
+        "^extensions/auth(?:/|$)",
+        "^toolkit/components/captivedetect(?:/|$)",
+        "^toolkit/system/(?:commonproxy|unixproxy|windowsDHCPClient|windowsproxy)(?:/|$)"
+      ]
+    },
+    {
+      "id": "toolkit-content-utilities",
+      "classification": "runtime-content-substrate",
+      "state": "required",
+      "patterns": [
+        "^extensions/universalchardet(?:/|$)",
+        "^modules/woff2(?:/|$)",
+        "^toolkit/components/(?:jsoncpp|media|mediasniffer|mozintl|mozprotocol|promiseworker|reflect|urlformatter|utils|workerloader)(?:/|$)"
+      ]
+    },
+    {
+      "id": "certificate-details-backend",
+      "classification": "security-identity-substrate",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/certviewer(?:/|$)"
+      ]
+    },
+    {
+      "id": "toolkit-engine-glue",
+      "classification": "engine-linkage-substrate",
+      "state": "required",
+      "patterns": [
+        "^toolkit/(?:Makefile|backend\\.mk)$",
+        "^toolkit/components/(?:Makefile|backend\\.mk)$",
+        "^toolkit/components/build(?:/|$)",
+        "^toolkit/(?:actors|content|library|locales|modules|themes)(?:/|$)"
+      ]
+    },
+    {
+      "id": "compression-runtime",
+      "classification": "engine-dependency",
+      "state": "required",
+      "patterns": [
+        "^modules/(?:brotli|zlib)(?:/|$)",
+        "^other-licenses/snappy(?:/|$)",
+        "^third_party/zstd(?:/|$)",
+        "^third_party/rust/zlib-rs(?:/|$)"
+      ]
+    },
+    {
+      "id": "math-and-javascript-kernels",
+      "classification": "engine-dependency",
+      "state": "required",
+      "patterns": [
+        "^modules/fdlibm(?:/|$)",
+        "^third_party/gemmology(?:/|$)"
+      ]
+    },
+    {
+      "id": "nspr-runtime",
+      "classification": "engine-portability-substrate",
+      "state": "required",
+      "patterns": [
+        "^nsprpub(?:/|$)"
+      ]
+    },
+    {
+      "id": "servo-style-engine",
+      "classification": "style-engine-core",
+      "state": "required",
+      "patterns": [
+        "^servo(?:/|$)"
+      ]
+    },
+    {
+      "id": "rust-internationalization-runtime",
+      "classification": "engine-internationalization-substrate",
+      "state": "required",
+      "patterns": [
+        "^third_party/rust/(?:icu_(?:collator|collator_data|collections|normalizer|normalizer_data|properties|properties_data)|utf16_iter|utf8_iter)(?:/|$)"
+      ]
+    },
+    {
+      "id": "rust-regex-runtime",
+      "classification": "engine-string-substrate",
+      "state": "required",
+      "patterns": [
+        "^third_party/rust/rure(?:/|$)"
+      ]
+    },
+    {
+      "id": "rust-build-generation",
+      "classification": "build-only",
+      "state": "required-to-build",
+      "patterns": [
+        "^third_party/python(?:/|$)",
+        "^third_party/rust/bindgen(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-playback-platform",
+      "classification": "media-runtime-substrate",
+      "state": "required",
+      "patterns": [
+        "^media/(?:libcubeb|libnestegg|libsoundtouch|libspeex_resampler|mozva|mp4parse-rust)(?:/|$)"
+      ]
+    },
+    {
+      "id": "media-sandbox-runtime",
+      "classification": "media-security-substrate",
+      "state": "required",
+      "patterns": [
+        "^third_party/(?:rlbox_wasm2c_sandbox|wasm2c)(?:/|$)"
+      ]
+    },
+    {
+      "id": "linux-capture-integration",
+      "classification": "optional-platform-capability",
+      "state": "profile-dependent",
+      "patterns": [
+        "^third_party/(?:drm|libepoxy|pipewire)(?:/|$)"
+      ]
+    },
+    {
+      "id": "linux-graphics-integration",
+      "classification": "platform-rendering-substrate",
+      "state": "required-on-linux",
+      "patterns": [
+        "^third_party/(?:gbm|wayland-proxy)(?:/|$)"
+      ]
+    },
+    {
+      "id": "runtime-vendor-support",
+      "classification": "engine-dependency",
+      "state": "required",
+      "patterns": [
+        "^third_party/(?:fmt|msgpack)(?:/|$)"
+      ]
+    },
+    {
+      "id": "runtime-tools",
+      "classification": "runtime-support",
+      "state": "review-required",
+      "patterns": [
+        "^tools(?:/|$)"
+      ]
+    },
+    {
+      "id": "build-support",
+      "classification": "build-only",
+      "state": "required-to-build",
+      "patterns": [
+        "^(?:build|config)(?:/|$)"
+      ]
+    },
+    {
+      "id": "gecko-engine-core",
+      "classification": "runtime-core",
+      "state": "required",
+      "patterns": [
+        "^(?:accessible|caps|chrome|docshell|dom|editor|gfx|hal|image|intl|ipc|js|layout|memory|mfbt|mozglue|netwerk|parser|security|startupcache|storage|uriloader|view|widget|xpcom|xpfe)(?:/|$)"
+      ]
+    }
+  ]
+}

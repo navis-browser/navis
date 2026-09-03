@@ -1,0 +1,21 @@
+# Vendor source and local build outputs
+/gecko/
+/.m3/
+/obj-*/
+/artifacts/
+/logs/
+
+# Local bootstrap/build state
+/.mozbuild/
+/.cache/
+
+# Editor and OS files
+.DS_Store
+*.swp
+__pycache__/
+*.py[cod]
+core/rust/target/
+
+# Private experiments and local orchestration
+/tools/
+/poc/
