@@ -204,8 +204,8 @@ def main() -> int:
     print("[OK] Navis publication repository set is coherent")
     for name, result in results.items():
         print(
-            f" - {name}: main={result['head'][:12]} "
-            f"v0.1.0={result['baseline'][:12]} remote=none"
+            f" - {name}: HEAD={result['head'][:12]} "
+            f"v0.1.0={result['baseline'][:12]}"
         )
     return 0
 
