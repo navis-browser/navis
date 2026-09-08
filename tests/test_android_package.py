@@ -23,7 +23,7 @@ SPEC.loader.exec_module(VERIFY)
 
 
 AAPT_OUTPUT = """\
-package: name='org.navis.browser.debug' versionCode='310390400' versionName='1.0.0-dev'
+package: name='org.navis.browser.debug' versionCode='310390400' versionName='0.2.0-dev'
 minSdkVersion:'26'
 targetSdkVersion:'36'
 application-label:'Navis'
@@ -116,13 +116,13 @@ def elf_aarch64(
                 intern("Mozilla"),
                 intern("Fennec"),
                 intern("fennec-default"),
-                intern("1.0.0"),
+                intern("0.2.0"),
                 intern(build_id),
                 intern("{3f72b8df-6865-4f75-9f26-fd8e39e954de}"),
                 0,
                 0,
-                intern("1.0.0"),
-                intern("1.0.0"),
+                intern("0.2.0"),
+                intern("0.2.0"),
                 intern(""),
                 0,
                 0,
@@ -317,9 +317,9 @@ class AndroidPackageTests(unittest.TestCase):
         self.root = Path(self.temporary.name)
         version_dir = self.root / "product/config"
         version_dir.mkdir(parents=True)
-        (version_dir / "version.txt").write_text("1.0.0\n", encoding="utf-8")
+        (version_dir / "version.txt").write_text("0.2.0\n", encoding="utf-8")
         (version_dir / "version_display.txt").write_text(
-            "1.0.0-dev\n", encoding="utf-8"
+            "0.2.0-dev\n", encoding="utf-8"
         )
         prefs_dir = self.root / "gecko/mobile/android/app"
         prefs_dir.mkdir(parents=True)
@@ -341,7 +341,7 @@ class AndroidPackageTests(unittest.TestCase):
         global AAPT_OUTPUT
         self.aapt_output = AAPT_OUTPUT.replace("310390400", str(self.version_code))
         self.apk = self.root / (
-            f"navis-1.0.0-dev-android-arm64-v8a-test-candidate-{self.build_id}.apk"
+            f"navis-0.2.0-dev-android-arm64-v8a-test-candidate-{self.build_id}.apk"
         )
         self.xul = (
             elf_aarch64(bytes.fromhex("11" * 20), self.build_id)

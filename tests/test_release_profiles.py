@@ -41,10 +41,10 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         (root / "scripts").mkdir()
         (root / "product/config").mkdir(parents=True)
         (root / "product/config/version.txt").write_text(
-            "1.0.0\n", encoding="utf-8"
+            "0.2.0\n", encoding="utf-8"
         )
         (root / "product/config/version_display.txt").write_text(
-            "1.0.0-dev\n", encoding="utf-8"
+            "0.2.0-dev\n", encoding="utf-8"
         )
         (root / "mozconfig.runtime.release").write_text(
             COMMON
@@ -113,11 +113,11 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
     def test_rejects_product_version_drift(self) -> None:
         root = self.make_workspace()
         (root / "product/config/version_display.txt").write_text(
-            "1.0.0-preview\n", encoding="utf-8"
+            "0.2.0-preview\n", encoding="utf-8"
         )
         result, output = self.run_verifier(root)
         self.assertEqual(result, 1)
-        self.assertIn("must be 1.0.0-dev", output)
+        self.assertIn("must be 0.2.0-dev", output)
 
     def test_rejects_android_candidate_without_source_signing_policy(self) -> None:
         root = self.make_workspace()

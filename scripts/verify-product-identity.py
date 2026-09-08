@@ -12,8 +12,8 @@ import sys
 from pathlib import Path
 
 
-BASE_VERSION = "1.0.0"
-DISPLAY_VERSION = "1.0.0-dev"
+BASE_VERSION = "0.2.0"
+DISPLAY_VERSION = "0.2.0-dev"
 ANDROID_VERSION_CODE_EPOCH = 1_577_836_800
 ANDROID_VERSION_CODE_BASE = 100_000_000
 ANDROID_VERSION_CODE_MAX = 2_100_000_000
@@ -297,7 +297,7 @@ def main() -> int:
             print(f"FAIL: {failure}", file=sys.stderr)
         return 1
     print(
-        "Navis product identity passes: 1.0.0-dev, Android version policy, "
+        "Navis product identity passes: 0.2.0-dev, Android version policy, "
         "Firefox-compatible Navis UA and WebExtension projection"
     )
     return 0

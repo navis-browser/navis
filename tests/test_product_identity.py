@@ -66,7 +66,7 @@ class ProductIdentityTest(unittest.TestCase):
 
     def test_desktop_product_version_cannot_drift(self) -> None:
         (self.root / "product/config/version_display.txt").write_text(
-            "1.0.0-preview\n", encoding="utf-8"
+            "0.2.0-preview\n", encoding="utf-8"
         )
         self.assert_failure("display product version")
 
@@ -74,7 +74,7 @@ class ProductIdentityTest(unittest.TestCase):
         self.replace(
             "android/build.gradle",
             "versionName navisDisplayVersion",
-            "versionName '1.0.0-dev'",
+            "versionName '0.2.0-dev'",
         )
         self.assert_failure("hard-coded")
 

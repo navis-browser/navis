@@ -15,8 +15,8 @@ WORKSPACE = Path(__file__).resolve().parent.parent
 def main() -> int:
     failures: list[str] = []
     expected_versions = {
-        "product/config/version.txt": "1.0.0",
-        "product/config/version_display.txt": "1.0.0-dev",
+        "product/config/version.txt": "0.2.0",
+        "product/config/version_display.txt": "0.2.0-dev",
     }
     for relative, expected in expected_versions.items():
         try:
