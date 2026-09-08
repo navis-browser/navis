@@ -52,7 +52,7 @@ EXCLUDED_PREFIXES = (
     "platform/android/build/",
     "runtime/core/rust/target/",
 )
-EXCLUDED_PARTS = {"__pycache__", ".ruff_cache"}
+EXCLUDED_PARTS = {".git", "__pycache__", ".ruff_cache"}
 EXCLUDED_TRANSITION_PATHS = {
     "navis/config/gecko-esr-review-routes.json",
     "navis/config/gecko-semantic-ports.json",
