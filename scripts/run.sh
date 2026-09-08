@@ -2,13 +2,15 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/gecko}"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+runtime_dir="$workspace_dir/runtime"
+gecko_dir="${NAVIS_GECKO_DIR:-$runtime_dir/gecko}"
 binary="${NAVIS_BINARY:-$gecko_dir/obj-navis-runtime/dist/bin/navis}"
 
 if [[ ! -x "$binary" ]]; then
   printf 'Navis binary is not executable: %s\n' "$binary" >&2
-  printf 'Run ./scripts/mach.sh build first or set NAVIS_GECKO_DIR/NAVIS_BINARY.\n' >&2
+  printf 'Run navis/scripts/mach.sh build first or set NAVIS_GECKO_DIR/NAVIS_BINARY.\n' >&2
   exit 1
 fi
 
