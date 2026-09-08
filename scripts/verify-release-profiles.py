@@ -9,14 +9,14 @@ import sys
 from pathlib import Path
 
 
-WORKSPACE = Path(__file__).resolve().parent.parent
+WORKSPACE = Path(__file__).resolve().parents[2]
 
 
 def main() -> int:
     failures: list[str] = []
     expected_versions = {
-        "product/config/version.txt": "0.2.0",
-        "product/config/version_display.txt": "0.2.0-dev",
+        "platform/gecko-chrome/config/version.txt": "0.2.0",
+        "platform/gecko-chrome/config/version_display.txt": "0.2.0-dev",
     }
     for relative, expected in expected_versions.items():
         try:
@@ -27,14 +27,14 @@ def main() -> int:
         if value != expected:
             failures.append(f"{relative} must be {expected}, found {value!r}")
     profiles = {
-        "mozconfig.runtime.release": (
+        "runtime/mozconfig.runtime.release": (
             "obj-navis-runtime-release",
             (
                 "ac_add_options --host=x86_64-unknown-linux-gnu",
                 "ac_add_options --target=x86_64-unknown-linux-gnu",
             ),
         ),
-        "mozconfig.win64.release": (
+        "runtime/mozconfig.win64.release": (
             "obj-navis-win64-release",
             (
                 "ac_add_options --target=x86_64-pc-windows-msvc",
@@ -89,7 +89,7 @@ def main() -> int:
         if re.search(r"(?m)^mk_add_options AUTOCLOBBER=\S+", content):
             failures.append(f"{relative} enables automatic clobbering")
 
-    android_relative = "mozconfig.android-aarch64.sccache"
+    android_relative = "runtime/mozconfig.android-aarch64.sccache"
     android_required = (
         "export MOZ_REQUIRE_SIGNING=1",
         "ac_add_options --enable-project=mobile/android",

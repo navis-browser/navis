@@ -38,15 +38,16 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
-        (root / "scripts").mkdir()
-        (root / "product/config").mkdir(parents=True)
-        (root / "product/config/version.txt").write_text(
+        (root / "navis/scripts").mkdir(parents=True)
+        (root / "platform/gecko-chrome/config").mkdir(parents=True)
+        (root / "runtime").mkdir()
+        (root / "platform/gecko-chrome/config/version.txt").write_text(
             "0.2.0\n", encoding="utf-8"
         )
-        (root / "product/config/version_display.txt").write_text(
+        (root / "platform/gecko-chrome/config/version_display.txt").write_text(
             "0.2.0-dev\n", encoding="utf-8"
         )
-        (root / "mozconfig.runtime.release").write_text(
+        (root / "runtime/mozconfig.runtime.release").write_text(
             COMMON
             + "ac_add_options --host=x86_64-unknown-linux-gnu\n"
             + "ac_add_options --target=x86_64-unknown-linux-gnu\n"
@@ -54,7 +55,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
         )
-        (root / "mozconfig.win64.release").write_text(
+        (root / "runtime/mozconfig.win64.release").write_text(
             COMMON
             + "ac_add_options --target=x86_64-pc-windows-msvc\n"
             + "ac_add_options --enable-bootstrap\n"
@@ -63,7 +64,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
         )
-        (root / "mozconfig.android-aarch64.sccache").write_text(
+        (root / "runtime/mozconfig.android-aarch64.sccache").write_text(
             "export MOZ_REQUIRE_SIGNING=1\n"
             + "ac_add_options --enable-project=mobile/android\n"
             + "ac_add_options --host=x86_64-unknown-linux-gnu\n"
@@ -99,7 +100,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_desktop_release_without_sccache(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.runtime.release"
+        path = root / "runtime/mozconfig.runtime.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "ac_add_options --with-ccache=sccache\n", ""
@@ -112,7 +113,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_product_version_drift(self) -> None:
         root = self.make_workspace()
-        (root / "product/config/version_display.txt").write_text(
+        (root / "platform/gecko-chrome/config/version_display.txt").write_text(
             "0.2.0-preview\n", encoding="utf-8"
         )
         result, output = self.run_verifier(root)
@@ -121,7 +122,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_android_candidate_without_source_signing_policy(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.android-aarch64.sccache"
+        path = root / "runtime/mozconfig.android-aarch64.sccache"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "export MOZ_REQUIRE_SIGNING=1\n", ""
@@ -134,7 +135,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_development_release_flag(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.win64.release"
+        path = root / "runtime/mozconfig.win64.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "ac_add_options --enable-release",
@@ -149,7 +150,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_release_without_immutable_addon_signing(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.runtime.release"
+        path = root / "runtime/mozconfig.runtime.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "export MOZ_REQUIRE_SIGNING=1\n", ""
@@ -162,7 +163,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_candidate_profile_that_can_auto_clobber(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.runtime.release"
+        path = root / "runtime/mozconfig.runtime.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "mk_add_options AUTOCLOBBER=\n",
@@ -177,7 +178,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_candidate_profile_with_second_object_directory(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.win64.release"
+        path = root / "runtime/mozconfig.win64.release"
         path.write_text(
             path.read_text(encoding="utf-8")
             + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-hidden-cold-graph\n",
