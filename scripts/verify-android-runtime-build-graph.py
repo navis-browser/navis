@@ -13,22 +13,23 @@ import xml.etree.ElementTree as ET
 from pathlib import Path
 
 
-DEFAULT_ROOT = Path(__file__).resolve().parent.parent
+DEFAULT_ROOT = Path(__file__).resolve().parents[2]
 PORT_ID = "direct-navis-android-runtime-build-graph"
 PORT_PATH = "patches/gecko/0046-own-navis-android-runtime-build-graph.patch"
-PRIMITIVE_LIST_PATH = "android-runtime/gecko-java-primitives.list"
+WORKSPACE_PORT_PATH = f"runtime/{PORT_PATH}"
+PRIMITIVE_LIST_PATH = "runtime/android/gecko-java-primitives.list"
 GECKO_JAVA_SOURCE_ROOT = (
-    "gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko"
+    "runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko"
 )
 ACCESSIBILITY_PRIMITIVE_PATH = (
-    "gecko/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/"
+    "runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/"
     "AndroidAccessibilityBridge.java"
 )
 WEB_EXECUTOR_PRIMITIVE_PATH = (
-    "gecko/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/"
+    "runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/geckoview/"
     "AndroidWebExecutorBridge.java"
 )
-WEB_EXECUTOR_NATIVE_PATH = "gecko/widget/android/WebExecutorSupport.cpp"
+WEB_EXECUTOR_NATIVE_PATH = "runtime/gecko/widget/android/WebExecutorSupport.cpp"
 FORBIDDEN_LIFECYCLE_SOURCES = (
     "org/mozilla/geckoview/GeckoRuntime.java",
     "org/mozilla/geckoview/GeckoSession.java",
@@ -144,7 +145,7 @@ def verify_port(
             f"semantic port {PORT_ID} is missing or ambiguous",
         )
         if len(entries) == 1:
-            digest = hashlib.sha256((root / PORT_PATH).read_bytes()).hexdigest()
+            digest = hashlib.sha256((root / WORKSPACE_PORT_PATH).read_bytes()).hexdigest()
             require(
                 failures,
                 entries[0].get("patch") == PORT_PATH,
@@ -498,7 +499,7 @@ def verify_wrapper_graph(failures: list[str], widget_mozbuild: str) -> None:
 def verify_product_source_boundary(
     root: Path, failures: list[str], primitive_list: str
 ) -> None:
-    source_root = root / "android/src/main"
+    source_root = root / "platform/android/src/main"
     if not source_root.is_dir():
         return
     exact_geckoview_classes = tuple(
@@ -586,10 +587,10 @@ def verify_accessibility_primitive(
         )
 
     owner_roots = (
-        root / "android/src/main",
+        root / "platform/android/src/main",
         root
-        / "gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis",
-        root / "gecko/mobile/shared/chrome/navis",
+        / "runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis",
+        root / "runtime/gecko/mobile/shared/chrome/navis",
     )
     owner_files: list[Path] = []
     for owner_root in owner_roots:
@@ -600,7 +601,7 @@ def verify_accessibility_primitive(
                 if path.is_file()
                 and path.suffix in {".cpp", ".h", ".java", ".js", ".kt", ".mjs"}
             )
-    native_owner = root / "gecko/widget/android/NavisAndroidSupport.cpp"
+    native_owner = root / "runtime/gecko/widget/android/NavisAndroidSupport.cpp"
     if native_owner.is_file():
         owner_files.append(native_owner)
     for path in owner_files:
@@ -779,7 +780,7 @@ def verify_stage(
 
 
 def verify_manifest(root: Path, failures: list[str]) -> None:
-    path = root / "android-runtime/src/main/AndroidManifest.xml"
+    path = root / "runtime/android/src/main/AndroidManifest.xml"
     try:
         manifest = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as error:
@@ -812,31 +813,39 @@ def verify_manifest(root: Path, failures: list[str]) -> None:
 
 def verify(root: Path) -> list[str]:
     failures: list[str] = []
-    ledger = read(root, "config/gecko-semantic-ports.json", failures)
-    patch = read(root, PORT_PATH, failures)
-    settings = read(root, "gecko/settings.gradle", failures)
-    app_build = read(root, "android/build.gradle", failures)
-    runtime_build = read(root, "android-runtime/build.gradle", failures)
+    ledger = read(root, "navis/config/gecko-semantic-ports.json", failures)
+    patch = read(root, WORKSPACE_PORT_PATH, failures)
+    settings = read(root, "runtime/gecko/settings.gradle", failures)
+    app_build = read(root, "platform/android/build.gradle", failures)
+    runtime_build = read(root, "runtime/android/build.gradle", failures)
     primitive_list = read(root, PRIMITIVE_LIST_PATH, failures)
     accessibility_source = read(root, ACCESSIBILITY_PRIMITIVE_PATH, failures)
     web_executor_source = read(root, WEB_EXECUTOR_PRIMITIVE_PATH, failures)
     web_executor_native = read(root, WEB_EXECUTOR_NATIVE_PATH, failures)
-    proguard = read(root, "android-runtime/proguard-rules.pro", failures)
-    gradle_configure = read(root, "gecko/mobile/android/gradle.configure", failures)
-    android_mozbuild = read(root, "gecko/mobile/android/moz.build", failures)
-    widget_mozbuild = read(root, "gecko/widget/android/moz.build", failures)
-    installer = read(root, "gecko/mobile/android/installer/Makefile.in", failures)
+    proguard = read(root, "runtime/android/proguard-rules.pro", failures)
+    gradle_configure = read(
+        root, "runtime/gecko/mobile/android/gradle.configure", failures
+    )
+    android_mozbuild = read(root, "runtime/gecko/mobile/android/moz.build", failures)
+    widget_mozbuild = read(root, "runtime/gecko/widget/android/moz.build", failures)
+    installer = read(
+        root, "runtime/gecko/mobile/android/installer/Makefile.in", failures
+    )
     package_manifest = read(
-        root, "gecko/mobile/android/installer/package-manifest.in", failures
+        root,
+        "runtime/gecko/mobile/android/installer/package-manifest.in",
+        failures,
     )
     mach_tasks = read(
         root,
-        "gecko/mobile/android/gradle/plugins/conventions/src/main/java/"
+        "runtime/gecko/mobile/android/gradle/plugins/conventions/src/main/java/"
         "org/mozilla/conventions/MachTasksPlugin.kt",
         failures,
     )
-    package_wrapper = read(root, "scripts/package-android-candidate.sh", failures)
-    package_verifier = read(root, "scripts/verify-android-package.py", failures)
+    package_wrapper = read(
+        root, "navis/scripts/package-android-candidate.sh", failures
+    )
+    package_verifier = read(root, "navis/scripts/verify-android-package.py", failures)
 
     verify_port(root, failures, ledger, patch)
     verify_settings(failures, settings)
