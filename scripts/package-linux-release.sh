@@ -2,9 +2,10 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-release_mozconfig="$workspace_dir/mozconfig.runtime.release"
-release_objdir="$workspace_dir/gecko/obj-navis-runtime-release"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+release_mozconfig="$workspace_dir/runtime/mozconfig.runtime.release"
+release_objdir="$workspace_dir/runtime/gecko/obj-navis-runtime-release"
 
 if (( EUID == 0 )); then
   printf 'Navis Release builds must run as an unprivileged build user.\n' >&2
@@ -43,23 +44,23 @@ if [[ ! "$build_id" =~ ^[0-9]{14}$ ]]; then
   exit 1
 fi
 export MOZ_BUILD_DATE="$build_id"
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
-python3 "$workspace_dir/scripts/verify-release-profiles.py"
-python3 "$workspace_dir/scripts/verify-product-identity.py"
+python3 "$navis_dir/scripts/verify-release-profiles.py"
+python3 "$navis_dir/scripts/verify-product-identity.py"
 
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform linux --phase identity
 NAVIS_MOZCONFIG="$release_mozconfig" \
-  "$workspace_dir/scripts/mach.sh" configure
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+  "$navis_dir/scripts/mach.sh" configure
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform linux --phase configured
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
 NAVIS_MOZCONFIG="$release_mozconfig" \
 NAVIS_RUNTIME_OBJDIR="$release_objdir" \
 NAVIS_BUILD_ID="$build_id" \
 NAVIS_ARTIFACT_VARIANT=release \
-  "$workspace_dir/scripts/package-linux.sh"
+  "$navis_dir/scripts/package-linux.sh"

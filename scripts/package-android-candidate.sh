@@ -2,10 +2,11 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-candidate_mozconfig="$workspace_dir/mozconfig.android-aarch64.sccache"
-candidate_objdir="$workspace_dir/gecko/obj-navis-android-aarch64-sccache"
-output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/artifacts}"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+candidate_mozconfig="$workspace_dir/runtime/mozconfig.android-aarch64.sccache"
+candidate_objdir="$workspace_dir/runtime/gecko/obj-navis-android-aarch64-sccache"
+output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/work/artifacts}"
 build_id="${NAVIS_BUILD_ID:-}"
 
 if (( EUID == 0 )); then
@@ -73,28 +74,28 @@ if (( version_code < 1 || version_code > 2100000000 )); then
   exit 1
 fi
 
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
-python3 "$workspace_dir/scripts/verify-release-profiles.py"
-python3 "$workspace_dir/scripts/verify-product-identity.py"
-python3 "$workspace_dir/scripts/verify-android-runtime-build-graph.py"
+python3 "$navis_dir/scripts/verify-release-profiles.py"
+python3 "$navis_dir/scripts/verify-product-identity.py"
+python3 "$navis_dir/scripts/verify-android-runtime-build-graph.py"
 
 export MOZ_BUILD_DATE="$build_id"
 export SOURCE_DATE_EPOCH="$source_date_epoch"
 export NAVIS_ANDROID_VERSION_CODE="$version_code"
 export NAVIS_MOZCONFIG="$candidate_mozconfig"
 
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform android --phase identity
-"$workspace_dir/scripts/mach.sh" configure
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+"$navis_dir/scripts/mach.sh" configure
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform android --phase configured
 
 # Gradle's machBuildFaster/machStagePackage tasks refresh packaged resources,
 # but they do not compile or relink Gecko's native libraries.  Close the
 # exact-source graph explicitly under the candidate BuildID before Gradle can
 # stage libxul and libmozglue from the object directory.
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 # Android deliberately does not refresh buildid.h on every incremental build,
 # and buildid.cpp does not directly depend on that header.  Their actual
@@ -113,7 +114,7 @@ for stamp in "${generated_build_id_stamps[@]}"; do
   fi
 done
 rm -f -- "${generated_build_id_stamps[@]}"
-"$workspace_dir/scripts/mach.sh" build buildid.h
+"$navis_dir/scripts/mach.sh" build buildid.h
 generated_build_id_header="$candidate_objdir/buildid.h"
 expected_build_id_header="#define MOZ_BUILDID $build_id"
 if [[ ! -f "$generated_build_id_header" || \
@@ -123,11 +124,11 @@ if [[ ! -f "$generated_build_id_header" || \
     "$build_id" >&2
   exit 1
 fi
-"$workspace_dir/scripts/mach.sh" build
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+"$navis_dir/scripts/mach.sh" build
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
-"$workspace_dir/scripts/mach.sh" gradle :navis:assembleDebug
+"$navis_dir/scripts/mach.sh" gradle :navis:assembleDebug
 
 source_apk="$candidate_objdir/gradle/build/navis-android/outputs/apk/debug/navis-debug.apk"
 if [[ ! -s "$source_apk" ]]; then
@@ -135,7 +136,7 @@ if [[ ! -s "$source_apk" ]]; then
   exit 1
 fi
 
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
 build_tools_dir="$(find "$ANDROID_SDK_ROOT/build-tools" -mindepth 2 -maxdepth 2 \
@@ -146,9 +147,10 @@ if [[ -z "$build_tools_dir" || ! -x "$build_tools_dir/aapt2" || \
   exit 1
 fi
 
-base_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
+base_version="$(tr -d '\r\n' < \
+  "$workspace_dir/platform/gecko-chrome/config/version.txt")"
 display_version="$(tr -d '\r\n' < \
-  "$workspace_dir/product/config/version_display.txt")"
+  "$workspace_dir/platform/gecko-chrome/config/version_display.txt")"
 if [[ "$display_version" != "$base_version" && \
   "$display_version" != "$base_version"-* ]]; then
   printf 'Invalid product version relationship: %s / %s\n' \
@@ -176,7 +178,7 @@ trap cleanup EXIT
 staged_apk="$staging_dir/$archive_name"
 staged_manifest="$staging_dir/$archive_name.manifest.json"
 cp --reflink=auto -- "$source_apk" "$staged_apk"
-python3 "$workspace_dir/scripts/verify-android-package.py" \
+python3 "$navis_dir/scripts/verify-android-package.py" \
   --apk "$staged_apk" \
   --source-freeze "$source_freeze" \
   --build-id "$build_id" \

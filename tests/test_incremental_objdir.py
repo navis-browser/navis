@@ -26,10 +26,10 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
         record = objdir / ".mozconfig.json"
         profile = MODULE.PROFILES["win64"]
         record.write_text(json.dumps({
-            "topsrcdir": str(root / "gecko"),
+            "topsrcdir": str(root / "runtime/gecko"),
             "topobjdir": str(objdir),
             "mozconfig": {
-                "path": str(root / profile.mozconfig_name),
+                "path": str(root / "runtime" / profile.mozconfig_name),
                 "topobjdir": str(objdir),
                 "configure_args": list(profile.required_options),
             },
@@ -54,10 +54,12 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
-        gecko = root / "gecko"
-        gecko.mkdir()
+        (root / "navis").mkdir()
+        (root / "platform").mkdir()
+        gecko = root / "runtime/gecko"
+        gecko.mkdir(parents=True)
         profile = MODULE.PROFILES[platform]
-        mozconfig = root / profile.mozconfig_name
+        mozconfig = root / "runtime" / profile.mozconfig_name
         mozconfig.write_text("# candidate profile\n", encoding="utf-8")
         objdir = gecko / profile.object_name
         objdir.mkdir()
@@ -100,6 +102,10 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
                 root, _, _ = self.make_workspace(platform)
                 self.assertEqual(MODULE.verify(platform, "configured", root), [])
 
+    def test_transition_navis_root_resolves_to_canonical_workspace(self) -> None:
+        root, _, _ = self.make_workspace("linux")
+        self.assertEqual(MODULE.verify("linux", "configured", root / "navis"), [])
+
     def test_accepts_default_release_from_current_owned_input_record(self) -> None:
         root, _, _, _ = self.make_normalized_release()
         self.assertEqual(MODULE.verify("win64", "configured", root), [])
@@ -132,13 +138,17 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
                     record.rename(target)
                     record.symlink_to(target)
                 elif mutation in ("stale", "not_yet_configured"):
-                    stamp = (root / "mozconfig.win64.release").stat().st_mtime_ns - 1
+                    stamp = (
+                        root / "runtime/mozconfig.win64.release"
+                    ).stat().st_mtime_ns - 1
                     if mutation == "not_yet_configured":
                         stamp = status.stat().st_mtime_ns + 1
                     os.utime(record, ns=(stamp, stamp))
                 else:
                     if mutation == "wrong_owner":
-                        payload["mozconfig"]["path"] = str(root / "mozconfig.runtime")
+                        payload["mozconfig"]["path"] = str(
+                            root / "runtime/mozconfig.runtime"
+                        )
                     elif mutation == "wrong_object":
                         payload["topobjdir"] = str(root / "other-object")
                     elif mutation in ("disabled", "release_no"):
@@ -165,11 +175,11 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
-        (root / "gecko/obj-navis-runtime").mkdir(parents=True)
-        (root / "gecko/obj-navis-runtime/config.status").write_text(
+        (root / "runtime/gecko/obj-navis-runtime").mkdir(parents=True)
+        (root / "runtime/gecko/obj-navis-runtime/config.status").write_text(
             "development\n", encoding="utf-8"
         )
-        (root / "mozconfig.runtime.release").write_text(
+        (root / "runtime/mozconfig.runtime.release").write_text(
             "# release\n", encoding="utf-8"
         )
         failures = MODULE.verify("linux", "identity", root)
@@ -188,8 +198,8 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
         root, _, status = self.make_workspace("android")
         status.write_text(
             status.read_text(encoding="utf-8").replace(
-                f"mozconfig = {str(root / 'mozconfig.android-aarch64.sccache')!r}",
-                f"mozconfig = {str(root / 'mozconfig.runtime')!r}",
+                f"mozconfig = {str(root / 'runtime/mozconfig.android-aarch64.sccache')!r}",
+                f"mozconfig = {str(root / 'runtime/mozconfig.runtime')!r}",
             ),
             encoding="utf-8",
         )
@@ -235,7 +245,7 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
 
     def test_rejects_config_status_older_than_candidate_profile(self) -> None:
         root, _, status = self.make_workspace("linux")
-        mozconfig = root / "mozconfig.runtime.release"
+        mozconfig = root / "runtime/mozconfig.runtime.release"
         older = mozconfig.stat().st_mtime_ns - 1_000_000_000
         os.utime(status, ns=(older, older))
         failures = MODULE.verify("linux", "configured", root)

@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any
 
 
-WORKSPACE = Path(__file__).resolve().parent.parent
+WORKSPACE = Path(__file__).resolve().parents[2]
 
 
 class ObjectDirectoryError(RuntimeError):
@@ -163,6 +163,13 @@ def same_path(actual: Any, expected: Path) -> bool:
     return Path(actual).resolve() == expected.resolve()
 
 
+def canonical_workspace(root: Path) -> Path:
+    root = root.resolve()
+    if root.name == "navis" and (root.parent / "runtime").is_dir():
+        return root.parent
+    return root
+
+
 def recorded_release_option(root: Path, objdir: Path, mozconfig: Path) -> bool:
     record = objdir / ".mozconfig.json"
     try:
@@ -183,7 +190,7 @@ def recorded_release_option(root: Path, objdir: Path, mozconfig: Path) -> bool:
         if not all(
             same_path(actual, expected)
             for actual, expected in (
-                (payload.get("topsrcdir"), root / "gecko"),
+                (payload.get("topsrcdir"), root / "runtime/gecko"),
                 (payload.get("topobjdir"), objdir),
                 (inputs.get("topobjdir"), objdir),
                 (inputs.get("path"), mozconfig),
@@ -204,11 +211,11 @@ def recorded_release_option(root: Path, objdir: Path, mozconfig: Path) -> bool:
 
 
 def verify(platform: str, phase: str, workspace: Path = WORKSPACE) -> list[str]:
-    root = workspace.resolve()
+    root = canonical_workspace(workspace)
     profile = PROFILES[platform]
-    gecko = root / "gecko"
+    gecko = root / "runtime/gecko"
     objdir = gecko / profile.object_name
-    mozconfig = root / profile.mozconfig_name
+    mozconfig = root / "runtime" / profile.mozconfig_name
     failures: list[str] = []
 
     if gecko.is_symlink() or not gecko.is_dir():
@@ -319,7 +326,7 @@ def main(argv: list[str] | None = None) -> int:
     profile = PROFILES[args.platform]
     print(
         f"Navis {args.platform} incremental object-directory {args.phase} "
-        f"verification passed: gecko/{profile.object_name}"
+        f"verification passed: runtime/gecko/{profile.object_name}"
     )
     return 0
 

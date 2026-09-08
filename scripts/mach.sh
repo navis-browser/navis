@@ -2,8 +2,10 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-default_gecko_dir="$workspace_dir/gecko"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+runtime_dir="$workspace_dir/runtime"
+default_gecko_dir="$runtime_dir/gecko"
 gecko_dir="${NAVIS_GECKO_DIR:-$default_gecko_dir}"
 
 # A build host may expose a Mozilla bootstrap state directory outside the
@@ -32,7 +34,7 @@ if [[ -n "$mozbuild_state_dir" ]]; then
 fi
 
 if [[ "$gecko_dir" != /* ]]; then
-  gecko_dir="$workspace_dir/$gecko_dir"
+  gecko_dir="$runtime_dir/$gecko_dir"
 fi
 if [[ ! -e "$gecko_dir/.git" || ! -x "$gecko_dir/mach" ]]; then
   printf 'Navis Gecko source tree is invalid: %s\n' "$gecko_dir" >&2
@@ -49,17 +51,17 @@ elif [[ -z "$mach_python" ]]; then
 fi
 
 if [[ "$gecko_dir" == "$default_gecko_dir" ]]; then
-  "$workspace_dir/scripts/prepare-gecko.sh"
+  "$navis_dir/scripts/prepare-gecko.sh"
 elif [[ ! -e "$gecko_dir/navis" || ! -e "$gecko_dir/desktop-embedder" ]]; then
   printf 'Alternate Gecko tree is missing the Navis/embedder mounts: %s\n' \
     "$gecko_dir" >&2
   exit 1
 fi
-requested_mozconfig="${NAVIS_MOZCONFIG:-$workspace_dir/mozconfig.runtime}"
+requested_mozconfig="${NAVIS_MOZCONFIG:-$runtime_dir/mozconfig.runtime}"
 if [[ "$requested_mozconfig" = /* ]]; then
   export MOZCONFIG="$requested_mozconfig"
 else
-  export MOZCONFIG="$workspace_dir/$requested_mozconfig"
+  export MOZCONFIG="$runtime_dir/$requested_mozconfig"
 fi
 
 if [[ ! -f "$MOZCONFIG" ]]; then

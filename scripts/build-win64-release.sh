@@ -2,9 +2,10 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-release_mozconfig="$workspace_dir/mozconfig.win64.release"
-release_objdir="$workspace_dir/gecko/obj-navis-win64-release"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+release_mozconfig="$workspace_dir/runtime/mozconfig.win64.release"
+release_objdir="$workspace_dir/runtime/gecko/obj-navis-win64-release"
 
 if (( EUID == 0 )); then
   printf 'Navis Release builds must run as an unprivileged build user.\n' >&2
@@ -43,11 +44,11 @@ if [[ ! "$build_id" =~ ^[0-9]{14}$ ]]; then
   exit 1
 fi
 export MOZ_BUILD_DATE="$build_id"
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
-python3 "$workspace_dir/scripts/verify-release-profiles.py"
-python3 "$workspace_dir/scripts/verify-product-identity.py"
+python3 "$navis_dir/scripts/verify-release-profiles.py"
+python3 "$navis_dir/scripts/verify-product-identity.py"
 
 wine_binary="${WINE:-$(command -v wine || true)}"
 if [[ -z "$wine_binary" && -x /usr/lib/wine/wine64 ]]; then
@@ -61,19 +62,19 @@ export WINE="$wine_binary"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.mozbuild/navis-system-wine}"
 
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform win64 --phase identity
 NAVIS_MOZCONFIG="$release_mozconfig" \
-  "$workspace_dir/scripts/mach.sh" configure
-python3 "$workspace_dir/scripts/verify-incremental-objdir.py" \
+  "$navis_dir/scripts/mach.sh" configure
+python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform win64 --phase configured
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
 NAVIS_MOZCONFIG="$release_mozconfig" \
 NAVIS_WIN64_OBJDIR="$release_objdir" \
 NAVIS_BUILD_ID="$build_id" \
-  "$workspace_dir/scripts/build-win64.sh"
+  "$navis_dir/scripts/build-win64.sh"
 
-python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
