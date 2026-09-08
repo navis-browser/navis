@@ -3,8 +3,8 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-release_mozconfig="$workspace_dir/mozconfig.win64.release"
-release_objdir="$workspace_dir/gecko/obj-navis-win64-release"
+release_mozconfig="$workspace_dir/../runtime/mozconfig.win64.release"
+release_objdir="$workspace_dir/../runtime/gecko/obj-navis-win64-release"
 
 if (( EUID == 0 )); then
   printf 'Navis Release packaging must run as an unprivileged build user.\n' >&2

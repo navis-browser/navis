@@ -3,9 +3,9 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/gecko}"
-objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/gecko/obj-navis-win64}"
-output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/artifacts}"
+gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/../runtime/gecko}"
+objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/../runtime/gecko/obj-navis-win64}"
+output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/../work/artifacts}"
 capability_profile="${NAVIS_CAPABILITY_PROFILE:-desktop-embedder-core}"
 artifact_variant="${NAVIS_ARTIFACT_VARIANT:-}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-1.94.1}"
@@ -25,7 +25,7 @@ if [[ -n "$artifact_variant" && ! "$artifact_variant" =~ ^[A-Za-z0-9._-]+$ ]]; t
   exit 1
 fi
 
-python3 "$workspace_dir/scripts/verify-core-abi.py"
+python3 "$workspace_dir/../runtime/scripts/verify-core-abi.py"
 python3 "$workspace_dir/scripts/verify-deferred-web-apis.py"
 python3 "$workspace_dir/scripts/verify-remote-settings-policy.py"
 python3 "$workspace_dir/scripts/verify-clean-links-policy.py"

@@ -50,8 +50,8 @@ def read(path: pathlib.Path, failures: list[str]) -> str:
 
 
 def verify_source(workspace: pathlib.Path, failures: list[str]) -> None:
-    gecko = workspace / "gecko"
-    prefs_path = workspace / "product/app/profile/navis.js"
+    gecko = workspace / "../runtime/gecko"
+    prefs_path = workspace / "../platform/gecko-chrome/app/profile/navis.js"
     prefs = read(prefs_path, failures)
     for name, value in LOCKED_PREFS:
         marker = f'pref("{name}", {value}, locked);'

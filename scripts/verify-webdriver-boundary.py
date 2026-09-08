@@ -12,20 +12,20 @@ import zipfile
 
 WORKSPACE = pathlib.Path(__file__).resolve().parent.parent
 PRODUCT_MOZCONFIGS = (
-    "mozconfig.runtime",
-    "mozconfig.runtime.release",
-    "mozconfig.runtime.no-webrtc.sccache",
-    "mozconfig.win64",
-    "mozconfig.win64.release",
+    "../runtime/mozconfig.runtime",
+    "../runtime/mozconfig.runtime.release",
+    "../runtime/mozconfig.runtime.no-webrtc.sccache",
+    "../runtime/mozconfig.win64",
+    "../runtime/mozconfig.win64.release",
 )
-PATCH = WORKSPACE / "patches/gecko/0013-restrict-desktop-embedder-webdriver.patch"
+PATCH = WORKSPACE / "../runtime/patches/gecko/0013-restrict-desktop-embedder-webdriver.patch"
 TEST_BOUNDARY_PATCH = (
-    WORKSPACE / "patches/gecko/0020-allow-test-build-system-automation.patch"
+    WORKSPACE / "../runtime/patches/gecko/0020-allow-test-build-system-automation.patch"
 )
 REALM_LIFECYCLE_PATCH = (
-    WORKSPACE / "patches/gecko/0037-guard-window-realm-navigation-cleanup.patch"
+    WORKSPACE / "../runtime/patches/gecko/0037-guard-window-realm-navigation-cleanup.patch"
 )
-PACKAGE_MANIFEST = WORKSPACE / "product/installer/package-manifest.in"
+PACKAGE_MANIFEST = WORKSPACE / "../platform/gecko-chrome/installer/package-manifest.in"
 
 
 def require(failures: list[str], condition: bool, message: str) -> None:
@@ -52,7 +52,7 @@ def verify_source(failures: list[str]) -> None:
             f"{relative} enables Gecko test-only product access",
         )
 
-    test_config = (WORKSPACE / "mozconfig.runtime.no-webrtc.tests.sccache").read_text(
+    test_config = (WORKSPACE / "../runtime/mozconfig.runtime.no-webrtc.tests.sccache").read_text(
         encoding="utf-8"
     )
     require(

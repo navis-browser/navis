@@ -3,10 +3,10 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/gecko}"
+gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/../runtime/gecko}"
 objdir="${NAVIS_RUNTIME_OBJDIR:-$gecko_dir/obj-navis-runtime}"
-mozconfig="${NAVIS_MOZCONFIG:-$workspace_dir/mozconfig.runtime}"
-output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/artifacts}"
+mozconfig="${NAVIS_MOZCONFIG:-$workspace_dir/../runtime/mozconfig.runtime}"
+output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/../work/artifacts}"
 capability_profile="${NAVIS_CAPABILITY_PROFILE:-desktop-embedder-core}"
 artifact_variant="${NAVIS_ARTIFACT_VARIANT:-}"
 build_id="${NAVIS_BUILD_ID:-$(date -u +%Y%m%d%H%M%S)}"
@@ -55,7 +55,7 @@ fi
 # linked application binary.
 export MOZ_BUILD_DATE="$build_id"
 
-python3 "$workspace_dir/scripts/verify-core-abi.py"
+python3 "$workspace_dir/../runtime/scripts/verify-core-abi.py"
 python3 "$workspace_dir/scripts/verify-deferred-web-apis.py"
 python3 "$workspace_dir/scripts/verify-remote-settings-policy.py"
 python3 "$workspace_dir/scripts/verify-clean-links-policy.py"

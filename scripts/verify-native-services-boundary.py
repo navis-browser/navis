@@ -12,12 +12,12 @@ import zipfile
 
 
 WORKSPACE = pathlib.Path(__file__).resolve().parent.parent
-GECKO = WORKSPACE / "gecko"
-PREFS = WORKSPACE / "product/app/profile/navis.js"
-PATCH = WORKSPACE / "patches/gecko/0017-enforce-native-only-geolocation-policy.patch"
+GECKO = WORKSPACE / "../runtime/gecko"
+PREFS = WORKSPACE / "../platform/gecko-chrome/app/profile/navis.js"
+PATCH = WORKSPACE / "../runtime/patches/gecko/0017-enforce-native-only-geolocation-policy.patch"
 NOTIFICATION_PATCH = (
     WORKSPACE
-    / "patches/gecko/0033-enable-native-notification-activation-for-desktop-embedder.patch"
+    / "../runtime/patches/gecko/0033-enable-native-notification-activation-for-desktop-embedder.patch"
 )
 
 
@@ -121,7 +121,7 @@ def verify_source(failures: list[str]) -> None:
     )
     require_markers(
         failures,
-        WORKSPACE / "product/branding/moz.build",
+        WORKSPACE / "../platform/gecko-chrome/branding/moz.build",
         (
             'CONFIG["MOZ_WIDGET_TOOLKIT"] == "windows"',
             'GeneratedFile(\n        "VisualElements_70.png"',
@@ -130,7 +130,7 @@ def verify_source(failures: list[str]) -> None:
     )
     require_markers(
         failures,
-        WORKSPACE / "product/branding/generate_visual_elements.py",
+        WORKSPACE / "../platform/gecko-chrome/branding/generate_visual_elements.py",
         (
             "SIZE = 70",
             "ACCENT = (11, 87, 208)",
@@ -140,7 +140,7 @@ def verify_source(failures: list[str]) -> None:
     )
     require_markers(
         failures,
-        WORKSPACE / "product/installer/Makefile.in",
+        WORKSPACE / "../platform/gecko-chrome/installer/Makefile.in",
         (
             "ifdef MOZ_NOTIFICATION_SERVER",
             "DEFINES += -DMOZ_NOTIFICATION_SERVER=1",
@@ -148,7 +148,7 @@ def verify_source(failures: list[str]) -> None:
     )
     require_markers(
         failures,
-        WORKSPACE / "product/installer/package-manifest.in",
+        WORKSPACE / "../platform/gecko-chrome/installer/package-manifest.in",
         (
             "#ifdef MOZ_NOTIFICATION_SERVER",
             "@BINPATH@/@DLL_PREFIX@notificationserver@DLL_SUFFIX@",

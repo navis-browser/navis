@@ -15,7 +15,3 @@
 __pycache__/
 *.py[cod]
 core/rust/target/
-
-# Private experiments and local orchestration
-/tools/
-/poc/

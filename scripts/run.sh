@@ -3,7 +3,7 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/gecko}"
+gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/../runtime/gecko}"
 binary="${NAVIS_BINARY:-$gecko_dir/obj-navis-runtime/dist/bin/navis}"
 
 if [[ ! -x "$binary" ]]; then

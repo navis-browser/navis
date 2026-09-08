@@ -17,11 +17,11 @@ from typing import Any
 
 WORKSPACE = Path(__file__).resolve().parent.parent
 POLICY_PATH = WORKSPACE / "config/navis-remote-settings-policy.json"
-PORTS_PATH = WORKSPACE / "config/gecko-semantic-ports.json"
-PRODUCT_CONFIG = WORKSPACE / "product/moz.configure"
-PRODUCT_PREFS = WORKSPACE / "product/app/profile/navis.js"
+PORTS_PATH = WORKSPACE / "../runtime/config/gecko-semantic-ports.json"
+PRODUCT_CONFIG = WORKSPACE / "../platform/gecko-chrome/moz.configure"
+PRODUCT_PREFS = WORKSPACE / "../platform/gecko-chrome/app/profile/navis.js"
 PATCH_PATH = (
-    WORKSPACE / "patches/gecko/0029-scope-desktop-embedder-remote-settings.patch"
+    WORKSPACE / "../runtime/patches/gecko/0029-scope-desktop-embedder-remote-settings.patch"
 )
 OPTION_NAME = "--with-desktop-embedder-remote-settings-collections"
 CONFIG_NAME = "MOZ_DESKTOP_EMBEDDER_REMOTE_SETTINGS_COLLECTIONS"
@@ -59,8 +59,8 @@ def load_json(path: Path) -> dict[str, Any]:
 def source_collection_inventory() -> set[str]:
     inventory: set[str] = set()
     for relative in (
-        "gecko/services/settings/dumps",
-        "gecko/services/settings/static-dumps",
+        "../runtime/gecko/services/settings/dumps",
+        "../runtime/gecko/services/settings/static-dumps",
     ):
         root = WORKSPACE / relative
         for path in root.glob("*/*.json"):
@@ -225,7 +225,7 @@ def verify_semantic_port() -> None:
 
     signatures = (
         WORKSPACE
-        / "gecko/services/settings/test/unit/test_remote_settings_signatures.js"
+        / "../runtime/gecko/services/settings/test/unit/test_remote_settings_signatures.js"
     ).read_text(encoding="utf-8")
     for marker in (
         '"bad-signature"',
@@ -285,7 +285,7 @@ def verify_runtime(
         last_modified = json.loads(
             archive.read("defaults/settings/last_modified.json")
         )
-        dumps_root = WORKSPACE / "gecko/services/settings/dumps"
+        dumps_root = WORKSPACE / "../runtime/gecko/services/settings/dumps"
         expected_timestamps = {
             identifier
             for identifier in allowed

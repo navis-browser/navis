@@ -15,13 +15,13 @@ from typing import Any
 
 
 WORKSPACE = Path(__file__).resolve().parent.parent
-POLICY_PATH = WORKSPACE / "product/chrome/content/clean-links-policy.json"
-PRODUCT_PREFS = WORKSPACE / "product/app/profile/navis.js"
-PRODUCT_JAR = WORKSPACE / "product/chrome/jar.mn"
-PRODUCT_CONFIG = WORKSPACE / "product/moz.configure"
+POLICY_PATH = WORKSPACE / "../platform/gecko-chrome/chrome/content/clean-links-policy.json"
+PRODUCT_PREFS = WORKSPACE / "../platform/gecko-chrome/app/profile/navis.js"
+PRODUCT_JAR = WORKSPACE / "../platform/gecko-chrome/chrome/jar.mn"
+PRODUCT_CONFIG = WORKSPACE / "../platform/gecko-chrome/moz.configure"
 REMOTE_POLICY = WORKSPACE / "config/navis-remote-settings-policy.json"
-PORTS_PATH = WORKSPACE / "config/gecko-semantic-ports.json"
-PATCH_PATH = WORKSPACE / "patches/gecko/0041-unify-product-query-stripping-policy.patch"
+PORTS_PATH = WORKSPACE / "../runtime/config/gecko-semantic-ports.json"
+PATCH_PATH = WORKSPACE / "../runtime/patches/gecko/0041-unify-product-query-stripping-policy.patch"
 
 MOZILLA_SNAPSHOT_PARAMETERS = [
     "__hsfp",
@@ -201,7 +201,7 @@ def require_markers(path: Path, markers: tuple[str, ...]) -> str:
     content = path.read_text(encoding="utf-8")
     for marker in markers:
         if marker not in content:
-            raise PolicyError(f"{path.relative_to(WORKSPACE)} lacks {marker!r}")
+            raise PolicyError(f"{path.relative_to(WORKSPACE.parent)} lacks {marker!r}")
     return content
 
 
@@ -226,7 +226,7 @@ def verify_consumers() -> None:
 
     service = require_markers(
         WORKSPACE
-        / "gecko/toolkit/components/antitracking/URLQueryStrippingListService.sys.mjs",
+        / "../runtime/gecko/toolkit/components/antitracking/URLQueryStrippingListService.sys.mjs",
         (
             "CleanLinksPolicy",
             "parseProductPolicy",
@@ -241,7 +241,7 @@ def verify_consumers() -> None:
     )
     stripper = require_markers(
         WORKSPACE
-        / "gecko/toolkit/components/antitracking/URLQueryStringStripper.cpp",
+        / "../runtime/gecko/toolkit/components/antitracking/URLQueryStringStripper.cpp",
         (
             "privacy.query_stripping.use_unified_rules",
             "mStripOnShareDomainMap.Clear()",
@@ -254,7 +254,7 @@ def verify_consumers() -> None:
     if not service or not stripper:
         raise AssertionError("unreachable")
     require_markers(
-        WORKSPACE / "gecko/dom/chrome-webidl/StripOnShareRule.webidl",
+        WORKSPACE / "../runtime/gecko/dom/chrome-webidl/StripOnShareRule.webidl",
         ("sequence<UTF8String> domains = [];",),
     )
 
@@ -272,7 +272,7 @@ def verify_consumers() -> None:
     ):
         if "main/query-stripping" in content:
             raise PolicyError(
-                f"{path.relative_to(WORKSPACE)} still enables main/query-stripping"
+                f"{path.relative_to(WORKSPACE.parent)} still enables main/query-stripping"
             )
 
 

@@ -3,11 +3,11 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/gecko/obj-navis-win64}"
+objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/../runtime/gecko/obj-navis-win64}"
 build_id="${NAVIS_BUILD_ID:-$(date -u +%Y%m%d%H%M%S)}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-1.94.1}"
 
-python3 "$workspace_dir/scripts/verify-core-abi.py"
+python3 "$workspace_dir/../runtime/scripts/verify-core-abi.py"
 python3 "$workspace_dir/scripts/verify-deferred-web-apis.py"
 python3 "$workspace_dir/scripts/verify-remote-settings-policy.py"
 python3 "$workspace_dir/scripts/verify-clean-links-policy.py"
@@ -49,7 +49,7 @@ if [[ -d "$msitools_bin" ]]; then
 fi
 
 export MOZ_BUILD_DATE="$build_id"
-export NAVIS_MOZCONFIG="${NAVIS_MOZCONFIG:-$workspace_dir/mozconfig.win64}"
+export NAVIS_MOZCONFIG="${NAVIS_MOZCONFIG:-$workspace_dir/../runtime/mozconfig.win64}"
 export WINE="$wine_binary"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.mozbuild/navis-system-wine}"

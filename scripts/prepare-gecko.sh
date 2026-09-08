@@ -3,11 +3,11 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="$workspace_dir/gecko"
-product_dir="$workspace_dir/product"
+gecko_dir="$workspace_dir/../runtime/gecko"
+product_dir="$workspace_dir/../platform/gecko-chrome"
 
-python3 "$workspace_dir/scripts/prepare-desktop-embedder.py" \
-  --source-root "$workspace_dir" --gecko "$gecko_dir"
+python3 "$workspace_dir/../runtime/scripts/prepare-desktop-embedder.py" \
+  --source-root "$workspace_dir/../runtime" --gecko "$gecko_dir"
 
 overlay_path="$gecko_dir/navis"
 if [[ -e "$overlay_path" && ! -L "$overlay_path" ]]; then

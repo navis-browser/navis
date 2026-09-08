@@ -3,7 +3,7 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-default_gecko_dir="$workspace_dir/gecko"
+default_gecko_dir="$workspace_dir/../runtime/gecko"
 gecko_dir="${NAVIS_GECKO_DIR:-$default_gecko_dir}"
 
 # A build host may expose a Mozilla bootstrap state directory outside the
@@ -55,7 +55,7 @@ elif [[ ! -e "$gecko_dir/navis" || ! -e "$gecko_dir/desktop-embedder" ]]; then
     "$gecko_dir" >&2
   exit 1
 fi
-requested_mozconfig="${NAVIS_MOZCONFIG:-$workspace_dir/mozconfig.runtime}"
+requested_mozconfig="${NAVIS_MOZCONFIG:-$workspace_dir/../runtime/mozconfig.runtime}"
 if [[ "$requested_mozconfig" = /* ]]; then
   export MOZCONFIG="$requested_mozconfig"
 else

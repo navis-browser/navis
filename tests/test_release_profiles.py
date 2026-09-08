@@ -36,16 +36,18 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
     def make_workspace(self) -> Path:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        root = Path(temporary.name)
+        root = Path(temporary.name) / "navis"
+        root.mkdir()
+        (root.parent / "runtime").mkdir()
         (root / "scripts").mkdir()
-        (root / "mozconfig.runtime.release").write_text(
+        (root / "../runtime/mozconfig.runtime.release").write_text(
             COMMON
             + "ac_add_options --host=x86_64-unknown-linux-gnu\n"
             + "ac_add_options --target=x86_64-unknown-linux-gnu\n"
             + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-runtime-release\n",
             encoding="utf-8",
         )
-        (root / "mozconfig.win64.release").write_text(
+        (root / "../runtime/mozconfig.win64.release").write_text(
             COMMON
             + "ac_add_options --target=x86_64-pc-windows-msvc\n"
             + "ac_add_options --enable-bootstrap\n"
@@ -70,7 +72,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_development_release_flag(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.win64.release"
+        path = root / "../runtime/mozconfig.win64.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "ac_add_options --enable-release",
@@ -85,7 +87,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
 
     def test_rejects_release_without_immutable_addon_signing(self) -> None:
         root = self.make_workspace()
-        path = root / "mozconfig.runtime.release"
+        path = root / "../runtime/mozconfig.runtime.release"
         path.write_text(
             path.read_text(encoding="utf-8").replace(
                 "export MOZ_REQUIRE_SIGNING=1\n", ""

@@ -48,7 +48,7 @@ def main() -> int:
         "--enable-tests",
     )
     for relative, (objdir, platform_required) in profiles.items():
-        path = WORKSPACE / relative
+        path = WORKSPACE / "../runtime" / relative
         try:
             content = path.read_text(encoding="utf-8")
         except OSError as error:

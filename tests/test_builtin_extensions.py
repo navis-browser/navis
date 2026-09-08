@@ -32,7 +32,7 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
         permissions: list[str] | None = None,
     ) -> tuple[dict, str]:
         directory_name = addon_id.replace("@", "-").replace(".", "-")
-        extension_dir = root / "product" / "builtin" / directory_name
+        extension_dir = root / "../platform/gecko-chrome" / "builtin" / directory_name
         extension_dir.mkdir(parents=True)
         artifact = extension_dir / f"{addon_id}.xpi"
         manifest = {
@@ -80,7 +80,8 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
     ) -> tuple[pathlib.Path, pathlib.Path]:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)
-        root = pathlib.Path(temporary.name)
+        root = pathlib.Path(temporary.name) / "navis"
+        root.mkdir()
         entries = []
         artifacts = []
         for addon_id, name, default_pinned in (
@@ -97,7 +98,7 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
             entries.append(entry)
             artifacts.append(artifact)
 
-        builtin = root / "product" / "builtin"
+        builtin = root / "../platform/gecko-chrome" / "builtin"
         registry = {"schema": 3, "extensions": entries}
         (builtin / "extensions.json").write_text(
             json.dumps(registry), encoding="utf-8"
@@ -106,7 +107,7 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
             "\n".join(f'    "{artifact}",' for artifact in artifacts),
             encoding="utf-8",
         )
-        profile = root / "product" / "app" / "profile" / "navis.js"
+        profile = root / "../platform/gecko-chrome" / "app" / "profile" / "navis.js"
         profile.parent.mkdir(parents=True)
         profile.write_text(
             'pref("extensions.applicationBuiltins.allowedIds", '
@@ -115,7 +116,7 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
             '"[\\"builtin-one@example.test\\"]");\n',
             encoding="utf-8",
         )
-        installer = root / "product" / "installer" / "package-manifest.in"
+        installer = root / "../platform/gecko-chrome" / "installer" / "package-manifest.in"
         installer.parent.mkdir(parents=True)
         installer.write_text(
             "@RESPATH@/extensions/*.xpi\n"
@@ -123,13 +124,14 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
             encoding="utf-8",
         )
         for mozconfig_name in (
-            "mozconfig.runtime",
-            "mozconfig.runtime.release",
-            "mozconfig.runtime.no-webrtc.sccache",
-            "mozconfig.runtime.no-webrtc.tests.sccache",
-            "mozconfig.win64",
-            "mozconfig.win64.release",
+            "../runtime/mozconfig.runtime",
+            "../runtime/mozconfig.runtime.release",
+            "../runtime/mozconfig.runtime.no-webrtc.sccache",
+            "../runtime/mozconfig.runtime.no-webrtc.tests.sccache",
+            "../runtime/mozconfig.win64",
+            "../runtime/mozconfig.win64.release",
         ):
+            (root / mozconfig_name).parent.mkdir(parents=True, exist_ok=True)
             (root / mozconfig_name).write_text(
                 "ac_add_options --enable-webextensions-runtime\n",
                 encoding="utf-8",
@@ -184,14 +186,14 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
 
     def test_production_profile_cannot_disable_builtin_runtime(self) -> None:
         root, _package = self.make_workspace()
-        (root / "mozconfig.win64").write_text(
+        (root / "../runtime/mozconfig.win64").write_text(
             "ac_add_options --disable-webextensions-runtime\n",
             encoding="utf-8",
         )
         result = self.run_verifier(root)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "production profile does not retain built-ins: mozconfig.win64",
+            "production profile does not retain built-ins: ../runtime/mozconfig.win64",
             result.stderr,
         )
 
