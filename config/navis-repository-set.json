@@ -13,13 +13,13 @@
     "runtime": {
       "slug": "navis-browser/runtime",
       "path": "../runtime",
-      "revision": "b04b73cb4d98bfdbe2c18930aa709f96f7d202df",
+      "revision": "34b2c2debe622ec81e32dbafefc0215f598bb0a7",
       "baseline_revision": "36852da3d9d71ea4996da97f011b5045afc1de16"
     },
     "platform": {
       "slug": "navis-browser/platform",
       "path": "../platform",
-      "revision": "3cb62b9081957736997c662e2e9546e21b2ed941",
+      "revision": "3d7b05c02795fc9302b5abc64f87907e2a6e8080",
       "baseline_revision": "c3cab7f312bce61f001feacecccb8e01cbf4a1d4"
     }
   },

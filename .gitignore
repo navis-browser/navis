@@ -19,6 +19,16 @@
 __pycache__/
 *.py[cod]
 
+# Local credentials and signing material
+.env
+.env.*
+!.env.example
+*.key
+*.keystore
+*.jks
+*.p12
+*.pfx
+
 # Private experiments and local orchestration
 /tools/
 /poc/
