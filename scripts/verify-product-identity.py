@@ -284,7 +284,7 @@ def verify(root: Path) -> list[str]:
         "product identity semantic port touches an unexpected Gecko path",
     )
 
-    ledger_text = read(root, "navis/config/gecko-semantic-ports.json", failures)
+    ledger_text = read(root, "runtime/config/gecko-semantic-ports.json", failures)
     try:
         ledger = json.loads(ledger_text)
     except json.JSONDecodeError as error:

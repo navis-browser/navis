@@ -22,10 +22,20 @@ WORKSPACE = Path(__file__).resolve().parent.parent
 RUNTIME = WORKSPACE.parent / "runtime"
 if not RUNTIME.is_dir():
     RUNTIME = WORKSPACE
-RUNTIME_OWNED_SOURCES = {"core", "embedder", "patches", "vendor", "config/gecko-esr-review-routes.json", "config/gecko-semantic-ports.json", "scripts/prepare-desktop-embedder.py", "scripts/review-gecko-esr-update.py"}
-RUNTIME_OWNED_PREFIXES = ("core/", "embedder/", "patches/", "vendor/")
 DEFAULT_DEFINITION = WORKSPACE / "config/desktop-embedder-source-package.json"
 GENERATED_MANIFEST = "SOURCE-MANIFEST.json"
+
+RUNTIME_OWNED_SOURCES = {
+    "core",
+    "embedder",
+    "patches",
+    "vendor",
+    "config/gecko-esr-review-routes.json",
+    "config/gecko-semantic-ports.json",
+    "scripts/prepare-desktop-embedder.py",
+    "scripts/review-gecko-esr-update.py",
+}
+RUNTIME_OWNED_PREFIXES = ("core/", "embedder/", "patches/", "vendor/")
 
 
 class PackageError(RuntimeError):
@@ -196,8 +206,13 @@ def collect_files(definition: dict) -> list[dict]:
         if relative in include_paths:
             raise PackageError(f"duplicate include path: {relative}")
         include_paths.add(relative)
-        root = source_root(relative)
-        source = root / relative
+        source_root = (
+            RUNTIME
+            if relative in RUNTIME_OWNED_SOURCES
+            or relative.startswith(RUNTIME_OWNED_PREFIXES)
+            else WORKSPACE
+        )
+        source = source_root / relative
         if source.is_symlink() or not source.exists():
             raise PackageError(f"included source is missing or a symlink: {relative}")
         candidates = [source] if source.is_file() else sorted(source.rglob("*"))
@@ -206,7 +221,7 @@ def collect_files(definition: dict) -> list[dict]:
                 raise PackageError(f"source package refuses symlink: {candidate}")
             if not candidate.is_file():
                 continue
-            path = candidate.relative_to(root).as_posix()
+            path = candidate.relative_to(source_root).as_posix()
             if any(path.startswith(prefix) for prefix in definition["forbidden_archive_prefixes"]):
                 raise PackageError(f"forbidden path selected for source package: {path}")
             if path in selected:

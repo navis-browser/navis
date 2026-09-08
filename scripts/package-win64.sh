@@ -64,7 +64,7 @@ fi
 # Unlike the build wrappers, stage-package invokes make directly rather than
 # mach.sh. Verify the prepared Gecko tree here so an unowned tracked resource
 # edit between the build and package phases cannot bypass the source freeze.
-python3 "$navis_dir/scripts/prepare-desktop-embedder.py" \
+python3 "$runtime_dir/scripts/prepare-desktop-embedder.py" \
   --source-root "$navis_dir" --runtime-root "$runtime_dir" \
   --gecko "$gecko_dir" --no-clone --no-mount
 make -C "$objdir" -s stage-package

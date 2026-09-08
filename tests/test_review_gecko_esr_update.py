@@ -13,7 +13,7 @@ from pathlib import Path
 
 
 WORKSPACE = Path(__file__).resolve().parent.parent
-TOOL = WORKSPACE / "scripts/review-gecko-esr-update.py"
+TOOL = WORKSPACE.parent / "runtime/scripts/review-gecko-esr-update.py"
 
 
 class GeckoEsrReviewTest(unittest.TestCase):

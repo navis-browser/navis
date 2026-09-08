@@ -813,7 +813,7 @@ def verify_manifest(root: Path, failures: list[str]) -> None:
 
 def verify(root: Path) -> list[str]:
     failures: list[str] = []
-    ledger = read(root, "navis/config/gecko-semantic-ports.json", failures)
+    ledger = read(root, "runtime/config/gecko-semantic-ports.json", failures)
     patch = read(root, WORKSPACE_PORT_PATH, failures)
     settings = read(root, "runtime/gecko/settings.gradle", failures)
     app_build = read(root, "platform/android/build.gradle", failures)

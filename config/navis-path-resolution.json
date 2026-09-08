@@ -28,8 +28,10 @@
     "android": "runtime/android",
     "core": "runtime/core",
     "embedder": "runtime/embedder",
+    "config": "runtime/config",
     "gecko": "runtime/gecko",
     "patches": "runtime/patches",
+    "scripts": "runtime/scripts",
     "vendor": "runtime/vendor"
   },
   "legacy_project_view": {
@@ -46,6 +48,8 @@
       "navis/android": "platform/android"
     },
     "file_mounts": {
+      "navis/config/gecko-esr-review-routes.json": "runtime/config/gecko-esr-review-routes.json",
+      "navis/config/gecko-semantic-ports.json": "runtime/config/gecko-semantic-ports.json",
       "navis/mozconfig.android-aarch64.sccache": "runtime/mozconfig.android-aarch64.sccache",
       "navis/mozconfig.linux-test-fixtures": "runtime/mozconfig.linux-test-fixtures",
       "navis/mozconfig.runtime": "runtime/mozconfig.runtime",
@@ -53,7 +57,9 @@
       "navis/mozconfig.runtime.no-webrtc.tests.sccache": "runtime/mozconfig.runtime.no-webrtc.tests.sccache",
       "navis/mozconfig.runtime.release": "runtime/mozconfig.runtime.release",
       "navis/mozconfig.win64": "runtime/mozconfig.win64",
-      "navis/mozconfig.win64.release": "runtime/mozconfig.win64.release"
+      "navis/mozconfig.win64.release": "runtime/mozconfig.win64.release",
+      "navis/scripts/prepare-desktop-embedder.py": "runtime/scripts/prepare-desktop-embedder.py",
+      "navis/scripts/review-gecko-esr-update.py": "runtime/scripts/review-gecko-esr-update.py"
     }
   },
   "script_aliases": {

@@ -30,7 +30,8 @@ class SourceFreezeTests(unittest.TestCase):
         (self.root / "runtime/vendor/gecko.json").write_text(
             json.dumps({"commit": "a" * 40}) + "\n", encoding="utf-8"
         )
-        (self.root / "navis/config/gecko-semantic-ports.json").write_text(
+        (self.root / "runtime/config").mkdir(parents=True, exist_ok=True)
+        (self.root / "runtime/config/gecko-semantic-ports.json").write_text(
             json.dumps({"ports": [{"order": 1}]}) + "\n", encoding="utf-8"
         )
         desktop_source = self.root / "platform/gecko-chrome/source.txt"

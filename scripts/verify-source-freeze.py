@@ -26,7 +26,9 @@ SOURCE_DIRECTORIES = (
     "runtime/core",
     "runtime/android",
     "runtime/embedder",
+    "runtime/config",
     "runtime/patches",
+    "runtime/scripts",
     "runtime/vendor",
     "platform",
 )
@@ -38,7 +40,14 @@ TOP_LEVEL_FILES = (
     "navis/AGENTS.md",
     "navis/LICENSE",
     "navis/README.md",
+    "runtime/.gitignore",
+    "runtime/AGENTS.md",
+    "runtime/LICENSE",
     "runtime/README.md",
+    "platform/.gitignore",
+    "platform/AGENTS.md",
+    "platform/LICENSE",
+    "platform/README.md",
 )
 EXCLUDED_PREFIXES = (
     "platform/android/.cxx/",
@@ -47,6 +56,12 @@ EXCLUDED_PREFIXES = (
     "runtime/core/rust/target/",
 )
 EXCLUDED_PARTS = {"__pycache__", ".ruff_cache"}
+EXCLUDED_TRANSITION_PATHS = {
+    "navis/config/gecko-esr-review-routes.json",
+    "navis/config/gecko-semantic-ports.json",
+    "navis/scripts/prepare-desktop-embedder.py",
+    "navis/scripts/review-gecko-esr-update.py",
+}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -115,6 +130,8 @@ def source_paths(root: Path) -> list[Path]:
     for directory in SOURCE_DIRECTORIES:
         for path in (root / directory).rglob("*"):
             relative = path.relative_to(root).as_posix()
+            if relative in EXCLUDED_TRANSITION_PATHS:
+                continue
             if excluded(relative):
                 continue
             if path.is_symlink():
@@ -153,7 +170,7 @@ def aggregate(entries: list[dict[str, Any]]) -> str:
 
 def current_identity(root: Path) -> tuple[dict[str, Any], int]:
     upstream = load_json(root / "runtime/vendor/gecko.json")
-    ports = load_json(root / "navis/config/gecko-semantic-ports.json")
+    ports = load_json(root / "runtime/config/gecko-semantic-ports.json")
     if not isinstance(upstream, dict):
         raise FreezeError("vendor/gecko.json is not an object")
     if not isinstance(ports, dict) or not isinstance(ports.get("ports"), list):

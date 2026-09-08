@@ -9,8 +9,9 @@ from unittest.mock import patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
+RUNTIME_ROOT = ROOT.parent / "runtime"
 SPEC = importlib.util.spec_from_file_location(
-    "prepare", ROOT / "scripts/prepare-desktop-embedder.py"
+    "prepare", RUNTIME_ROOT / "scripts/prepare-desktop-embedder.py"
 )
 prepare = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(prepare)
@@ -46,11 +47,12 @@ class WorkspaceMounts(unittest.TestCase):
             runtime_root = workspace / "runtime"
             (source_root / "config").mkdir(parents=True)
             (runtime_root / "embedder/modules").mkdir(parents=True)
+            (runtime_root / "config").mkdir(parents=True)
             (runtime_root / "patches/gecko").mkdir(parents=True)
             (runtime_root / "vendor").mkdir(parents=True)
 
-            (source_root / "config/desktop-embedder-source-package.json").write_text(
-                '{"source_api_version": 7}\n'
+            (runtime_root / "config/runtime-api.json").write_text(
+                '{"schema_version":1,"source_api_version":7}\n'
             )
             (runtime_root / "embedder/modules/DesktopEngine.sys.mjs").write_text(
                 "export const DESKTOP_EMBEDDER_API_VERSION = 7;\n"
@@ -67,7 +69,7 @@ class WorkspaceMounts(unittest.TestCase):
                 "@@ -1 +1,2 @@\n one\n+two\n"
             )
             digest = hashlib.sha256(port.read_bytes()).hexdigest()
-            (source_root / "config/gecko-semantic-ports.json").write_text(
+            (runtime_root / "config/gecko-semantic-ports.json").write_text(
                 "{\"schema_version\":1,\"upstream_pin\":\"vendor/gecko.json\","
                 "\"ports\":[{\"order\":1,"
                 "\"patch\":\"patches/gecko/0001-test.patch\","

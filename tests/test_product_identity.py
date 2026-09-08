@@ -32,7 +32,7 @@ FIXTURE_FILES = (
     "runtime/gecko/toolkit/moz.configure",
     "runtime/gecko/toolkit/components/extensions/parent/ext-runtime.js",
     VERIFY.WORKSPACE_PORT_PATH,
-    "navis/config/gecko-semantic-ports.json",
+    "runtime/config/gecko-semantic-ports.json",
 )
 
 
@@ -45,6 +45,7 @@ class ProductIdentityTest(unittest.TestCase):
             destination = self.root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
+        (self.root / "navis").mkdir()
 
     def tearDown(self) -> None:
         self.temporary.cleanup()
@@ -120,7 +121,7 @@ class ProductIdentityTest(unittest.TestCase):
         self.assert_failure("hash does not match")
 
     def test_identity_port_remains_valid_when_later_ports_are_added(self) -> None:
-        path = self.root / "navis/config/gecko-semantic-ports.json"
+        path = self.root / "runtime/config/gecko-semantic-ports.json"
         ledger = json.loads(path.read_text(encoding="utf-8"))
         ledger["ports"].append(
             {

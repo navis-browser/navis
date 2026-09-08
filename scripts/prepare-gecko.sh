@@ -10,7 +10,7 @@ android_runtime_dir="$runtime_dir/android"
 product_dir="$workspace_dir/platform/gecko-chrome"
 android_dir="$workspace_dir/platform/android"
 
-python3 "$navis_dir/scripts/prepare-desktop-embedder.py" \
+python3 "$runtime_dir/scripts/prepare-desktop-embedder.py" \
   --source-root "$navis_dir" --runtime-root "$runtime_dir" --gecko "$gecko_dir"
 
 mount_product_overlay() {
