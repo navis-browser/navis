@@ -411,12 +411,14 @@ def mount_source_directory(
         raise PrepareError(f"required source directory is missing: {source}")
     destination = gecko / destination_name
     if destination.is_symlink():
-        if destination.resolve() == source:
+        raw_target = os.readlink(destination)
+        if not Path(raw_target).is_absolute() and destination.resolve() == source:
             return
         destination.unlink()
     elif destination.exists():
         raise PrepareError(f"mount destination exists and is not a symlink: {destination}")
-    destination.symlink_to(source, target_is_directory=True)
+    relative_source = os.path.relpath(source, destination.parent.resolve())
+    destination.symlink_to(relative_source, target_is_directory=True)
 
 
 def mount_sources(source_root: Path, gecko: Path) -> None:

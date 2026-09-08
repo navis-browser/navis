@@ -1,5 +1,6 @@
 import hashlib
 import importlib.util
+import os
 import subprocess
 import tempfile
 import unittest
@@ -13,6 +14,28 @@ SPEC = importlib.util.spec_from_file_location(
 )
 prepare = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(prepare)
+
+
+class WorkspaceMounts(unittest.TestCase):
+    def test_mount_is_relative_and_replaces_an_absolute_alias(self):
+        with tempfile.TemporaryDirectory(
+            prefix="prepare-mount-test-", dir=ROOT / "artifacts"
+        ) as temporary:
+            root = Path(temporary)
+            source_root = root / "runtime"
+            source = source_root / "embedder"
+            gecko = source_root / "gecko"
+            source.mkdir(parents=True)
+            gecko.mkdir()
+            destination = gecko / "desktop-embedder"
+            destination.symlink_to(source, target_is_directory=True)
+
+            prepare.mount_source_directory(
+                source_root, gecko, "embedder", "desktop-embedder"
+            )
+
+            self.assertEqual(os.readlink(destination), "../embedder")
+            self.assertEqual(destination.resolve(), source.resolve())
 
 
 class AppendedSemanticPorts(unittest.TestCase):

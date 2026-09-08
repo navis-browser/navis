@@ -15,6 +15,8 @@ mount_product_overlay() {
   local navis_overlay_path="$2"
   local navis_label="$3"
   local navis_current_target=""
+  local navis_overlay_parent=""
+  local navis_relative_source=""
 
   navis_source_path="$(readlink -f -- "$navis_source_path")"
   if [[ -L "$navis_overlay_path" ]]; then
@@ -28,7 +30,9 @@ mount_product_overlay() {
       "$navis_overlay_path" "$navis_label" >&2
     exit 1
   fi
-  ln -s -- "$navis_source_path" "$navis_overlay_path"
+  navis_overlay_parent="$(readlink -f -- "$(dirname -- "$navis_overlay_path")")"
+  navis_relative_source="$(realpath --relative-to="$navis_overlay_parent" -- "$navis_source_path")"
+  ln -s -- "$navis_relative_source" "$navis_overlay_path"
 }
 
 mount_product_overlay "$product_dir" "$gecko_dir/navis" "Navis"
