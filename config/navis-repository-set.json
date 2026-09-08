@@ -1,0 +1,30 @@
+{
+  "schema": "navis-repository-set-v1",
+  "product_version": "0.2.0-dev",
+  "organization": "navis-browser",
+  "checkout_layout": "sibling-directories",
+  "release_baseline": "v0.1.0",
+  "repositories": {
+    "navis": {
+      "slug": "navis-browser/navis",
+      "path": ".",
+      "baseline_revision": "50c09392bf8cddfdb85d1d7b3a0a3bd36cd4a9eb"
+    },
+    "runtime": {
+      "slug": "navis-browser/runtime",
+      "path": "../runtime",
+      "revision": "b04b73cb4d98bfdbe2c18930aa709f96f7d202df",
+      "baseline_revision": "36852da3d9d71ea4996da97f011b5045afc1de16"
+    },
+    "platform": {
+      "slug": "navis-browser/platform",
+      "path": "../platform",
+      "revision": "3cb62b9081957736997c662e2e9546e21b2ed941",
+      "baseline_revision": "c3cab7f312bce61f001feacecccb8e01cbf4a1d4"
+    }
+  },
+  "generated_state": {
+    "gecko": "../runtime/gecko",
+    "work": "../work"
+  }
+}

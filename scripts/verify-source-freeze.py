@@ -33,9 +33,6 @@ SOURCE_DIRECTORIES = (
     "platform",
 )
 TOP_LEVEL_FILES = (
-    ".gitignore",
-    "AGENTS.md",
-    "README.md",
     "navis/.gitignore",
     "navis/AGENTS.md",
     "navis/LICENSE",
