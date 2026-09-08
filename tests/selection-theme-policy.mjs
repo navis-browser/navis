@@ -2,13 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const chrome = read("product/chrome/content/design-system.css");
-const main = read("product/chrome/content/main.css");
-const internal = read("product/chrome/content/internal-pages.mjs");
-const native = read("android/src/main/java/org/navis/browser/ui/NavisTheme.kt");
-const paint = read("gecko/layout/generic/nsTextPaintStyle.cpp");
-const look = read("gecko/widget/nsXPLookAndFeel.cpp");
-const defaults = read("gecko/modules/libpref/init/all.js");
+const chrome = read("../platform/gecko-chrome/chrome/content/design-system.css");
+const main = read("../platform/gecko-chrome/chrome/content/main.css");
+const internal = read("../platform/gecko-chrome/chrome/content/internal-pages.mjs");
+const native = read("../platform/android/src/main/java/org/navis/browser/ui/NavisTheme.kt");
+const paint = read("../runtime/gecko/layout/generic/nsTextPaintStyle.cpp");
+const look = read("../runtime/gecko/widget/nsXPLookAndFeel.cpp");
+const defaults = read("../runtime/gecko/modules/libpref/init/all.js");
 
 assert.match(chrome, /::selection\s*\{\s*background-color: var\(--navis-color-selection\);\s*color: var\(--navis-color-on-selection\);/,
   "Browser text selection must share the theme tokens across editable and ordinary text");

@@ -15,19 +15,19 @@ from pathlib import Path
 WORKSPACE = Path(__file__).resolve().parent.parent
 SEMANTIC_PORT = (
     WORKSPACE
-    / "patches/gecko/0030-route-desktop-embedder-webauthn-related-origin.patch"
+    / "../runtime/patches/gecko/0030-route-desktop-embedder-webauthn-related-origin.patch"
 )
 VIRTUAL_AUTHENTICATOR_PORT = (
     WORKSPACE
-    / "patches/gecko/0032-route-webdriver-virtual-authenticators.patch"
+    / "../runtime/patches/gecko/0032-route-webdriver-virtual-authenticators.patch"
 )
 WINDOWS_LIFETIME_TIMEOUT_PORT = (
     WORKSPACE
-    / "patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch"
+    / "../runtime/patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch"
 )
 ACTIVE_VIRTUAL_ROUTING_PORT = (
     WORKSPACE
-    / "patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch"
+    / "../runtime/patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch"
 )
 
 
@@ -61,42 +61,42 @@ def require_markers(
 
 def verify_source() -> list[str]:
     failures: list[str] = []
-    binding = read("embedder/components/DesktopWebAuthnPrompt.sys.mjs", failures)
+    binding = read("../runtime/embedder/components/DesktopWebAuthnPrompt.sys.mjs", failures)
     credential_child = read(
-        "embedder/components/DesktopCredentialChild.sys.mjs", failures
+        "../runtime/embedder/components/DesktopCredentialChild.sys.mjs", failures
     )
     credential_parent = read(
-        "embedder/components/DesktopCredentialParent.sys.mjs", failures
+        "../runtime/embedder/components/DesktopCredentialParent.sys.mjs", failures
     )
-    startup = read("embedder/components/DesktopEmbedderStartup.sys.mjs", failures)
-    build = read("embedder/components/moz.build", failures)
-    engine = read("embedder/modules/DesktopEngine.sys.mjs", failures)
-    fullscreen = read("embedder/components/DesktopFullscreenParent.sys.mjs", failures)
-    platform = read("product/chrome/content/main.mjs", failures)
-    xhtml = read("product/chrome/content/main.xhtml", failures)
-    en_us = read("product/chrome/content/locales/en-US.mjs", failures)
-    zh_cn = read("product/chrome/content/locales/zh-CN.mjs", failures)
-    prefs = read("product/app/profile/navis.js", failures)
-    driver = read("gecko/remote/marionette/driver.sys.mjs", failures)
+    startup = read("../runtime/embedder/components/DesktopEmbedderStartup.sys.mjs", failures)
+    build = read("../runtime/embedder/components/moz.build", failures)
+    engine = read("../runtime/embedder/modules/DesktopEngine.sys.mjs", failures)
+    fullscreen = read("../runtime/embedder/components/DesktopFullscreenParent.sys.mjs", failures)
+    platform = read("../platform/gecko-chrome/chrome/content/main.mjs", failures)
+    xhtml = read("../platform/gecko-chrome/chrome/content/main.xhtml", failures)
+    en_us = read("../platform/gecko-chrome/chrome/content/locales/en-US.mjs", failures)
+    zh_cn = read("../platform/gecko-chrome/chrome/content/locales/zh-CN.mjs", failures)
+    prefs = read("../platform/gecko-chrome/app/profile/navis.js", failures)
+    driver = read("../runtime/gecko/remote/marionette/driver.sys.mjs", failures)
     related_origin = read(
-        "gecko/dom/webauthn/WebAuthnRelatedOriginFetcher.sys.mjs", failures
+        "../runtime/gecko/dom/webauthn/WebAuthnRelatedOriginFetcher.sys.mjs", failures
     )
-    authrs = read("gecko/dom/webauthn/authrs_bridge/src/lib.rs", failures)
-    service_header = read("gecko/dom/webauthn/WebAuthnService.h", failures)
-    service = read("gecko/dom/webauthn/WebAuthnService.cpp", failures)
+    authrs = read("../runtime/gecko/dom/webauthn/authrs_bridge/src/lib.rs", failures)
+    service_header = read("../runtime/gecko/dom/webauthn/WebAuthnService.h", failures)
+    service = read("../runtime/gecko/dom/webauthn/WebAuthnService.cpp", failures)
     windows_service = read(
-        "gecko/dom/webauthn/WinWebAuthnService.cpp", failures
+        "../runtime/gecko/dom/webauthn/WinWebAuthnService.cpp", failures
     )
     windows_service_header = read(
-        "gecko/dom/webauthn/WinWebAuthnService.h", failures
+        "../runtime/gecko/dom/webauthn/WinWebAuthnService.h", failures
     )
     linux_monitor = read(
-        "gecko/third_party/rust/authenticator/src/transport/linux/monitor.rs",
+        "../runtime/gecko/third_party/rust/authenticator/src/transport/linux/monitor.rs",
         failures,
     )
-    libudev = read("gecko/dom/webauthn/libudev-sys/src/lib.rs", failures)
+    libudev = read("../runtime/gecko/dom/webauthn/libudev-sys/src/lib.rs", failures)
     test_token = read(
-        "gecko/dom/webauthn/authrs_bridge/src/test_token.rs", failures
+        "../runtime/gecko/dom/webauthn/authrs_bridge/src/test_token.rs", failures
     )
 
     try:
@@ -256,7 +256,7 @@ def verify_source() -> list[str]:
     )
 
     try:
-        ledger = json.loads(read("config/gecko-semantic-ports.json", failures) or "{}")
+        ledger = json.loads(read("../runtime/config/gecko-semantic-ports.json", failures) or "{}")
         port = next(
             item
             for item in ledger.get("ports", [])
@@ -301,7 +301,7 @@ def verify_source() -> list[str]:
         ),
     )
     try:
-        ledger = json.loads(read("config/gecko-semantic-ports.json", failures) or "{}")
+        ledger = json.loads(read("../runtime/config/gecko-semantic-ports.json", failures) or "{}")
         virtual_port = next(
             item
             for item in ledger.get("ports", [])
@@ -322,7 +322,7 @@ def verify_source() -> list[str]:
             "virtual-authenticator semantic port hash differs from ledger",
         )
     try:
-        ledger = json.loads(read("config/gecko-semantic-ports.json", failures) or "{}")
+        ledger = json.loads(read("../runtime/config/gecko-semantic-ports.json", failures) or "{}")
         active_virtual_port = next(
             item
             for item in ledger.get("ports", [])
@@ -349,7 +349,7 @@ def verify_source() -> list[str]:
         require_markers(
             failures,
             read(
-                "patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch",
+                "../runtime/patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch",
                 failures,
             ),
             "active virtual-authenticator semantic patch",
@@ -466,7 +466,7 @@ def verify_source() -> list[str]:
         "Windows native WebAuthn lifetime timer does not cover both create and get",
     )
     try:
-        ledger = json.loads(read("config/gecko-semantic-ports.json", failures) or "{}")
+        ledger = json.loads(read("../runtime/config/gecko-semantic-ports.json", failures) or "{}")
         timeout_port = next(
             item
             for item in ledger.get("ports", [])
@@ -500,7 +500,7 @@ def verify_source() -> list[str]:
         require_markers(
             failures,
             read(
-                "patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch",
+                "../runtime/patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch",
                 failures,
             ),
             "Windows WebAuthn lifetime semantic patch",

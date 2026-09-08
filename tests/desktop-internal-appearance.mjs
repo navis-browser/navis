@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { getNavisInternalPage, resolveNavisInternalPageURI } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
+import { getNavisInternalPage, resolveNavisInternalPageURI } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
 
 // Execute the shipped script and actors with event/state stubs only.
 const diagnostics = { application: [], engine: [], graphics: [], media: [], network: [], capabilities: [], system: [] };
@@ -35,7 +35,7 @@ for (const locale of ["en-US", "zh-CN"]) {
   }
 }
 
-const actorSource = readFileSync(new URL("../embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8")
+const actorSource = readFileSync(new URL("../../runtime/embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8")
   .replace(/^import .*;\n/gm, "").replace("export class DesktopInternalPageChild", "class DesktopInternalPageChild") +
   "\nglobalThis.Actor = DesktopInternalPageChild;";
 const context = { JSWindowActorChild: class {}, resolveNavisInternalPageURI, Cu: { waiveXrays: value => value, cloneInto: value => structuredClone(value) } };
@@ -89,7 +89,7 @@ route("history");
 actor.receiveMessage({ name: "DesktopInternalPage:ProfileChanged", data: { pageKey: "profiles" } });
 assert.equal(responses.length, responseCount, "Profile changes only reach the profiles route");
 
-const engine = readFileSync(new URL("../embedder/modules/DesktopEngine.sys.mjs", import.meta.url), "utf8");
+const engine = readFileSync(new URL("../../runtime/embedder/modules/DesktopEngine.sys.mjs", import.meta.url), "utf8");
 const observer = engine.slice(engine.indexOf("    this.#appearanceObserver = () => {"), engine.indexOf('    Services.prefs.addObserver("navis.appearance."'));
 const profileObserver = engine.slice(engine.indexOf("    this.#profileObserver = () => {"), engine.indexOf('    Services.obs.addObserver(this.#profileObserver'));
 const sent = [], delegated = [];

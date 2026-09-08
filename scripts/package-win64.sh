@@ -27,7 +27,7 @@ if [[ -n "$artifact_variant" && ! "$artifact_variant" =~ ^[A-Za-z0-9._-]+$ ]]; t
   exit 1
 fi
 
-python3 "$navis_dir/scripts/verify-core-abi.py"
+python3 "$navis_dir/../runtime/scripts/verify-core-abi.py"
 python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
 python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
 python3 "$navis_dir/scripts/verify-clean-links-policy.py"

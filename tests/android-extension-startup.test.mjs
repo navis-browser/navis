@@ -5,10 +5,10 @@ import vm from "node:vm";
 import test from "node:test";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const moduleSource = read("gecko/mobile/shared/modules/navis/NavisAndroidStartup.sys.mjs");
-const topologySource = read("gecko/mobile/shared/modules/navis/NavisAndroidExtensionTabTopology.sys.mjs");
-const parentSource = read("gecko/toolkit/components/extensions/ExtensionParent.sys.mjs");
-const backgroundSource = read("gecko/toolkit/components/extensions/parent/ext-backgroundPage.js");
+const moduleSource = read("../runtime/gecko/mobile/shared/modules/navis/NavisAndroidStartup.sys.mjs");
+const topologySource = read("../runtime/gecko/mobile/shared/modules/navis/NavisAndroidExtensionTabTopology.sys.mjs");
+const parentSource = read("../runtime/gecko/toolkit/components/extensions/ExtensionParent.sys.mjs");
+const backgroundSource = read("../runtime/gecko/toolkit/components/extensions/parent/ext-backgroundPage.js");
 const resetStart = parentSource.indexOf("ExtensionParent._resetStartupPromises = () => {");
 const resetEnd = parentSource.indexOf("ExtensionParent._resetStartupPromises();", resetStart);
 assert.ok(resetStart >= 0 && resetEnd > resetStart, "exercise the pinned observer implementation");
@@ -243,11 +243,11 @@ test("mutation: removing either startup signal reproduces its blocked background
 });
 
 test("the actual host handshake finishes product policy before extension startup", () => {
-  const host = read("gecko/mobile/shared/chrome/navis/host.js");
+  const host = read("../runtime/gecko/mobile/shared/chrome/navis/host.js");
   assert.match(host, /const result = await product\.query\([\s\S]*?if \(data\.operation === "product:initialize"\) \{\s*await NavisAndroidStartup\.completeProductInitialization\(window\);/);
   assert.match(host, /NavisAndroidStartup\.markChromeReady\(window\);\s*dispatcher\.dispatch\("NavisAndroid:HostReady"/);
-  const runtime = read("android/src/main/java/org/navis/browser/engine/AndroidBrowserRuntime.kt");
+  const runtime = read("../platform/android/src/main/java/org/navis/browser/engine/AndroidBrowserRuntime.kt");
   assert.match(runtime, /awaitInitialExtensionHost\(\)[\s\S]*?publishExtensionTopology\(\)[\s\S]*?product\.initialize\(\)[\s\S]*?initializeExtensions\(/);
-  assert.match(read("gecko/mobile/shared/modules/navis/moz.build"), /"NavisAndroidStartup.sys.mjs"/);
+  assert.match(read("../runtime/gecko/mobile/shared/modules/navis/moz.build"), /"NavisAndroidStartup.sys.mjs"/);
   assert.doesNotMatch(moduleSource, /GeckoView.*import|ModuleManager\.|MozAfterPaint|\.start\(\)|extensions\.lateStartup/);
 });

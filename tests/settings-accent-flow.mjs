@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import vm from "node:vm";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { getNavisInternalPage } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { NAVIS_DEFAULT_ACCENT, readAppearanceSettings, setAppearanceSetting } from "../embedder/modules/NavisSettingsPolicy.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { getNavisInternalPage } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { NAVIS_DEFAULT_ACCENT, readAppearanceSettings, setAppearanceSetting } from "../../runtime/embedder/modules/NavisSettingsPolicy.sys.mjs";
 
 const diagnostics = { application: [], engine: [], graphics: [], media: [], network: [], capabilities: [], system: [] };
 const html = renderNavisInternalPage({ page: getNavisInternalPage("settings", "appearance"), pages: [], diagnostics, locale: "en-US", nonce: "accent-test" });

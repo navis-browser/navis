@@ -10,7 +10,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 VERIFIER = ROOT / "scripts/verify-spellcheck.py"
-SOURCE = ROOT / "gecko/extensions/spellcheck/locales/en-US/hunspell"
+SOURCE = ROOT / "../runtime/gecko/extensions/spellcheck/locales/en-US/hunspell"
 REGISTRY = b'{"dictionaries":{"en-US":"dictionaries/en-US.dic"}}'
 
 

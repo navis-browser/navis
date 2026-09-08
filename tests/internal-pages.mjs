@@ -5,9 +5,9 @@ import {
   getNavisInternalPages,
   isNavisInternalErrorId,
   resolveNavisInternalPageURI,
-} from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { createNavisLocalizer } from "../product/chrome/content/localization-core.mjs";
+} from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { createNavisLocalizer } from "../../platform/gecko-chrome/chrome/content/localization-core.mjs";
 
 function uri({
   scheme = "navis",

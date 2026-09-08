@@ -1,1 +1,0 @@
-../../runtime/scripts/review-gecko-esr-update.py

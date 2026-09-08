@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { OmniboxEditState } from "../product/chrome/content/omnibox-edit-state.mjs";
+import { OmniboxEditState } from "../../platform/gecko-chrome/chrome/content/omnibox-edit-state.mjs";
 
 // Execute product source against value-only host stubs. No browser process,
 // Profile, DOM, rendered document, timers or network are involved.
-const extensionSource = readFileSync(new URL("../embedder/extensions/ext-search.js", import.meta.url), "utf8");
-const mainSource = readFileSync(new URL("../product/chrome/content/main.mjs", import.meta.url), "utf8");
+const extensionSource = readFileSync(new URL("../../runtime/embedder/extensions/ext-search.js", import.meta.url), "utf8");
+const mainSource = readFileSync(new URL("../../platform/gecko-chrome/chrome/content/main.mjs", import.meta.url), "utf8");
 
 function extensionHarness() {
   const submissions = [], navigation = [], windows = [], initialization = [];

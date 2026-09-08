@@ -1,18 +1,3 @@
-# Workspace mounts and local build/tool state
-/core
-/embedder
-/gecko
-/patches
-/vendor
-/product
-/android
-/android-runtime
-/artifacts
-/logs
-/.m3
-/mozconfig.*
-/poc/
-
 # Editor and generated files
 .DS_Store
 *.swp
@@ -28,7 +13,3 @@ __pycache__/
 *.jks
 *.p12
 *.pfx
-
-# Private experiments and local orchestration
-/tools/
-/poc/

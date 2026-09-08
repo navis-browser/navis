@@ -23,6 +23,8 @@ SOURCE_DIRECTORIES = (
     "navis/docs",
     "navis/scripts",
     "navis/tests",
+    "runtime/docs",
+    "runtime/tests",
     "runtime/core",
     "runtime/android",
     "runtime/embedder",
@@ -37,10 +39,12 @@ TOP_LEVEL_FILES = (
     "navis/AGENTS.md",
     "navis/LICENSE",
     "navis/README.md",
+    "navis/THIRD_PARTY_NOTICES.md",
     "runtime/.gitignore",
     "runtime/AGENTS.md",
     "runtime/LICENSE",
     "runtime/README.md",
+    "runtime/THIRD_PARTY_NOTICES.md",
 )
 EXCLUDED_PREFIXES = (
     "platform/android/.cxx/",
@@ -49,12 +53,6 @@ EXCLUDED_PREFIXES = (
     "runtime/core/rust/target/",
 )
 EXCLUDED_PARTS = {".git", "__pycache__", ".ruff_cache"}
-EXCLUDED_TRANSITION_PATHS = {
-    "navis/config/gecko-esr-review-routes.json",
-    "navis/config/gecko-semantic-ports.json",
-    "navis/scripts/prepare-desktop-embedder.py",
-    "navis/scripts/review-gecko-esr-update.py",
-}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 
@@ -123,8 +121,6 @@ def source_paths(root: Path) -> list[Path]:
     for directory in SOURCE_DIRECTORIES:
         for path in (root / directory).rglob("*"):
             relative = path.relative_to(root).as_posix()
-            if relative in EXCLUDED_TRANSITION_PATHS:
-                continue
             if excluded(relative):
                 continue
             if path.is_symlink():

@@ -4,13 +4,13 @@ import vm from "node:vm";
 import {
   NAVIS_MARK, NAVIS_BRAND_STYLE, NAVIS_BRAND_SCRIPT, renderNavisMark,
   installBrandEntrances,
-} from "../product/chrome/content/brand.mjs";
-import { createIcon, setIcon } from "../product/chrome/content/design-system.mjs";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { getNavisInternalPage, getNavisInternalPages } from "../embedder/modules/DesktopInternalPages.sys.mjs";
+} from "../../platform/gecko-chrome/chrome/content/brand.mjs";
+import { createIcon, setIcon } from "../../platform/gecko-chrome/chrome/content/design-system.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { getNavisInternalPage, getNavisInternalPages } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
 
-const logoSource = await readFile(new URL("../docs/navis-logo-shapes.html", import.meta.url), "utf8");
-const canonical = JSON.parse(await readFile(new URL("../product/branding/navis-mark.json", import.meta.url), "utf8"));
+const logoSource = await readFile(new URL("../../platform/docs/navis-logo-shapes.html", import.meta.url), "utf8");
+const canonical = JSON.parse(await readFile(new URL("../../platform/gecko-chrome/branding/navis-mark.json", import.meta.url), "utf8"));
 assert.deepEqual(NAVIS_MARK, canonical, "Desktop consumes the generated canonical native-platform branding model");
 assert(Object.isFrozen(NAVIS_MARK) && Object.isFrozen(NAVIS_MARK.seams.paths) && Object.isFrozen(NAVIS_MARK.gradients.contour.stops));
 for (const path of [NAVIS_MARK.channel.path, ...NAVIS_MARK.seams.paths]) {
@@ -85,10 +85,10 @@ for (const locale of ["en-US", "zh-CN"]) {
     assert.equal(Boolean(brandScript), id === "newtab" || id === "settings");
   }
 }
-const shell = await readFile(new URL("../product/chrome/content/main.mjs", import.meta.url), "utf8");
+const shell = await readFile(new URL("../../platform/gecko-chrome/chrome/content/main.mjs", import.meta.url), "utf8");
 assert.match(shell, /const useFavicon = icon === "globe" && Boolean\(state\.favicon\)/);
 assert.match(shell, /if \(hasVisibleLoading\(state\)\) \{\s+icon = "loading";/, "Ordinary web loading retains its semantic progress icon");
-const jar = await readFile(new URL("../product/chrome/jar.mn", import.meta.url), "utf8");
+const jar = await readFile(new URL("../../platform/gecko-chrome/chrome/jar.mn", import.meta.url), "utf8");
 assert.match(jar, /content\/brand\.mjs\s+\(content\/brand\.mjs\)/);
 
 function eventTarget(extra = {}) {

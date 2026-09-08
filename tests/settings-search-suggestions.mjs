@@ -1,9 +1,9 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import vm from "node:vm";
-import { getNavisInternalPage, resolveNavisInternalPageURI } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { createNavisLocalizer } from "../product/chrome/content/localization-core.mjs";
+import { getNavisInternalPage, resolveNavisInternalPageURI } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { createNavisLocalizer } from "../../platform/gecko-chrome/chrome/content/localization-core.mjs";
 
 const diagnostics = { application: [], engine: [], graphics: [], media: [], network: [], capabilities: [], system: [] };
 let source;
@@ -105,7 +105,7 @@ reply(true, "search-provider-updated");
 context.editProviderForTest(null);
 assert.equal(node("provider-form").elements.suggestionTemplate.value, "", "Add does not retain an edited provider's endpoint");
 
-const actorSource = readFileSync(new URL("../embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8")
+const actorSource = readFileSync(new URL("../../runtime/embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8")
   .replace(/^import .*;\n/gm, "").replace("export class DesktopInternalPageChild", "class DesktopInternalPageChild") + "\nglobalThis.Actor = DesktopInternalPageChild;";
 const actorContext = { JSWindowActorChild: class {}, resolveNavisInternalPageURI,
   Cu: { waiveXrays: value => value, cloneInto: value => structuredClone(value) } };

@@ -29,7 +29,7 @@ EXPECTED_ABI = "arm64-v8a"
 EXPECTED_ELF_MACHINE = 183
 OMNI_APP_CONSTANTS = "modules/AppConstants.sys.mjs"
 OMNI_NAVIS_PREFS = f"defaults/pref/{EXPECTED_ABI}/navis-prefs.js"
-NAVIS_PREFS_SOURCE = "gecko/mobile/android/app/navis-prefs.js"
+NAVIS_PREFS_SOURCE = "../runtime/gecko/mobile/android/app/navis-prefs.js"
 LOCKED_BUILTIN_IDS_PREF = (
     'pref("extensions.applicationBuiltins.allowedIds", '
     '"uBlock0@raymondhill.net", locked);'
@@ -65,7 +65,7 @@ PACKAGED_ONLY_NATIVE_MEMBERS = (
 ANDROID_VERSION_CODE_EPOCH = 1_577_836_800
 ANDROID_VERSION_CODE_BASE = 100_000_000
 UBLOCK_PREFIX = "assets/web_extensions/ublock-origin/"
-UBLOCK_PACKAGE = "product/builtin/ublock-origin/uBlock0@raymondhill.net.xpi"
+UBLOCK_PACKAGE = "../platform/gecko-chrome/builtin/ublock-origin/uBlock0@raymondhill.net.xpi"
 EXPECTED_UBLOCK_SHA256 = (
     "175756d74468c9ba45863f7fc333d3be670f82d5b066314e915814dd547d1652"
 )
@@ -1202,11 +1202,11 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
             f"versionCode {args.version_code} does not match build ID "
             f"derivation {derived_code}"
         )
-    base_version = (workspace / "product/config/version.txt").read_text(
+    base_version = (workspace / "../platform/gecko-chrome/config/version.txt").read_text(
         encoding="utf-8"
     ).strip()
     display_version = (
-        workspace / "product/config/version_display.txt"
+        workspace / "../platform/gecko-chrome/config/version_display.txt"
     ).read_text(encoding="utf-8").strip()
     badging = parse_aapt_badging(
         run_tool([str(args.aapt2), "dump", "badging", str(apk)])

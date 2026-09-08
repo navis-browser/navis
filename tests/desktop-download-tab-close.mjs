@@ -5,12 +5,12 @@ import { readFileSync } from "node:fs";
 import vm from "node:vm";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const source = read("embedder/modules/DesktopEngine.sys.mjs");
+const source = read("../runtime/embedder/modules/DesktopEngine.sys.mjs");
 const handler = source.slice(source.indexOf("  #handleWindowClose(event) {"),
   source.indexOf("  #bindBrowser(browser) {"));
 assert.ok(handler.startsWith("  #handleWindowClose(event) {"));
-const child = read("gecko/toolkit/actors/BrowserElementChild.sys.mjs");
-const parent = read("gecko/toolkit/actors/BrowserElementParent.sys.mjs");
+const child = read("../runtime/gecko/toolkit/actors/BrowserElementChild.sys.mjs");
+const parent = read("../runtime/gecko/toolkit/actors/BrowserElementParent.sys.mjs");
 const { Session, Child, Parent } = vm.runInNewContext(`
   class Session {
     #browser; #closed = false;
@@ -87,7 +87,7 @@ assert.equal(source.split('browser.removeEventListener("DOMWindowClose", this.#w
 
 // Reuse the existing Platform path: remove only the requested tab, preserve
 // background selection, and retain the deliberate last-tab-closes-window rule.
-const main = read("product/chrome/content/main.mjs");
+const main = read("../platform/gecko-chrome/chrome/content/main.mjs");
 assert.match(main, /"NavisBindingTabCloseRequested", \(event\) => \{\s*closeSession\(records\.get\(event\.detail\.session\.id\)\)/);
 const close = main.slice(main.indexOf("  const closeSession = (record) => {"),
   main.indexOf("  const showTabContextMenu ="));
@@ -120,9 +120,9 @@ for (const [count, activeIndex, closeIndex] of [[3, 1, 1], [3, 0, 2], [1, 0, 0]]
 // Do not infer download intent from URL/file extension or close the source page.
 // The retained native helper owns the new-target/opener decision and dispatches
 // its close when download handling starts, independent of download completion.
-const download = read("gecko/uriloader/exthandler/nsExternalHelperAppService.cpp");
+const download = read("../runtime/gecko/uriloader/exthandler/nsExternalHelperAppService.cpp");
 assert.match(download, /SetShouldCloseWindow\(\s*loadInfo->GetIsNewWindowTarget\(\)\)/);
-const helper = read("gecko/docshell/base/nsDSURIContentListener.cpp");
+const helper = read("../runtime/gecko/docshell/base/nsDSURIContentListener.cpp");
 assert.match(helper, /if \(!mShouldCloseWindow\)/);
 assert.match(helper, /newBC != mBrowsingContext && newBC && !newBC->IsDiscarded\(\)/);
 assert.match(helper, /mBCToClose->Close\(CallerType::System, IgnoreErrors\(\)\)/);

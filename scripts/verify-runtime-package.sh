@@ -3,7 +3,7 @@
 set -euo pipefail
 
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-runtime_dir="${1:-$workspace_dir/gecko/obj-navis-runtime/dist/navis}"
+runtime_dir="${1:-$workspace_dir/../runtime/gecko/obj-navis-runtime/dist/navis}"
 cd "$workspace_dir"
 
 fail() {

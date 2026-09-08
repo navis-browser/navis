@@ -314,20 +314,21 @@ class AndroidPackageTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
-        self.root = Path(self.temporary.name)
-        version_dir = self.root / "product/config"
+        self.root = Path(self.temporary.name) / "navis"
+        self.root.mkdir()
+        version_dir = self.root / "../platform/gecko-chrome/config"
         version_dir.mkdir(parents=True)
         (version_dir / "version.txt").write_text("0.2.0\n", encoding="utf-8")
         (version_dir / "version_display.txt").write_text(
             "0.2.0-dev\n", encoding="utf-8"
         )
-        prefs_dir = self.root / "gecko/mobile/android/app"
+        prefs_dir = self.root / "../runtime/gecko/mobile/android/app"
         prefs_dir.mkdir(parents=True)
         self.navis_prefs = prefs_dir / "navis-prefs.js"
         self.navis_prefs.write_text(
             VERIFY.LOCKED_BUILTIN_IDS_PREF + "\n", encoding="utf-8"
         )
-        package_dir = self.root / "product/builtin/ublock-origin"
+        package_dir = self.root / "../platform/gecko-chrome/builtin/ublock-origin"
         package_dir.mkdir(parents=True)
         self.ublock = package_dir / "uBlock0@raymondhill.net.xpi"
         with zipfile.ZipFile(self.ublock, "w") as archive:

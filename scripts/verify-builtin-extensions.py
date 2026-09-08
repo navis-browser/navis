@@ -18,12 +18,12 @@ REQUIRED_SIGNATURES = {
 }
 
 PRODUCTION_MOZCONFIGS = (
-    "mozconfig.runtime",
-    "mozconfig.runtime.release",
-    "mozconfig.runtime.no-webrtc.sccache",
-    "mozconfig.runtime.no-webrtc.tests.sccache",
-    "mozconfig.win64",
-    "mozconfig.win64.release",
+    "../runtime/mozconfig.runtime",
+    "../runtime/mozconfig.runtime.release",
+    "../runtime/mozconfig.runtime.no-webrtc.sccache",
+    "../runtime/mozconfig.runtime.no-webrtc.tests.sccache",
+    "../runtime/mozconfig.win64",
+    "../runtime/mozconfig.win64.release",
 )
 def fail(message: str) -> None:
     raise SystemExit(f"Built-in extension verification failed: {message}")
@@ -49,7 +49,7 @@ def safe_child(root: pathlib.Path, relative: str) -> pathlib.Path:
 def load_application_locale_packages(
     root: pathlib.Path,
 ) -> list[tuple[str, str, str]]:
-    locale_root = (root / "product" / "locales").resolve()
+    locale_root = (root / "../platform/gecko-chrome" / "locales").resolve()
     registry_path = locale_root / "locales.json"
     if not registry_path.is_file():
         return []
@@ -195,7 +195,7 @@ def main() -> int:
     )
     parser.add_argument("--package-root", type=pathlib.Path)
     args = parser.parse_args()
-    builtin_dir = (args.root / "product" / "builtin").resolve()
+    builtin_dir = (args.root / "../platform/gecko-chrome" / "builtin").resolve()
     registry = load_json(builtin_dir / "extensions.json")
     if registry.get("schema") != 3:
         fail("unsupported registry schema")
@@ -243,7 +243,7 @@ def main() -> int:
         if "ac_add_options --disable-webextensions-runtime" in mozconfig:
             fail(f"production profile disables built-ins: {relative}")
 
-    profile = (args.root / "product" / "app" / "profile" / "navis.js").read_text(
+    profile = (args.root / "../platform/gecko-chrome" / "app" / "profile" / "navis.js").read_text(
         encoding="utf-8"
     )
     expected_ids = ",".join(
@@ -274,7 +274,7 @@ def main() -> int:
             fail(f"built-in artifact is not packaged by moz.build: {addon_id}")
 
     package_manifest = (
-        args.root / "product" / "installer" / "package-manifest.in"
+        args.root / "../platform/gecko-chrome" / "installer" / "package-manifest.in"
     ).read_text(encoding="utf-8")
     for required_line in (
         "@RESPATH@/extensions/*.xpi",

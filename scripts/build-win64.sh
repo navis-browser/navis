@@ -9,7 +9,7 @@ objdir="${NAVIS_WIN64_OBJDIR:-$runtime_dir/gecko/obj-navis-win64}"
 build_id="${NAVIS_BUILD_ID:-$(date -u +%Y%m%d%H%M%S)}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-1.94.1}"
 
-python3 "$navis_dir/scripts/verify-core-abi.py"
+python3 "$navis_dir/../runtime/scripts/verify-core-abi.py"
 python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
 python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
 python3 "$navis_dir/scripts/verify-clean-links-policy.py"

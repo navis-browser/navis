@@ -13,10 +13,10 @@ import {
   setAppearanceSetting,
   readDownloadSettings,
   setDownloadSetting,
-} from "../embedder/modules/NavisSettingsPolicy.sys.mjs";
-import { resolveDesktopAddressInput } from "../embedder/modules/DesktopAddressInput.sys.mjs";
-import { getNavisInternalPage, resolveNavisInternalPageURI } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
+} from "../../runtime/embedder/modules/NavisSettingsPolicy.sys.mjs";
+import { resolveDesktopAddressInput } from "../../runtime/embedder/modules/DesktopAddressInput.sys.mjs";
+import { getNavisInternalPage, resolveNavisInternalPageURI } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
 
 function preferences() {
   const values = new Map();
@@ -190,7 +190,7 @@ for (const rejected of [false, true]) {
   assert.deepEqual(navigationCalls, [], "Modified clicks retain the normal browser link action");
 }
 
-const lifecycleSource = (await readFile(new URL("../embedder/modules/DesktopDownloadPreferences.sys.mjs", import.meta.url), "utf8"))
+const lifecycleSource = (await readFile(new URL("../../runtime/embedder/modules/DesktopDownloadPreferences.sys.mjs", import.meta.url), "utf8"))
   .replace(/^import .*;\n/gm, "")
   .replaceAll("export ", "") + "\nglobalThis.Lifecycle = DesktopDownloadLifecycle;";
 const removed = [];
@@ -247,7 +247,7 @@ assert.deepEqual(removed, ["/downloads/private.txt"]);
 
 // Drive the real actor with independently completing requests. A background
 // diagnostic read and an interactive settings command may overlap in the SPA.
-const actorSource = (await readFile(new URL("../embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8"))
+const actorSource = (await readFile(new URL("../../runtime/embedder/components/DesktopInternalPageChild.sys.mjs", import.meta.url), "utf8"))
   .replace(/^import .*;\n/gm, "")
   .replace("export class DesktopInternalPageChild", "class DesktopInternalPageChild") +
   "\nglobalThis.InternalPageActor = DesktopInternalPageChild;";

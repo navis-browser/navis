@@ -14,7 +14,7 @@ from pathlib import Path
 
 WORKSPACE = Path(__file__).resolve().parent.parent
 DICTIONARY_ROOT = (
-    WORKSPACE / "gecko/extensions/spellcheck/locales/en-US/hunspell"
+    WORKSPACE / "../runtime/gecko/extensions/spellcheck/locales/en-US/hunspell"
 )
 SOURCE_DICTIONARIES = {
     "en-US.aff": DICTIONARY_ROOT / "en-US.aff",
@@ -49,15 +49,15 @@ def sha256_bytes(payload: bytes) -> str:
 
 def verify_source() -> list[str]:
     failures: list[str] = []
-    child = read("embedder/components/DesktopContextMenuChild.sys.mjs", failures)
-    engine = read("embedder/modules/DesktopEngine.sys.mjs", failures)
-    platform = read("product/chrome/content/main.mjs", failures)
-    prefs = read("product/app/profile/navis.js", failures)
-    manifest = read("product/installer/package-manifest.in", failures)
-    locale_build = read("gecko/extensions/spellcheck/locales/moz.build", failures)
-    extension_build = read("gecko/toolkit/mozapps/extensions/moz.build", failures)
+    child = read("../runtime/embedder/components/DesktopContextMenuChild.sys.mjs", failures)
+    engine = read("../runtime/embedder/modules/DesktopEngine.sys.mjs", failures)
+    platform = read("../platform/gecko-chrome/chrome/content/main.mjs", failures)
+    prefs = read("../platform/gecko-chrome/app/profile/navis.js", failures)
+    manifest = read("../platform/gecko-chrome/installer/package-manifest.in", failures)
+    locale_build = read("../runtime/gecko/extensions/spellcheck/locales/moz.build", failures)
+    extension_build = read("../runtime/gecko/toolkit/mozapps/extensions/moz.build", failures)
     xpi_provider = read(
-        "gecko/toolkit/mozapps/extensions/internal/XPIProvider.sys.mjs", failures
+        "../runtime/gecko/toolkit/mozapps/extensions/internal/XPIProvider.sys.mjs", failures
     )
 
     for name, path in SOURCE_DICTIONARIES.items():

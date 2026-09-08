@@ -38,22 +38,13 @@ class PublicInputsTest(unittest.TestCase):
                          'verify-android-package.py', 'verify-incremental-objdir.py'):
                 self.assertIn(gate, android.read_text())
 
-    def test_source_only_mounts_need_no_work_or_gecko(self):
-        mounts = module('sync-workspace-mounts.py')
-        with tempfile.TemporaryDirectory() as directory:
-            root = Path(directory)
-            (root / 'navis/config').mkdir(parents=True)
-            (root / 'runtime/core').mkdir(parents=True)
-            definition = {'legacy_project_view': {'directory_mounts': {
-                'navis/core': 'runtime/core', 'navis/gecko': 'runtime/gecko'}, 'file_mounts': {}}}
-            (root / 'navis/config/navis-path-resolution.json').write_text(json.dumps(definition))
-            self.assertEqual(mounts.sync(root, write=True), 0)
-            self.assertEqual((root / 'navis/core').resolve(), root / 'runtime/core')
-            self.assertFalse((root / 'work').exists())
-            definition['legacy_project_view']['directory_mounts']['navis/core'] = '../escape'
-            (root / 'navis/config/navis-path-resolution.json').write_text(json.dumps(definition))
-            with self.assertRaises(mounts.MountError):
-                mounts.sync(root, write=True)
+    def test_source_roots_are_real_repositories_not_compatibility_aliases(self):
+        for alias in ('product', 'embedder', 'core', 'patches', 'vendor', 'android'):
+            self.assertFalse((NAVIS / alias).exists(), alias)
+        for relative in ('../runtime/scripts/package-embedder-source.py',
+                         '../runtime/scripts/verify-core-abi.py',
+                         '../platform/gecko-chrome/chrome/content/main.mjs'):
+            self.assertTrue((NAVIS / relative).is_file(), relative)
 
     def test_spellcheck_fails_closed_without_pinned_dictionary(self):
         spell = module('verify-spellcheck.py')

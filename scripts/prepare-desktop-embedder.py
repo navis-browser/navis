@@ -1,1 +1,0 @@
-../../runtime/scripts/prepare-desktop-embedder.py

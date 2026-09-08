@@ -1,13 +1,13 @@
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { readFile } from "node:fs/promises";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { getNavisInternalPage } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { createNavisLocalizer } from "../product/chrome/content/localization-core.mjs";
-import { NAVIS_BUILTIN_SEARCH_PROVIDERS, mutateSearchProviders, readDefaultSearchProvider } from "../embedder/modules/NavisSettingsPolicy.sys.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { getNavisInternalPage } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { createNavisLocalizer } from "../../platform/gecko-chrome/chrome/content/localization-core.mjs";
+import { NAVIS_BUILTIN_SEARCH_PROVIDERS, mutateSearchProviders, readDefaultSearchProvider } from "../../runtime/embedder/modules/NavisSettingsPolicy.sys.mjs";
 
 const diagnostics = { application: [], engine: [], graphics: [], media: [], network: [], capabilities: [], system: [] };
-const source = await readFile(new URL("../product/chrome/content/internal-pages.mjs", import.meta.url), "utf8");
+const source = await readFile(new URL("../../platform/gecko-chrome/chrome/content/internal-pages.mjs", import.meta.url), "utf8");
 for (const locale of ["en-US", "zh-CN"]) {
   const html = renderNavisInternalPage({ page: getNavisInternalPage("settings", "search"), pages: [], diagnostics, locale, nonce: "focused" });
   assert.match(html, /<header class="settings-provider-header">[\s\S]*?id="provider-add"[^>]*aria-label="[^"]+"[\s\S]*?<\/header>\s*<p class="settings-provider-description">/);

@@ -8,19 +8,19 @@
     "navis": {
       "slug": "navis-browser/navis",
       "path": ".",
-      "baseline_revision": "50c09392bf8cddfdb85d1d7b3a0a3bd36cd4a9eb"
+      "baseline_revision": "4db6cb9536f3b91fa4079cfd92a9f9592c847eb7"
     },
     "runtime": {
       "slug": "navis-browser/runtime",
       "path": "../runtime",
-      "revision": "34b2c2debe622ec81e32dbafefc0215f598bb0a7",
-      "baseline_revision": "36852da3d9d71ea4996da97f011b5045afc1de16"
+      "revision": "68481916442c9f33fce783420222f568e1fd25c6",
+      "baseline_revision": "5d6b7b32aa54cc747f06006c441895ebb88f0367"
     },
     "platform": {
       "slug": "navis-browser/platform",
       "path": "../platform",
-      "revision": "3d7b05c02795fc9302b5abc64f87907e2a6e8080",
-      "baseline_revision": "c3cab7f312bce61f001feacecccb8e01cbf4a1d4"
+      "revision": "f108bcac20513b53bfac7ea80dbd44f8bab80435",
+      "baseline_revision": "877efbece551dbb3c047def1ee82b8401fcf7437"
     }
   },
   "generated_state": {

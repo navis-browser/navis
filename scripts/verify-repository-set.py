@@ -107,7 +107,10 @@ def verify_repository(
 
     baseline = git(repo, "rev-parse", f"{baseline_tag}^{{}}")
     expected_baseline = entry.get("baseline_revision")
-    if (
+    # The baseline cannot store its own commit hash. Only that exact Navis
+    # checkout may omit the self-reference; peers always remain hash-locked.
+    baseline_self = name == "navis" and expected_baseline is None and baseline == head
+    if not baseline_self and (
         not isinstance(expected_baseline, str)
         or not SHA1.fullmatch(expected_baseline)
         or baseline != expected_baseline
@@ -124,7 +127,8 @@ def verify_repository(
     forbidden = [
         path
         for path in tracked
-        if any(path.startswith(prefix) for prefix in FORBIDDEN_TRACKED_PREFIXES[name])
+        if any(path == prefix.rstrip("/") or path.startswith(prefix)
+               for prefix in FORBIDDEN_TRACKED_PREFIXES[name])
     ]
     if forbidden:
         raise RepositorySetError(f"{name} tracks generated state: {forbidden[:5]}")
@@ -149,7 +153,7 @@ def verify(manifest_path: Path) -> dict[str, dict[str, str]]:
         raise RepositorySetError("repository-set manifest keys differ")
     if manifest.get("schema") != "navis-repository-set-v1":
         raise RepositorySetError("unsupported repository-set schema")
-    if manifest.get("product_version") != "0.2.0-dev":
+    if manifest.get("product_version") not in {"0.1.0", "0.2.0-dev"}:
         raise RepositorySetError("repository-set product version differs")
     if manifest.get("organization") != "navis-browser":
         raise RepositorySetError("repository-set organization differs")
@@ -182,13 +186,14 @@ def verify(manifest_path: Path) -> dict[str, dict[str, str]]:
             stderr=subprocess.DEVNULL,
         ).returncode == 0:
             raise RepositorySetError(f"{label} incorrectly exists at {baseline_tag}")
-        if subprocess.run(
+        present = subprocess.run(
             ["git", "-C", str(repo), "cat-file", "-e", f"HEAD:{path}"],
             check=False,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-        ).returncode != 0:
-            raise RepositorySetError(f"{label} is absent from current development")
+        ).returncode == 0
+        if present != (manifest["product_version"] != "0.1.0"):
+            raise RepositorySetError(f"{label} presence differs from selected product version")
     return results
 
 

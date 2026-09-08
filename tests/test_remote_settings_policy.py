@@ -178,7 +178,7 @@ class RemoteSettingsPolicyTest(unittest.TestCase):
             identifier
             for identifier in allowed
             if (
-                WORKSPACE / f"gecko/services/settings/dumps/{identifier}.json"
+                WORKSPACE / f"../runtime/gecko/services/settings/dumps/{identifier}.json"
             ).is_file()
         }
         prefs = "\n".join(

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 import vm from "node:vm";
-import { renderNavisInternalPage } from "../product/chrome/content/internal-pages.mjs";
-import { getNavisInternalPage } from "../embedder/modules/DesktopInternalPages.sys.mjs";
-import { createNavisLocalizer } from "../product/chrome/content/localization-core.mjs";
+import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";
+import { getNavisInternalPage } from "../../runtime/embedder/modules/DesktopInternalPages.sys.mjs";
+import { createNavisLocalizer } from "../../platform/gecko-chrome/chrome/content/localization-core.mjs";
 
 // Executes the actual page script with event, frame and control stubs. This is
 // not a browser/DOM inspection or a claim about device geometry or rendering.

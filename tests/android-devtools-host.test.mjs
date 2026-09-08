@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
-import { createNavisAndroidDevTools } from "../gecko/mobile/shared/modules/navis/NavisAndroidDevTools.sys.mjs";
+import { createNavisAndroidDevTools } from "../../runtime/gecko/mobile/shared/modules/navis/NavisAndroidDevTools.sys.mjs";
 
 function fixture({ targetPrivate = false, hostPrivate = false, targetClosed = false,
   createHost = createNavisAndroidDevTools } = {}) {
@@ -121,7 +121,7 @@ async function assertDefaultSelection(createHost = createNavisAndroidDevTools) {
 
 test("ordinary opening leaves actual toolbox options unset so Gecko restores LAST_TOOL", async () => {
   await assertDefaultSelection();
-  const source = readFileSync(new URL("../gecko/devtools/client/framework/toolbox.js", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../runtime/gecko/devtools/client/framework/toolbox.js", import.meta.url), "utf8");
   assert.match(source, /if \(!selectedTool\)\s*\{\s*selectedTool = Services\.prefs\.getCharPref\(this\._prefs\.LAST_TOOL\)/);
   assert.match(source, /Services\.prefs\.setCharPref\(this\._prefs\.LAST_TOOL, id\)/);
 });
@@ -134,7 +134,7 @@ test("Inspect keeps an explicit inspector selection", async () => {
 });
 
 test("selection test rejects the old hard-coded Inspector and leaked transport sentinel", async () => {
-  const source = readFileSync(new URL("../gecko/mobile/shared/modules/navis/NavisAndroidDevTools.sys.mjs", import.meta.url), "utf8");
+  const source = readFileSync(new URL("../../runtime/gecko/mobile/shared/modules/navis/NavisAndroidDevTools.sys.mjs", import.meta.url), "utf8");
   for (const replacement of ['toolId: "inspector",', 'toolId: tool,']) {
     const mutant = source.replace('toolId: tool === "default" ? undefined : tool,', replacement);
     assert.notEqual(mutant, source);
@@ -144,7 +144,7 @@ test("selection test rejects the old hard-coded Inspector and leaked transport s
 });
 
 test("ordinary menu and context Inspect routes are distinct through the nullable Kotlin chain", () => {
-  const root = new URL("../android/src/main/java/org/navis/browser/", import.meta.url);
+  const root = new URL("../../platform/android/src/main/java/org/navis/browser/", import.meta.url);
   const read = path => readFileSync(new URL(path, root), "utf8");
   const app = read("ui/NavisBrowserApp.kt");
   assert.match(app, /onOpenDevTools = \{ openDevTools\(\) \}/);

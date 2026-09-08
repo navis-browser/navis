@@ -4,7 +4,7 @@ import vm from "node:vm";
 import test from "node:test";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const host = read("gecko/mobile/shared/modules/navis/NavisAndroidWebExtensionHost.sys.mjs");
+const host = read("../runtime/gecko/mobile/shared/modules/navis/NavisAndroidWebExtensionHost.sys.mjs");
 const start = host.indexOf("  loadPopupTarget(browser, extensionId, targetToken, popupUri) {");
 const end = host.indexOf("\n}\n\nfunction directTabById", start);
 assert.ok(start > 0 && end > start);
@@ -55,7 +55,7 @@ test("valid popup has one ordered view-type, context insertion and load, with st
 });
 
 test("binding uses the current pinned chrome Node global and rejects a removed-API mutation", () => {
-  const nodeIDL = read("gecko/dom/webidl/Node.webidl");
+  const nodeIDL = read("../runtime/gecko/dom/webidl/Node.webidl");
   assert.match(nodeIDL, /\[ChromeOnly, Pure, BinaryName="documentGlobalForBindings"\]\s*readonly attribute WindowProxy\? documentGlobal;/);
   assert.doesNotMatch(nodeIDL, /attribute[^;]*\bownerGlobal\b/);
   assert.ok(method.includes("const ownerWindow = browser.documentGlobal;"));
@@ -65,7 +65,7 @@ test("binding uses the current pinned chrome Node global and rejects a removed-A
 });
 
 test("Navis extension-menu wakeup recognizes the same current Node host without Firefox gBrowser", async () => {
-  const menu = read("gecko/browser/components/extensions/parent/ext-menus.js");
+  const menu = read("../runtime/gecko/browser/components/extensions/parent/ext-menus.js");
   const block = menu.slice(menu.indexOf("    onClicked({ context, fire }) {"));
   const listener = block.slice(block.indexOf("      let listener = async"),
     block.indexOf('\n\n      extension.on("webext-menu-menuitem-click"'));
@@ -115,12 +115,12 @@ for (const [code, mutate] of failures) {
 }
 
 test("all native binding codes survive only the explicit Java and Kotlin allowlists", () => {
-  const java = read("gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis/NavisAndroidPopupBindingFailure.java");
-  const kotlin = read("android/src/main/java/org/navis/browser/extensions/ExtensionPopupFailureStage.kt");
+  const java = read("../runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis/NavisAndroidPopupBindingFailure.java");
+  const kotlin = read("../platform/android/src/main/java/org/navis/browser/extensions/ExtensionPopupFailureStage.kt");
   const codes = new Set(failures.map(([code]) => code));
   assert.deepEqual(new Set([...java.matchAll(/case "([a-z-]+)":/g)].map(match => match[1])), codes);
   for (const code of codes) assert.ok(kotlin.includes(`("${code}")`));
   assert.doesNotMatch(java, /getMessage\(|toString\(|getStackTrace\(|getString\("(?:message|url|token)"/);
-  assert.match(read("gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis/NavisAndroidPopupSurface.java"),
+  assert.match(read("../runtime/gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko/navis/NavisAndroidPopupSurface.java"),
     /notifyFailed\(NavisAndroidPopupBindingFailure\.code\(error\)\)/);
 });

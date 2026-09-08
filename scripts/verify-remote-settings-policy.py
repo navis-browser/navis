@@ -16,18 +16,18 @@ from typing import Any
 
 
 WORKSPACE = Path(__file__).resolve().parent.parent
-POLICY_PATH = WORKSPACE / "product/config/navis-remote-settings-policy.json"
-PORTS_PATH = WORKSPACE / "config/gecko-semantic-ports.json"
-PRODUCT_CONFIG = WORKSPACE / "product/moz.configure"
-PRODUCT_PREFS = WORKSPACE / "product/app/profile/navis.js"
-ANDROID_MOZCONFIG = WORKSPACE / "mozconfig.android-aarch64.sccache"
-ANDROID_PREFS = WORKSPACE / "gecko/mobile/android/app/geckoview-prefs.js"
-TOOLKIT_CONFIG = WORKSPACE / "gecko/toolkit/moz.configure"
-APP_CONSTANTS = WORKSPACE / "gecko/toolkit/modules/AppConstants.sys.mjs"
-TOOLKIT_MODULES_BUILD = WORKSPACE / "gecko/toolkit/modules/moz.build"
-REMOTE_SETTINGS_RUNTIME = WORKSPACE / "gecko/services/settings/remote-settings.sys.mjs"
+POLICY_PATH = WORKSPACE / "../platform/gecko-chrome/config/navis-remote-settings-policy.json"
+PORTS_PATH = WORKSPACE / "../runtime/config/gecko-semantic-ports.json"
+PRODUCT_CONFIG = WORKSPACE / "../platform/gecko-chrome/moz.configure"
+PRODUCT_PREFS = WORKSPACE / "../platform/gecko-chrome/app/profile/navis.js"
+ANDROID_MOZCONFIG = WORKSPACE / "../runtime/mozconfig.android-aarch64.sccache"
+ANDROID_PREFS = WORKSPACE / "../runtime/gecko/mobile/android/app/geckoview-prefs.js"
+TOOLKIT_CONFIG = WORKSPACE / "../runtime/gecko/toolkit/moz.configure"
+APP_CONSTANTS = WORKSPACE / "../runtime/gecko/toolkit/modules/AppConstants.sys.mjs"
+TOOLKIT_MODULES_BUILD = WORKSPACE / "../runtime/gecko/toolkit/modules/moz.build"
+REMOTE_SETTINGS_RUNTIME = WORKSPACE / "../runtime/gecko/services/settings/remote-settings.sys.mjs"
 PATCH_PATH = (
-    WORKSPACE / "patches/gecko/0029-scope-navis-remote-settings-policy.patch"
+    WORKSPACE / "../runtime/patches/gecko/0029-scope-navis-remote-settings-policy.patch"
 )
 POLICY_RELATIVE_PATH = "navis/config/navis-remote-settings-policy.json"
 OPTION_NAME = "--with-navis-remote-settings-policy"
@@ -84,8 +84,8 @@ def load_json(path: Path) -> dict[str, Any]:
 def source_collection_inventory() -> set[str]:
     inventory: set[str] = set()
     for relative in (
-        "gecko/services/settings/dumps",
-        "gecko/services/settings/static-dumps",
+        "../runtime/gecko/services/settings/dumps",
+        "../runtime/gecko/services/settings/static-dumps",
     ):
         root = WORKSPACE / relative
         for path in root.glob("*/*.json"):
@@ -354,7 +354,7 @@ def verify_semantic_port() -> None:
 
     signatures = (
         WORKSPACE
-        / "gecko/services/settings/test/unit/test_remote_settings_signatures.js"
+        / "../runtime/gecko/services/settings/test/unit/test_remote_settings_signatures.js"
     ).read_text(encoding="utf-8")
     for marker in (
         '"bad-signature"',
@@ -418,7 +418,7 @@ def verify_runtime(
         last_modified = json.loads(
             archive.read("defaults/settings/last_modified.json")
         )
-        dumps_root = WORKSPACE / "gecko/services/settings/dumps"
+        dumps_root = WORKSPACE / "../runtime/gecko/services/settings/dumps"
         expected_timestamps = {
             identifier
             for identifier in allowed

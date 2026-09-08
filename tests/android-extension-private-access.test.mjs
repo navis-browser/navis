@@ -5,11 +5,11 @@ import vm from "node:vm";
 import test from "node:test";
 
 const read = path => readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
-const host = read("gecko/mobile/shared/modules/navis/NavisAndroidWebExtensionHost.sys.mjs");
-const desktop = read("embedder/modules/DesktopExtensionManager.sys.mjs");
-const gecko = read("gecko/toolkit/components/extensions/Extension.sys.mjs");
+const host = read("../runtime/gecko/mobile/shared/modules/navis/NavisAndroidWebExtensionHost.sys.mjs");
+const desktop = read("../runtime/embedder/modules/DesktopExtensionManager.sys.mjs");
+const gecko = read("../runtime/gecko/toolkit/components/extensions/Extension.sys.mjs");
 const manifest = JSON.parse(execFileSync("unzip", ["-p",
-  new URL("../product/builtin/ublock-origin/uBlock0@raymondhill.net.xpi", import.meta.url).pathname,
+  new URL("../../platform/gecko-chrome/builtin/ublock-origin/uBlock0@raymondhill.net.xpi", import.meta.url).pathname,
   "manifest.json"], { encoding: "utf8", maxBuffer: 1024 * 1024 }));
 const PRIVATE_PERMISSION = "internal:privateBrowsingAllowed";
 const allowedExpression = host.match(/privateBrowsingAllowed:\s*([\s\S]+?),\n\s*privateBrowsingAvailable:/)?.[1];
@@ -97,12 +97,12 @@ test("projection never invents grants merely because the extension is built-in",
 });
 
 test("UI explains fixed built-in policy without presenting the user-install default as its policy", () => {
-  const ui = read("android/src/main/java/org/navis/browser/ui/ExtensionManagerSurface.kt");
+  const ui = read("../platform/android/src/main/java/org/navis/browser/ui/ExtensionManagerSurface.kt");
   assert.match(ui, /extension\.extensionClass == ExtensionClass\.APPLICATION_BUILT_IN\) \{\s*R\.string\.run_in_private_tabs_builtin_summary/);
   assert.match(ui, /checked = extension\.allowedInPrivateBrowsing/);
   assert.match(ui, /enabled = !busy && extension\.privateBrowsingAvailable/);
   for (const locale of ["values", "values-zh-rCN"]) {
-    assert.match(read(`android/src/main/res/${locale}/extension_private_strings.xml`),
+    assert.match(read(`../platform/android/src/main/res/${locale}/extension_private_strings.xml`),
       /name="run_in_private_tabs_builtin_summary"/);
   }
 });

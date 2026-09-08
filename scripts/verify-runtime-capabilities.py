@@ -45,7 +45,7 @@ def parse_args() -> argparse.Namespace:
         default=workspace / "config/runtime-capabilities.json",
     )
     parser.add_argument(
-        "--objdir", type=Path, default=workspace / "gecko/obj-navis-runtime"
+        "--objdir", type=Path, default=workspace / "../runtime/gecko/obj-navis-runtime"
     )
     parser.add_argument("--runtime", type=Path)
     parser.add_argument(
