@@ -11,6 +11,7 @@
 /logs
 /.m3
 /mozconfig.*
+/poc/
 
 # Editor and generated files
 .DS_Store
