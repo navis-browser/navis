@@ -19,14 +19,30 @@ ANDROID_VERSION_CODE_BASE = 100_000_000
 ANDROID_VERSION_CODE_MAX = 2_100_000_000
 PORT_ID = "navis-android-product-identity-projection"
 PORT_PATH = "patches/gecko/0044-project-navis-android-product-identity.patch"
+WORKSPACE_PORT_PATH = f"runtime/{PORT_PATH}"
+
+
+def canonical_workspace(root: Path) -> Path:
+    root = root.resolve()
+    required = ("navis", "runtime", "platform")
+    if all((root / name).is_dir() for name in required):
+        return root
+    if root.name == "navis" and all(
+        (root.parent / name).is_dir() for name in required
+    ):
+        return root.parent
+    return root
 
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--workspace",
         "--source-root",
+        dest="workspace",
         type=Path,
-        default=Path(__file__).resolve().parent.parent,
+        default=Path(__file__).resolve().parents[2],
+        help="split Navis workspace root (--source-root remains a compatibility alias)",
     )
     return parser.parse_args()
 
@@ -64,9 +80,14 @@ def derive_android_version_code(epoch_seconds: int) -> int:
 
 
 def verify(root: Path) -> list[str]:
+    root = canonical_workspace(root)
     failures: list[str] = []
-    base_version = read(root, "product/config/version.txt", failures).strip()
-    display_version = read(root, "product/config/version_display.txt", failures).strip()
+    base_version = read(
+        root, "platform/gecko-chrome/config/version.txt", failures
+    ).strip()
+    display_version = read(
+        root, "platform/gecko-chrome/config/version_display.txt", failures
+    ).strip()
     require(
         failures,
         base_version == BASE_VERSION,
@@ -78,7 +99,9 @@ def verify(root: Path) -> list[str]:
         f"display product version must be {DISPLAY_VERSION}, found {display_version!r}",
     )
 
-    android_mozconfig = read(root, "mozconfig.android-aarch64.sccache", failures)
+    android_mozconfig = read(
+        root, "runtime/mozconfig.android-aarch64.sccache", failures
+    )
     require(
         failures,
         android_mozconfig.count(
@@ -94,7 +117,7 @@ def verify(root: Path) -> list[str]:
         "Android product identity incorrectly replaces Gecko's engine version",
     )
 
-    gradle = read(root, "android/build.gradle", failures)
+    gradle = read(root, "platform/android/build.gradle", failures)
     require_markers(
         failures,
         "Android product version derivation",
@@ -137,16 +160,26 @@ def verify(root: Path) -> list[str]:
         "Android product identity still reads version files through the transition view",
     )
 
-    http_build = read(root, "gecko/netwerk/protocol/http/moz.build", failures)
-    http_handler = read(root, "gecko/netwerk/protocol/http/nsHttpHandler.cpp", failures)
-    geckoview_gradle = read(
-        root, "gecko/mobile/android/geckoview/build.gradle", failures
+    http_build = read(
+        root, "runtime/gecko/netwerk/protocol/http/moz.build", failures
     )
-    app_constants = read(root, "gecko/toolkit/modules/AppConstants.sys.mjs", failures)
-    app_constants_build = read(root, "gecko/toolkit/modules/moz.build", failures)
-    toolkit_configure = read(root, "gecko/toolkit/moz.configure", failures)
+    http_handler = read(
+        root, "runtime/gecko/netwerk/protocol/http/nsHttpHandler.cpp", failures
+    )
+    geckoview_gradle = read(
+        root, "runtime/gecko/mobile/android/geckoview/build.gradle", failures
+    )
+    app_constants = read(
+        root, "runtime/gecko/toolkit/modules/AppConstants.sys.mjs", failures
+    )
+    app_constants_build = read(
+        root, "runtime/gecko/toolkit/modules/moz.build", failures
+    )
+    toolkit_configure = read(root, "runtime/gecko/toolkit/moz.configure", failures)
     extension_runtime = read(
-        root, "gecko/toolkit/components/extensions/parent/ext-runtime.js", failures
+        root,
+        "runtime/gecko/toolkit/components/extensions/parent/ext-runtime.js",
+        failures,
     )
     require_markers(
         failures,
@@ -219,7 +252,7 @@ def verify(root: Path) -> list[str]:
         "upstream WebExtension browser identity fallback was removed",
     )
 
-    patch = read(root, PORT_PATH, failures)
+    patch = read(root, WORKSPACE_PORT_PATH, failures)
     require_markers(
         failures,
         "product identity semantic port",
@@ -251,7 +284,7 @@ def verify(root: Path) -> list[str]:
         "product identity semantic port touches an unexpected Gecko path",
     )
 
-    ledger_text = read(root, "config/gecko-semantic-ports.json", failures)
+    ledger_text = read(root, "navis/config/gecko-semantic-ports.json", failures)
     try:
         ledger = json.loads(ledger_text)
     except json.JSONDecodeError as error:
@@ -297,7 +330,7 @@ def verify(root: Path) -> list[str]:
 
 def main() -> int:
     args = parse_args()
-    failures = verify(args.source_root.resolve())
+    failures = verify(args.workspace)
     if failures:
         for failure in failures:
             print(f"FAIL: {failure}", file=sys.stderr)

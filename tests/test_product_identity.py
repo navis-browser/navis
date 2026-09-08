@@ -10,28 +10,29 @@ import unittest
 from pathlib import Path
 
 
-SOURCE_ROOT = Path(__file__).resolve().parent.parent
+NAVIS_ROOT = Path(__file__).resolve().parent.parent
+WORKSPACE = NAVIS_ROOT.parent
 SPEC = importlib.util.spec_from_file_location(
-    "verify_product_identity", SOURCE_ROOT / "scripts/verify-product-identity.py"
+    "verify_product_identity", NAVIS_ROOT / "scripts/verify-product-identity.py"
 )
 assert SPEC is not None and SPEC.loader is not None
 VERIFY = importlib.util.module_from_spec(SPEC)
 SPEC.loader.exec_module(VERIFY)
 
 FIXTURE_FILES = (
-    "product/config/version.txt",
-    "product/config/version_display.txt",
-    "mozconfig.android-aarch64.sccache",
-    "android/build.gradle",
-    "gecko/netwerk/protocol/http/moz.build",
-    "gecko/netwerk/protocol/http/nsHttpHandler.cpp",
-    "gecko/mobile/android/geckoview/build.gradle",
-    "gecko/toolkit/modules/AppConstants.sys.mjs",
-    "gecko/toolkit/modules/moz.build",
-    "gecko/toolkit/moz.configure",
-    "gecko/toolkit/components/extensions/parent/ext-runtime.js",
-    VERIFY.PORT_PATH,
-    "config/gecko-semantic-ports.json",
+    "platform/gecko-chrome/config/version.txt",
+    "platform/gecko-chrome/config/version_display.txt",
+    "runtime/mozconfig.android-aarch64.sccache",
+    "platform/android/build.gradle",
+    "runtime/gecko/netwerk/protocol/http/moz.build",
+    "runtime/gecko/netwerk/protocol/http/nsHttpHandler.cpp",
+    "runtime/gecko/mobile/android/geckoview/build.gradle",
+    "runtime/gecko/toolkit/modules/AppConstants.sys.mjs",
+    "runtime/gecko/toolkit/modules/moz.build",
+    "runtime/gecko/toolkit/moz.configure",
+    "runtime/gecko/toolkit/components/extensions/parent/ext-runtime.js",
+    VERIFY.WORKSPACE_PORT_PATH,
+    "navis/config/gecko-semantic-ports.json",
 )
 
 
@@ -40,7 +41,7 @@ class ProductIdentityTest(unittest.TestCase):
         self.temporary = tempfile.TemporaryDirectory()
         self.root = Path(self.temporary.name)
         for relative in FIXTURE_FILES:
-            source = SOURCE_ROOT / relative
+            source = WORKSPACE / relative
             destination = self.root / relative
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copy2(source, destination)
@@ -64,15 +65,18 @@ class ProductIdentityTest(unittest.TestCase):
     def test_current_identity_closure_passes(self) -> None:
         self.assertEqual([], VERIFY.verify(self.root))
 
+    def test_transition_navis_root_resolves_to_canonical_workspace(self) -> None:
+        self.assertEqual([], VERIFY.verify(self.root / "navis"))
+
     def test_desktop_product_version_cannot_drift(self) -> None:
-        (self.root / "product/config/version_display.txt").write_text(
+        (self.root / "platform/gecko-chrome/config/version_display.txt").write_text(
             "0.2.0-preview\n", encoding="utf-8"
         )
         self.assert_failure("display product version")
 
     def test_android_version_must_come_from_product_config(self) -> None:
         self.replace(
-            "android/build.gradle",
+            "platform/android/build.gradle",
             "versionName navisDisplayVersion",
             "versionName '0.2.0-dev'",
         )
@@ -80,7 +84,7 @@ class ProductIdentityTest(unittest.TestCase):
 
     def test_android_version_cannot_return_to_transition_product_path(self) -> None:
         self.replace(
-            "android/build.gradle",
+            "platform/android/build.gradle",
             "platform/gecko-chrome/config/${fileName}",
             "product/config/${fileName}",
         )
@@ -88,7 +92,7 @@ class ProductIdentityTest(unittest.TestCase):
 
     def test_android_gecko_must_select_product_version_files(self) -> None:
         self.replace(
-            "mozconfig.android-aarch64.sccache",
+            "runtime/mozconfig.android-aarch64.sccache",
             "ac_add_options --with-navis-product-version-file-path=navis/config\n",
             "",
         )
@@ -96,7 +100,7 @@ class ProductIdentityTest(unittest.TestCase):
 
     def test_page_user_agent_must_remain_android_and_navis_gated(self) -> None:
         self.replace(
-            "gecko/netwerk/protocol/http/moz.build",
+            "runtime/gecko/netwerk/protocol/http/moz.build",
             'if CONFIG["MOZ_NAVIS_CORE"] and CONFIG["MOZ_WIDGET_TOOLKIT"] == "android":',
             "if True:",
         )
@@ -104,19 +108,19 @@ class ProductIdentityTest(unittest.TestCase):
 
     def test_extension_identity_must_remain_android_and_navis_gated(self) -> None:
         self.replace(
-            "gecko/toolkit/components/extensions/parent/ext-runtime.js",
+            "runtime/gecko/toolkit/components/extensions/parent/ext-runtime.js",
             'AppConstants.MOZ_NAVIS_CORE &&\n            AppConstants.platform === "android"',
             "true",
         )
         self.assert_failure("guarded exactly once")
 
     def test_semantic_port_hash_must_cover_identity_changes(self) -> None:
-        path = self.root / VERIFY.PORT_PATH
+        path = self.root / VERIFY.WORKSPACE_PORT_PATH
         path.write_text(path.read_text(encoding="utf-8") + "\n", encoding="utf-8")
         self.assert_failure("hash does not match")
 
     def test_identity_port_remains_valid_when_later_ports_are_added(self) -> None:
-        path = self.root / "config/gecko-semantic-ports.json"
+        path = self.root / "navis/config/gecko-semantic-ports.json"
         ledger = json.loads(path.read_text(encoding="utf-8"))
         ledger["ports"].append(
             {
