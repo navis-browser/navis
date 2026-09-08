@@ -16,7 +16,7 @@ from pathlib import Path
 DEFAULT_ROOT = Path(__file__).resolve().parent.parent
 PORT_ID = "direct-navis-android-runtime-build-graph"
 PORT_PATH = "patches/gecko/0046-own-navis-android-runtime-build-graph.patch"
-PRIMITIVE_LIST_PATH = "android/runtime/gecko-java-primitives.list"
+PRIMITIVE_LIST_PATH = "android-runtime/gecko-java-primitives.list"
 GECKO_JAVA_SOURCE_ROOT = (
     "gecko/mobile/android/geckoview/src/main/java/org/mozilla/gecko"
 )
@@ -168,7 +168,7 @@ def verify_settings(failures: list[str], settings: str) -> None:
             'def isNavisAndroid = gradle.ext.mozconfig.substs.MOZ_ANDROID_SUBPROJECT == "navis"',
             "include ':annotations'",
             "include ':navis-runtime-android'",
-            '"${gradle.mozconfig.topsrcdir}/navis-android/runtime"',
+            '"${gradle.mozconfig.topsrcdir}/navis-runtime-android"',
             "include ':navis'",
         ),
     )
@@ -216,6 +216,23 @@ def verify_modules(
     primitive_list: str,
     proguard: str,
 ) -> None:
+    require_markers(
+        failures,
+        "android/build.gradle",
+        app_build,
+        (
+            "def navisWorkspaceRoot = project.projectDir.canonicalFile.parentFile.parentFile",
+            '"platform/gecko-chrome/config/${fileName}"',
+            "'platform/gecko-chrome/builtin/ublock-origin/uBlock0@raymondhill.net.xpi'",
+        ),
+    )
+    for legacy_product_path in ("product/config/", "product/builtin/"):
+        require(
+            failures,
+            legacy_product_path not in app_build,
+            "Navis Android application still reads the desktop product through "
+            f"the transition view: {legacy_product_path}",
+        )
     require(
         failures,
         app_build.count("implementation project(':navis-runtime-android')") == 1,
@@ -246,7 +263,7 @@ def verify_modules(
 
     require_markers(
         failures,
-        "android/runtime/build.gradle",
+        "android-runtime/build.gradle",
         runtime_build,
         (
             "alias(libs.plugins.kotlin.android)",
@@ -762,7 +779,7 @@ def verify_stage(
 
 
 def verify_manifest(root: Path, failures: list[str]) -> None:
-    path = root / "android/runtime/src/main/AndroidManifest.xml"
+    path = root / "android-runtime/src/main/AndroidManifest.xml"
     try:
         manifest = ET.parse(path).getroot()
     except (OSError, ET.ParseError) as error:
@@ -799,12 +816,12 @@ def verify(root: Path) -> list[str]:
     patch = read(root, PORT_PATH, failures)
     settings = read(root, "gecko/settings.gradle", failures)
     app_build = read(root, "android/build.gradle", failures)
-    runtime_build = read(root, "android/runtime/build.gradle", failures)
+    runtime_build = read(root, "android-runtime/build.gradle", failures)
     primitive_list = read(root, PRIMITIVE_LIST_PATH, failures)
     accessibility_source = read(root, ACCESSIBILITY_PRIMITIVE_PATH, failures)
     web_executor_source = read(root, WEB_EXECUTOR_PRIMITIVE_PATH, failures)
     web_executor_native = read(root, WEB_EXECUTOR_NATIVE_PATH, failures)
-    proguard = read(root, "android/runtime/proguard-rules.pro", failures)
+    proguard = read(root, "android-runtime/proguard-rules.pro", failures)
     gradle_configure = read(root, "gecko/mobile/android/gradle.configure", failures)
     android_mozbuild = read(root, "gecko/mobile/android/moz.build", failures)
     widget_mozbuild = read(root, "gecko/widget/android/moz.build", failures)

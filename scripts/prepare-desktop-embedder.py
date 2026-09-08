@@ -29,6 +29,14 @@ def parse_args() -> argparse.Namespace:
         help="unpacked Desktop Embedder source-package root",
     )
     parser.add_argument(
+        "--runtime-root",
+        type=Path,
+        help=(
+            "split-workspace Runtime root containing core/embedder/patches/vendor "
+            "(defaults to SOURCE_ROOT for an unpacked source package)"
+        ),
+    )
+    parser.add_argument(
         "--gecko",
         type=Path,
         help="Gecko checkout path (defaults to SOURCE_ROOT/gecko)",
@@ -112,8 +120,8 @@ def run_git(
     return result.stdout.strip() if capture else ""
 
 
-def validate_pin(source_root: Path) -> dict:
-    pin_path = source_root / "vendor/gecko.json"
+def validate_pin(runtime_root: Path) -> dict:
+    pin_path = runtime_root / "vendor/gecko.json"
     pin = load_json(pin_path)
     required = {"remote", "tag", "build_tag", "commit"}
     if set(pin) != required:
@@ -128,14 +136,14 @@ def validate_pin(source_root: Path) -> dict:
     return pin
 
 
-def validate_source_api(source_root: Path) -> int:
+def validate_source_api(source_root: Path, runtime_root: Path) -> int:
     definition_path = source_root / "config/desktop-embedder-source-package.json"
     definition = load_json(definition_path)
     version = definition.get("source_api_version")
     if not isinstance(version, int) or version <= 0:
         raise PrepareError(f"invalid source API version in {definition_path}")
 
-    module_path = source_root / "embedder/modules/DesktopEngine.sys.mjs"
+    module_path = runtime_root / "embedder/modules/DesktopEngine.sys.mjs"
     try:
         module = module_path.read_text(encoding="utf-8")
     except OSError as error:
@@ -152,7 +160,7 @@ def validate_source_api(source_root: Path) -> int:
     return version
 
 
-def validate_ports(source_root: Path) -> list[tuple[Path, str]]:
+def validate_ports(source_root: Path, runtime_root: Path) -> list[tuple[Path, str]]:
     ledger_path = source_root / "config/gecko-semantic-ports.json"
     ledger = load_json(ledger_path)
     if ledger.get("schema_version") != 1:
@@ -182,7 +190,7 @@ def validate_ports(source_root: Path) -> list[tuple[Path, str]]:
         if relative in seen_paths:
             raise PrepareError(f"duplicate semantic-port patch: {relative}")
         seen_paths.add(relative)
-        patch = source_root / relative
+        patch = runtime_root / relative
         if not patch.is_file() or patch.is_symlink():
             raise PrepareError(f"semantic-port patch is missing or unsafe: {patch}")
         actual_hash = sha256(patch)
@@ -208,8 +216,8 @@ def validate_ports(source_root: Path) -> list[tuple[Path, str]]:
         validated.append((patch, f"{actual_hash} {patch.name}"))
 
     actual_patches = {
-        path.relative_to(source_root).as_posix()
-        for path in (source_root / "patches/gecko").glob("*.patch")
+        path.relative_to(runtime_root).as_posix()
+        for path in (runtime_root / "patches/gecko").glob("*.patch")
     }
     if actual_patches != seen_paths:
         missing = sorted(seen_paths - actual_patches)
@@ -429,10 +437,11 @@ def mount_sources(source_root: Path, gecko: Path) -> None:
 def main() -> int:
     args = parse_args()
     source_root = args.source_root.resolve()
-    gecko = (args.gecko or (source_root / "gecko")).resolve()
-    source_api_version = validate_source_api(source_root)
-    pin = validate_pin(source_root)
-    ports = validate_ports(source_root)
+    runtime_root = (args.runtime_root or source_root).resolve()
+    gecko = (args.gecko or (runtime_root / "gecko")).resolve()
+    source_api_version = validate_source_api(source_root, runtime_root)
+    pin = validate_pin(runtime_root)
+    ports = validate_ports(source_root, runtime_root)
     clone_if_needed(gecko, pin, args.no_clone)
 
     actual_commit = run_git(gecko, "rev-parse", "HEAD", capture=True)
@@ -442,7 +451,7 @@ def main() -> int:
         )
     apply_ports(gecko, ports)
     if not args.no_mount:
-        mount_sources(source_root, gecko)
+        mount_sources(runtime_root, gecko)
 
     mount_status = (
         "not mounted"

@@ -1143,7 +1143,7 @@ def load_source_freeze(workspace: Path, path: Path) -> dict[str, Any]:
     android_paths = [
         item["path"]
         for item in manifest["files"]
-        if item["path"].startswith("android/")
+        if item["path"].startswith("platform/android/")
     ]
     if not android_paths:
         raise PackageError("source freeze contains no Android source")

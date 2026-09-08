@@ -2,13 +2,16 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="$workspace_dir/gecko"
-product_dir="$workspace_dir/product"
-android_dir="$workspace_dir/android"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+runtime_dir="$workspace_dir/runtime"
+gecko_dir="$runtime_dir/gecko"
+android_runtime_dir="$runtime_dir/android"
+product_dir="$workspace_dir/platform/gecko-chrome"
+android_dir="$workspace_dir/platform/android"
 
-python3 "$workspace_dir/scripts/prepare-desktop-embedder.py" \
-  --source-root "$workspace_dir" --gecko "$gecko_dir"
+python3 "$navis_dir/scripts/prepare-desktop-embedder.py" \
+  --source-root "$navis_dir" --runtime-root "$runtime_dir" --gecko "$gecko_dir"
 
 mount_product_overlay() {
   local navis_source_path="$1"
@@ -37,6 +40,8 @@ mount_product_overlay() {
 
 mount_product_overlay "$product_dir" "$gecko_dir/navis" "Navis"
 mount_product_overlay "$android_dir" "$gecko_dir/navis-android" "Navis Android"
+mount_product_overlay \
+  "$android_runtime_dir" "$gecko_dir/navis-runtime-android" "Navis Android Runtime"
 actual_commit="$(git -C "$gecko_dir" rev-parse HEAD)"
 printf 'Gecko %s is ready with the embedder and Navis products mounted.\n' \
   "$actual_commit"

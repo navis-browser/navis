@@ -17,25 +17,34 @@ from pathlib import Path
 from typing import Any
 
 
-WORKSPACE = Path(__file__).resolve().parent.parent
+WORKSPACE = Path(__file__).resolve().parents[2]
 SOURCE_DIRECTORIES = (
-    "android",
-    "config",
-    "core",
-    "docs",
-    "embedder",
-    "patches",
-    "product",
-    "scripts",
-    "tests",
-    "vendor",
+    "navis/config",
+    "navis/docs",
+    "navis/scripts",
+    "navis/tests",
+    "runtime/core",
+    "runtime/android",
+    "runtime/embedder",
+    "runtime/patches",
+    "runtime/vendor",
+    "platform",
 )
-TOP_LEVEL_FILES = (".gitignore", "LICENSE", "README.md")
+TOP_LEVEL_FILES = (
+    ".gitignore",
+    "AGENTS.md",
+    "README.md",
+    "navis/.gitignore",
+    "navis/AGENTS.md",
+    "navis/LICENSE",
+    "navis/README.md",
+    "runtime/README.md",
+)
 EXCLUDED_PREFIXES = (
-    "android/.cxx/",
-    "android/.gradle/",
-    "android/build/",
-    "core/rust/target/",
+    "platform/android/.cxx/",
+    "platform/android/.gradle/",
+    "platform/android/build/",
+    "runtime/core/rust/target/",
 )
 EXCLUDED_PARTS = {"__pycache__", ".ruff_cache"}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
@@ -43,6 +52,17 @@ SHA256 = re.compile(r"^[0-9a-f]{64}$")
 
 class FreezeError(RuntimeError):
     pass
+
+
+def canonical_workspace(root: Path) -> Path:
+    root = root.resolve()
+    required = ("navis", "runtime", "platform")
+    if all((root / name).is_dir() for name in required):
+        return root
+    parent = root.parent
+    if root.name == "navis" and all((parent / name).is_dir() for name in required):
+        return parent
+    return root
 
 
 def strict_object(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
@@ -84,7 +104,7 @@ def excluded(relative: str) -> bool:
 def source_paths(root: Path) -> list[Path]:
     missing = [name for name in TOP_LEVEL_FILES if not (root / name).is_file()]
     missing.extend(name for name in SOURCE_DIRECTORIES if not (root / name).is_dir())
-    mozconfigs = sorted(root.glob("mozconfig.*"))
+    mozconfigs = sorted((root / "runtime").glob("mozconfig.*"))
     if not mozconfigs:
         missing.append("mozconfig.*")
     if missing:
@@ -132,8 +152,8 @@ def aggregate(entries: list[dict[str, Any]]) -> str:
 
 
 def current_identity(root: Path) -> tuple[dict[str, Any], int]:
-    upstream = load_json(root / "vendor/gecko.json")
-    ports = load_json(root / "config/gecko-semantic-ports.json")
+    upstream = load_json(root / "runtime/vendor/gecko.json")
+    ports = load_json(root / "navis/config/gecko-semantic-ports.json")
     if not isinstance(upstream, dict):
         raise FreezeError("vendor/gecko.json is not an object")
     if not isinstance(ports, dict) or not isinstance(ports.get("ports"), list):
@@ -142,6 +162,7 @@ def current_identity(root: Path) -> tuple[dict[str, Any], int]:
 
 
 def build_manifest(root: Path, created_at: str) -> dict[str, Any]:
+    root = canonical_workspace(root)
     entries = file_entries(root)
     upstream, port_count = current_identity(root)
     return {
@@ -229,6 +250,7 @@ def validate_manifest_shape(manifest: Any) -> dict[str, Any]:
 
 
 def verify(root: Path, manifest_path: Path) -> dict[str, Any]:
+    root = canonical_workspace(root)
     manifest = validate_manifest_shape(load_json(manifest_path))
     current = build_manifest(root, manifest["created_at"])
     for key in (
@@ -264,7 +286,7 @@ def main() -> int:
     action.add_argument("--manifest", type=Path)
     parser.add_argument("--workspace", type=Path, default=WORKSPACE)
     args = parser.parse_args()
-    root = args.workspace.resolve()
+    root = canonical_workspace(args.workspace)
     try:
         if args.create:
             output = args.create.resolve()

@@ -37,6 +37,51 @@ class WorkspaceMounts(unittest.TestCase):
             self.assertEqual(os.readlink(destination), "../embedder")
             self.assertEqual(destination.resolve(), source.resolve())
 
+    def test_split_runtime_paths_supply_pin_api_and_ports(self):
+        with tempfile.TemporaryDirectory(
+            prefix="prepare-layout-test-", dir=ROOT / "artifacts"
+        ) as temporary:
+            workspace = Path(temporary)
+            source_root = workspace / "navis"
+            runtime_root = workspace / "runtime"
+            (source_root / "config").mkdir(parents=True)
+            (runtime_root / "embedder/modules").mkdir(parents=True)
+            (runtime_root / "patches/gecko").mkdir(parents=True)
+            (runtime_root / "vendor").mkdir(parents=True)
+
+            (source_root / "config/desktop-embedder-source-package.json").write_text(
+                '{"source_api_version": 7}\n'
+            )
+            (runtime_root / "embedder/modules/DesktopEngine.sys.mjs").write_text(
+                "export const DESKTOP_EMBEDDER_API_VERSION = 7;\n"
+            )
+            (runtime_root / "vendor/gecko.json").write_text(
+                '{"remote":"https://example.invalid/gecko",'
+                '"tag":"ESR_TEST","build_tag":"ESR_TEST_BUILD1",'
+                '"commit":"0123456789abcdef0123456789abcdef01234567"}\n'
+            )
+            port = runtime_root / "patches/gecko/0001-test.patch"
+            port.write_text(
+                "diff --git a/source.txt b/source.txt\n"
+                "--- a/source.txt\n+++ b/source.txt\n"
+                "@@ -1 +1,2 @@\n one\n+two\n"
+            )
+            digest = hashlib.sha256(port.read_bytes()).hexdigest()
+            (source_root / "config/gecko-semantic-ports.json").write_text(
+                "{\"schema_version\":1,\"upstream_pin\":\"vendor/gecko.json\","
+                "\"ports\":[{\"order\":1,"
+                "\"patch\":\"patches/gecko/0001-test.patch\","
+                f"\"sha256\":\"{digest}\"}}]}}\n"
+            )
+
+            self.assertEqual(prepare.validate_source_api(source_root, runtime_root), 7)
+            self.assertEqual(
+                prepare.validate_pin(runtime_root)["tag"], "ESR_TEST"
+            )
+            self.assertEqual(
+                prepare.validate_ports(source_root, runtime_root)[0][0], port
+            )
+
 
 class AppendedSemanticPorts(unittest.TestCase):
     def setUp(self):

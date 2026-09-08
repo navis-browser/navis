@@ -78,6 +78,14 @@ class ProductIdentityTest(unittest.TestCase):
         )
         self.assert_failure("hard-coded")
 
+    def test_android_version_cannot_return_to_transition_product_path(self) -> None:
+        self.replace(
+            "android/build.gradle",
+            "platform/gecko-chrome/config/${fileName}",
+            "product/config/${fileName}",
+        )
+        self.assert_failure("transition view")
+
     def test_android_gecko_must_select_product_version_files(self) -> None:
         self.replace(
             "mozconfig.android-aarch64.sccache",

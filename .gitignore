@@ -6,6 +6,7 @@
 /vendor
 /product
 /android
+/android-runtime
 /artifacts
 /logs
 /.m3

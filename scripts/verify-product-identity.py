@@ -100,7 +100,8 @@ def verify(root: Path) -> list[str]:
         "Android product version derivation",
         gradle,
         (
-            "product/config/${fileName}",
+            "def navisWorkspaceRoot = project.projectDir.canonicalFile.parentFile.parentFile",
+            "platform/gecko-chrome/config/${fileName}",
             "def navisBaseVersion = readProductVersion('version.txt')",
             "def navisDisplayVersion = readProductVersion('version_display.txt')",
             "versionName navisDisplayVersion",
@@ -128,7 +129,12 @@ def verify(root: Path) -> list[str]:
     require(
         failures,
         not re.search(r"\bversionName\s+['\"]", gradle),
-        "Android versionName is hard-coded instead of using product/config",
+        "Android versionName is hard-coded instead of using the shared product config",
+    )
+    require(
+        failures,
+        "product/config/${fileName}" not in gradle,
+        "Android product identity still reads version files through the transition view",
     )
 
     http_build = read(root, "gecko/netwerk/protocol/http/moz.build", failures)

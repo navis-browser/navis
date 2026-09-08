@@ -25,6 +25,7 @@
     "harmonyos": "platform/harmonyos"
   },
   "runtime_paths": {
+    "android": "runtime/android",
     "core": "runtime/core",
     "embedder": "runtime/embedder",
     "gecko": "runtime/gecko",
@@ -40,6 +41,7 @@
       "navis/gecko": "runtime/gecko",
       "navis/patches": "runtime/patches",
       "navis/vendor": "runtime/vendor",
+      "navis/android-runtime": "runtime/android",
       "navis/product": "platform/gecko-chrome",
       "navis/android": "platform/android"
     },
