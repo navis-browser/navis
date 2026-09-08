@@ -189,7 +189,12 @@ def file_mode(path: Path) -> int:
 
 
 def source_root(relative: str) -> Path:
-    return RUNTIME if (relative in RUNTIME_OWNED_SOURCES or relative.startswith(RUNTIME_OWNED_PREFIXES)) else WORKSPACE
+    return (
+        RUNTIME
+        if relative in RUNTIME_OWNED_SOURCES
+        or relative.startswith(RUNTIME_OWNED_PREFIXES)
+        else WORKSPACE
+    )
 
 
 def collect_files(definition: dict) -> list[dict]:
@@ -206,13 +211,8 @@ def collect_files(definition: dict) -> list[dict]:
         if relative in include_paths:
             raise PackageError(f"duplicate include path: {relative}")
         include_paths.add(relative)
-        source_root = (
-            RUNTIME
-            if relative in RUNTIME_OWNED_SOURCES
-            or relative.startswith(RUNTIME_OWNED_PREFIXES)
-            else WORKSPACE
-        )
-        source = source_root / relative
+        root = source_root(relative)
+        source = root / relative
         if source.is_symlink() or not source.exists():
             raise PackageError(f"included source is missing or a symlink: {relative}")
         candidates = [source] if source.is_file() else sorted(source.rglob("*"))
@@ -221,7 +221,7 @@ def collect_files(definition: dict) -> list[dict]:
                 raise PackageError(f"source package refuses symlink: {candidate}")
             if not candidate.is_file():
                 continue
-            path = candidate.relative_to(source_root).as_posix()
+            path = candidate.relative_to(root).as_posix()
             if any(path.startswith(prefix) for prefix in definition["forbidden_archive_prefixes"]):
                 raise PackageError(f"forbidden path selected for source package: {path}")
             if path in selected:
@@ -643,7 +643,10 @@ def validate_document_links(contents: dict[str, bytes]) -> None:
 def prepare_source_manifest(definition: dict, files: list[dict]) -> tuple[dict, dict[str, bytes]]:
     validate_file_entries(files)
     validate_definition_inventory(definition, files)
-    contents = {entry["path"]: (source_root(entry["path"]) / entry["path"]).read_bytes() for entry in files}
+    contents = {
+        entry["path"]: (source_root(entry["path"]) / entry["path"]).read_bytes()
+        for entry in files
+    }
     validate_document_links(contents)
     pin = validate_pin(definition, contents)
     ledger, ports = validate_semantic_ports(definition, contents)
