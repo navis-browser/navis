@@ -309,6 +309,14 @@
       ]
     },
     {
+      "id": "product-search-service",
+      "classification": "core-private-search-service",
+      "state": "required",
+      "patterns": [
+        "^toolkit/components/search/(?:Makefile|backend\\.mk)$"
+      ]
+    },
+    {
       "id": "session-and-navigation-services",
       "classification": "embedder-runtime-service",
       "state": "required",

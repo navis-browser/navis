@@ -127,6 +127,17 @@ class RuntimeSourceDomainTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "invalid requires_config"):
             AUDITOR.compile_manifest(manifest)
 
+    def test_product_search_owns_only_retained_js_backend_metadata(self) -> None:
+        manifest = json.loads((Path(__file__).resolve().parents[1] /
+                               "config/runtime-source-domains.json").read_text())
+        domains, forbidden = AUDITOR.compile_manifest(manifest)
+        backend = ["toolkit/components/search/Makefile", "toolkit/components/search/backend.mk"]
+        unretained = ["toolkit/components/search/SearchService.cpp",
+                      "toolkit/components/search/selector/backend.mk",
+                      "toolkit/components/search-extra/Makefile"]
+        report = AUDITOR.audit_lens(dict.fromkeys(backend + unretained), domains, forbidden)
+        self.assertEqual(report["unclassified"], sorted(unretained))
+
 
 if __name__ == "__main__":
     unittest.main()
