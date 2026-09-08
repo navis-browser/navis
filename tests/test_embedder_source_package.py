@@ -65,6 +65,16 @@ class EmbedderSourcePackageTests(unittest.TestCase):
             with self.subTest(path=relative):
                 self.assertEqual(PACKAGE.source_root(relative), PACKAGE.WORKSPACE)
 
+    def test_public_and_legacy_conformance_documents(self) -> None:
+        definition, _ = PACKAGE.validate_definition(PACKAGE.DEFAULT_DEFINITION)
+        files = PACKAGE.collect_files(definition)
+        manifest, contents = PACKAGE.prepare_source_manifest(definition, files)
+        self.assertEqual(manifest["conformance"]["windows_result"], "docs/runtime-validation.md")
+        legacy = dict(contents)
+        legacy["docs/win64-api-v2-delegate-results.md"] = legacy.pop("docs/runtime-validation.md")
+        result = PACKAGE.validate_conformance_assets(legacy)
+        self.assertEqual(result["windows_result"], "docs/win64-api-v2-delegate-results.md")
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -600,7 +600,8 @@ def validate_definition_inventory(
     if require_conformance:
         required_paths.update(
             {
-                "docs/runtime-validation.md",
+                ("docs/runtime-validation.md" if "docs/runtime-validation.md" in entries
+                 else "docs/win64-api-v2-delegate-results.md"),
                 "scripts/inject-embedder-shell-into-omnijar.sh",
                 "scripts/m2-server.py",
                 "tests/embedder-shell/shell.mjs",
