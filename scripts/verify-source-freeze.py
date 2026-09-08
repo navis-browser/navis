@@ -41,10 +41,6 @@ TOP_LEVEL_FILES = (
     "runtime/AGENTS.md",
     "runtime/LICENSE",
     "runtime/README.md",
-    "platform/.gitignore",
-    "platform/AGENTS.md",
-    "platform/LICENSE",
-    "platform/README.md",
 )
 EXCLUDED_PREFIXES = (
     "platform/android/.cxx/",
