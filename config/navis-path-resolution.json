@@ -1,0 +1,76 @@
+{
+  "schema": "navis-path-resolution-v1",
+  "updated": "2026-09-08",
+  "workspace_root": ".",
+  "roots": {
+    "navis": "navis",
+    "runtime": "runtime",
+    "platform": "platform",
+    "work": "work"
+  },
+  "paths": {
+    "docs": "navis/docs",
+    "config": "navis/config",
+    "tests": "navis/tests",
+    "scripts": "navis/scripts",
+    "artifacts": "work/artifacts",
+    "logs": "work/logs"
+  },
+  "platform_paths": {
+    "desktop": "platform/gecko-chrome",
+    "android": "platform/android",
+    "linux": "platform/linux",
+    "windows": "platform/windows",
+    "macos": "platform/macos",
+    "harmonyos": "platform/harmonyos"
+  },
+  "runtime_paths": {
+    "core": "runtime/core",
+    "embedder": "runtime/embedder",
+    "gecko": "runtime/gecko",
+    "patches": "runtime/patches",
+    "vendor": "runtime/vendor"
+  },
+  "legacy_project_view": {
+    "root": "navis",
+    "purpose": "transition-only compatibility for pre-split scripts and manifests",
+    "directory_mounts": {
+      "navis/core": "runtime/core",
+      "navis/embedder": "runtime/embedder",
+      "navis/gecko": "runtime/gecko",
+      "navis/patches": "runtime/patches",
+      "navis/vendor": "runtime/vendor",
+      "navis/product": "platform/gecko-chrome",
+      "navis/android": "platform/android"
+    },
+    "file_mounts": {
+      "navis/mozconfig.android-aarch64.sccache": "runtime/mozconfig.android-aarch64.sccache",
+      "navis/mozconfig.linux-test-fixtures": "runtime/mozconfig.linux-test-fixtures",
+      "navis/mozconfig.runtime": "runtime/mozconfig.runtime",
+      "navis/mozconfig.runtime.no-webrtc.sccache": "runtime/mozconfig.runtime.no-webrtc.sccache",
+      "navis/mozconfig.runtime.no-webrtc.tests.sccache": "runtime/mozconfig.runtime.no-webrtc.tests.sccache",
+      "navis/mozconfig.runtime.release": "runtime/mozconfig.runtime.release",
+      "navis/mozconfig.win64": "runtime/mozconfig.win64",
+      "navis/mozconfig.win64.release": "runtime/mozconfig.win64.release"
+    }
+  },
+  "script_aliases": {
+    "prepare": "navis/scripts/prepare-gecko.sh",
+    "build": "navis/scripts/mach.sh build",
+    "run": "navis/scripts/run.sh",
+    "package_linux": "navis/scripts/package-linux-release.sh",
+    "package_win64": "navis/scripts/package-win64-release.sh",
+    "package_android": "navis/scripts/package-android-candidate.sh",
+    "verify_runtime": "navis/scripts/verify-runtime-package.sh"
+  },
+  "status": {
+    "host_overlay_strategy": "descriptor-first",
+    "legacy_project_view": "mounted-within-new-workspace",
+    "manifest_files": [
+      "platform/linux/host-overlay.json",
+      "platform/windows/host-overlay.json",
+      "platform/macos/host-overlay.json",
+      "platform/harmonyos/host-overlay.json"
+    ]
+  }
+}

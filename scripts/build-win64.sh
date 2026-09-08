@@ -55,20 +55,45 @@ export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.mozbuild/navis-system-wine}"
 
 printf 'Building Navis Win64 with BuildID %s...\n' "$build_id"
-"$workspace_dir/scripts/mach.sh" build
-
-# application.ini and toolkit/library/buildid.cpp are generated in separate
-# recursive phases. Force the latter once after buildid.h has the fixed ID,
-# then let mach relink the final runtime.
-make -C "$objdir/toolkit/library" -B .deps/buildid.cpp.stub
+# application.ini/buildid.h and toolkit/library/buildid.cpp have separate
+# generator stamps.  Refresh both before one incremental native build so the
+# PE mozbuildid section cannot retain a prior candidate identity.
+generated_build_id_stamps=(
+  "$objdir/.deps/buildid.h.stub"
+  "$objdir/toolkit/library/.deps/buildid.cpp.stub"
+)
+for stamp in "${generated_build_id_stamps[@]}"; do
+  if [[ "$stamp" != "$objdir"/* || -L "$stamp" ]]; then
+    printf 'Unsafe generated BuildID stamp path: %s\n' "$stamp" >&2
+    exit 1
+  fi
+done
+rm -f -- "${generated_build_id_stamps[@]}"
+"$workspace_dir/scripts/mach.sh" build buildid.h
+generated_build_id_header="$objdir/buildid.h"
+expected_build_id_header="#define MOZ_BUILDID $build_id"
+if [[ ! -f "$generated_build_id_header" || \
+  "$(tr -d '\r\n' < "$generated_build_id_header")" != \
+  "$expected_build_id_header" ]]; then
+  printf 'Generated Win64 BuildID header does not match %s.\n' "$build_id" >&2
+  exit 1
+fi
 "$workspace_dir/scripts/mach.sh" build
 
 dist_dir="$objdir/dist/bin"
 application_build_id="$(awk -F= '$1 == "BuildID" { print $2; exit }' \
   "$dist_dir/application.ini")"
+application_version="$(awk -F= '$1 == "Version" { print $2; exit }' \
+  "$dist_dir/application.ini")"
+source_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
 if [[ "$application_build_id" != "$build_id" ]]; then
   printf 'application.ini BuildID mismatch: expected %s, found %s\n' \
     "$build_id" "$application_build_id" >&2
+  exit 1
+fi
+if [[ "$application_version" != "$source_version" ]]; then
+  printf 'application.ini Version mismatch: expected %s, found %s\n' \
+    "$source_version" "$application_version" >&2
   exit 1
 fi
 

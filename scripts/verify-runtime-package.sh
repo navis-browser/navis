@@ -180,6 +180,7 @@ required_omni=(
   modules/DesktopFaviconChild.sys.mjs
   modules/DesktopFaviconParent.sys.mjs
   modules/DesktopEngine.sys.mjs
+  modules/DesktopDevTools.sys.mjs
   modules/WebAuthnRelatedOriginFetcher.sys.mjs
   modules/DesktopProfileStore.sys.mjs
   modules/DesktopExtensionActions.sys.mjs
@@ -227,6 +228,13 @@ required_omni=(
   chrome/toolkit/content/extensions/parent/ext-browsingData.js
   chrome/toolkit/content/extensions/parent/ext-tabs-base.js
   chrome/toolkit/content/extensions/parent/ext-toolkit.js
+  chrome/devtools/content/framework/toolbox.xhtml
+  chrome/devtools/content/inspector/index.xhtml
+  chrome/devtools/content/webconsole/index.html
+  chrome/devtools-startup/content/DevToolsShim.sys.mjs
+  chrome/toolkit/content/global/viewSourceUtils.js
+  defaults/pref/debugger.js
+  defaults/pref/navis-devtools.js
 )
 
 for path in "${required_omni[@]}"; do
@@ -289,7 +297,7 @@ for registration in "${required_extension_registrations[@]}"; do
 done
 
 if rg --quiet \
-  '(^browser/|^chrome/devtools/|^chrome/toolkit/content/global/(?:ml/|about(?:Glean|Telemetry)|gmp-sources/)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|GMPInstallManager|GMPUtils|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/GMPExtractor\.worker\.js$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/addons/GMPProvider\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$|^actors/Printing[^/]*\.sys\.mjs$)' \
+  '(^browser/|^chrome/toolkit/content/global/(?:ml/|about(?:Glean|Telemetry)|gmp-sources/)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|GMPInstallManager|GMPUtils|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/GMPExtractor\.worker\.js$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/addons/GMPProvider\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$|^actors/Printing[^/]*\.sys\.mjs$)' \
   "$omni_file"; then
   fail "disabled Firefox product subsystem entered omni.ja"
 fi

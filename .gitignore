@@ -1,20 +1,21 @@
-# Vendor source and local build outputs
-/gecko/
-/.m3/
-/obj-*/
-/artifacts/
-/logs/
+# Workspace mounts and local build/tool state
+/core
+/embedder
+/gecko
+/patches
+/vendor
+/product
+/android
+/artifacts
+/logs
+/.m3
+/mozconfig.*
 
-# Local bootstrap/build state
-/.mozbuild/
-/.cache/
-
-# Editor and OS files
+# Editor and generated files
 .DS_Store
 *.swp
 __pycache__/
 *.py[cod]
-core/rust/target/
 
 # Private experiments and local orchestration
 /tools/

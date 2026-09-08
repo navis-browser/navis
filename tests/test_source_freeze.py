@@ -32,6 +32,7 @@ class SourceFreezeTests(unittest.TestCase):
             json.dumps({"ports": [{"order": 1}]}) + "\n", encoding="utf-8"
         )
         (self.root / "product/source.txt").write_text("source\n", encoding="utf-8")
+        (self.root / "android/source.kt").write_text("source\n", encoding="utf-8")
         ignored = self.root / "core/rust/target"
         ignored.mkdir(parents=True)
         (ignored / "derived.bin").write_bytes(b"derived")
@@ -61,6 +62,21 @@ class SourceFreezeTests(unittest.TestCase):
         (self.root / "scripts/unreviewed.py").write_text("pass\n", encoding="utf-8")
         with self.assertRaisesRegex(VERIFIER.FreezeError, "differs"):
             VERIFIER.verify(self.root, path)
+
+    def test_changed_android_source_is_rejected(self) -> None:
+        path = self.write_manifest(self.manifest())
+        (self.root / "android/source.kt").write_text("changed\n", encoding="utf-8")
+        with self.assertRaisesRegex(VERIFIER.FreezeError, "differs"):
+            VERIFIER.verify(self.root, path)
+
+    def test_generated_android_output_does_not_change_identity(self) -> None:
+        manifest = self.manifest()
+        path = self.write_manifest(manifest)
+        generated = self.root / "android/build/generated.bin"
+        generated.parent.mkdir(parents=True)
+        generated.write_bytes(b"derived")
+        verified = VERIFIER.verify(self.root, path)
+        self.assertEqual(verified["aggregate_sha256"], manifest["aggregate_sha256"])
 
     def test_derived_target_does_not_change_source_identity(self) -> None:
         manifest = self.manifest()

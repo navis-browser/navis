@@ -133,9 +133,9 @@ def verify_source(failures: list[str]) -> None:
         WORKSPACE / "product/branding/generate_visual_elements.py",
         (
             "SIZE = 70",
-            "ACCENT = (11, 87, 208)",
+            "data = Path(source_png).read_bytes()",
             'b"\\x89PNG\\r\\n\\x1a\\n"',
-            "def main(output) -> None:",
+            "def main(output, source_png) -> None:",
         ),
     )
     require_markers(

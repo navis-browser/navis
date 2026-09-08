@@ -330,9 +330,13 @@ def verify_applied_ports(gecko: Path, ports: list[tuple[Path, str]]) -> None:
             gecko, "write-tree", capture=True, environment=environment
         )
         if actual_tree != expected_tree:
+            changed_paths = run_git(
+                gecko, "diff-tree", "--no-commit-id", "--name-only", "-r",
+                expected_tree, actual_tree, capture=True, environment=environment,
+            )
             raise PrepareError(
                 "Gecko tracked content differs from the pinned commit plus the "
-                "semantic-port series"
+                f"semantic-port series:\n{changed_paths}"
             )
     finally:
         for temporary in (index_lock, index):
@@ -385,10 +389,16 @@ def apply_ports(gecko: Path, ports: list[tuple[Path, str]]) -> None:
         applied_state = expected_state
 
     for patch, _ in ports[len(applied_state) :]:
-        run_git(gecko, "apply", "--check", os.fspath(patch))
+        try:
+            run_git(gecko, "apply", "--check", os.fspath(patch), capture=True)
+        except PrepareError:
+            # An appended series may already be generated but not recorded.
+            # Accept it only after the complete tracked tree matches the ledger.
+            verify_applied_ports(gecko, ports)
+            break
         run_git(gecko, "apply", os.fspath(patch))
-
-    verify_applied_ports(gecko, ports)
+    else:
+        verify_applied_ports(gecko, ports)
     if not state_path.is_file() or read_state(state_path) != expected_state:
         write_state(state_path, expected_state)
 

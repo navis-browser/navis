@@ -24,6 +24,7 @@ ac_add_options --enable-project=navis
 ac_add_options --disable-tests
 ac_add_options --enable-release
 ac_add_options --disable-cargo-incremental
+ac_add_options --with-ccache=sccache
 ac_add_options --enable-desktop-embedder
 ac_add_options --enable-webextensions-runtime
 ac_add_options --enable-webdriver
@@ -38,11 +39,19 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         self.addCleanup(temporary.cleanup)
         root = Path(temporary.name)
         (root / "scripts").mkdir()
+        (root / "product/config").mkdir(parents=True)
+        (root / "product/config/version.txt").write_text(
+            "1.0.0\n", encoding="utf-8"
+        )
+        (root / "product/config/version_display.txt").write_text(
+            "1.0.0-dev\n", encoding="utf-8"
+        )
         (root / "mozconfig.runtime.release").write_text(
             COMMON
             + "ac_add_options --host=x86_64-unknown-linux-gnu\n"
             + "ac_add_options --target=x86_64-unknown-linux-gnu\n"
-            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-runtime-release\n",
+            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-runtime-release\n"
+            + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
         )
         (root / "mozconfig.win64.release").write_text(
@@ -50,7 +59,26 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             + "ac_add_options --target=x86_64-pc-windows-msvc\n"
             + "ac_add_options --enable-bootstrap\n"
             + "ac_add_options --disable-bits-download\n"
-            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-win64-release\n",
+            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-win64-release\n"
+            + "mk_add_options AUTOCLOBBER=\n",
+            encoding="utf-8",
+        )
+        (root / "mozconfig.android-aarch64.sccache").write_text(
+            "export MOZ_REQUIRE_SIGNING=1\n"
+            + "ac_add_options --enable-project=mobile/android\n"
+            + "ac_add_options --host=x86_64-unknown-linux-gnu\n"
+            + "ac_add_options --target=aarch64-linux-android\n"
+            + "ac_add_options --with-navis-product-version-file-path=navis/config\n"
+            + "ac_add_options --enable-android-subproject=navis\n"
+            + "ac_add_options --enable-navis-core\n"
+            + "ac_add_options --disable-tests\n"
+            + "ac_add_options --disable-release\n"
+            + "ac_add_options --disable-cargo-incremental\n"
+            + "ac_add_options --enable-webextensions-runtime\n"
+            + "ac_add_options --with-ccache=sccache\n"
+            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/"
+            + "obj-navis-android-aarch64-sccache\n"
+            + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
         )
         return root
@@ -63,10 +91,46 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             result = MODULE.main()
         return result, output.getvalue()
 
-    def test_accepts_independent_cache_free_shipping_graphs(self) -> None:
+    def test_accepts_sccache_backed_shipping_and_android_candidate_graphs(self) -> None:
         result, output = self.run_verifier(self.make_workspace())
         self.assertEqual(result, 0, output)
         self.assertIn("Windows x86_64", output)
+        self.assertIn("Android aarch64", output)
+
+    def test_rejects_desktop_release_without_sccache(self) -> None:
+        root = self.make_workspace()
+        path = root / "mozconfig.runtime.release"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "ac_add_options --with-ccache=sccache\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("lacks ac_add_options --with-ccache=sccache", output)
+
+    def test_rejects_product_version_drift(self) -> None:
+        root = self.make_workspace()
+        (root / "product/config/version_display.txt").write_text(
+            "1.0.0-preview\n", encoding="utf-8"
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("must be 1.0.0-dev", output)
+
+    def test_rejects_android_candidate_without_source_signing_policy(self) -> None:
+        root = self.make_workspace()
+        path = root / "mozconfig.android-aarch64.sccache"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "export MOZ_REQUIRE_SIGNING=1\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("lacks export MOZ_REQUIRE_SIGNING=1", output)
 
     def test_rejects_development_release_flag(self) -> None:
         root = self.make_workspace()
@@ -95,6 +159,33 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         result, output = self.run_verifier(root)
         self.assertEqual(result, 1)
         self.assertIn("lacks export MOZ_REQUIRE_SIGNING=1", output)
+
+    def test_rejects_candidate_profile_that_can_auto_clobber(self) -> None:
+        root = self.make_workspace()
+        path = root / "mozconfig.runtime.release"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "mk_add_options AUTOCLOBBER=\n",
+                "mk_add_options AUTOCLOBBER=1\n",
+            ),
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("automatic object-directory clobbering", output)
+        self.assertIn("enables automatic clobbering", output)
+
+    def test_rejects_candidate_profile_with_second_object_directory(self) -> None:
+        root = self.make_workspace()
+        path = root / "mozconfig.win64.release"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-hidden-cold-graph\n",
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("must own exactly MOZ_OBJDIR", output)
 
 
 

@@ -49,12 +49,13 @@
       "order": 4,
       "id": "local-machine-learning-gate",
       "patch": "patches/gecko/0004-disable-local-machine-learning.patch",
-      "sha256": "9247663026cea3055887b6212e3445d5addd5ab4f3423100db8f1cfd6d9009ce",
+      "sha256": "54381e406d818684bb66874a28ea50c8bb9796b7ab931a3d12829d8040c17ec1",
       "classification": "coherent-capability-gate",
       "intent": "Provide an upstream-default-on gate that removes the ONNX DOM/WebIDL, Toolkit ML, model provider, ONNX runtime, and native llama inference closure together.",
       "invariants": [
         "Omitting --disable-local-ml preserves the selected ESR's normal behavior.",
         "Disabling local ML removes native runtimes as well as WebIDL and product entry points.",
+        "Android GeckoView does not package or register AI-feature and Translations modules or actors when local ML is disabled, and its AppConstants capability reports that state truthfully.",
         "Ordinary DOM, layout, networking, Fission, and sandbox behavior remain available."
       ],
       "port_review": "Inventory the target ESR's current local-inference entry points first; absent subsystems are inapplicable rather than code that should be recreated merely to gate them."
@@ -109,11 +110,15 @@
       "order": 8,
       "id": "observability-runtime-gate",
       "patch": "patches/gecko/0008-disable-observability-runtime.patch",
-      "sha256": "7c404219652f74a57885c5cd83297692e5aef703016ab7307abb15b4fc673d3c",
+      "sha256": "12a48a28c87f56223fb64793b850de40819a4ff7492bcc9c9eb6354f5e34fa35",
       "classification": "coherent-product-runtime-gate",
-      "intent": "Provide a desktop-embedder-only gate that removes the Glean/FOG, DAP, Gecko Trace, generated metrics, and firefox-on-glean Rust closure while preserving required Gecko call surfaces through inert compatibility facades.",
+      "intent": "Provide a Navis Core consumer gate that removes the Glean/FOG, DAP, Gecko Trace, generated metrics, and firefox-on-glean Rust closure while preserving required Gecko call surfaces through inert compatibility facades.",
       "invariants": [
         "Omitting --disable-observability-runtime preserves the selected ESR's normal Glean/FOG, DAP, and Gecko Trace integrations.",
+        "A disabled build excludes the complete DAP XPCOM, IDL, JavaScript, C++, cbindgen, and test directory so its native consumer cannot outlive the optional Rust provider.",
+        "Private Attribution WebIDL, DOM, IPC and service registrations are absent with observability, rather than exposing a surface backed by a missing DAP sender.",
+        "Android does not advertise glean-native or initialize Nimbus QA and Captcha collectors when observability is disabled, and MOZ_SERVICES_HEALTHREPORT follows the same capability.",
+        "MOZ_TELEMETRY_REPORTING and GECKO_TRACE_ENABLE cannot become true while the observability runtime is false.",
         "A disabled build has no firefox-on-glean or generated Glean metric source in the linked gkrust dependency closure.",
         "Window and privileged-JS Glean compatibility surfaces remain inert so retained Gecko modules do not need product-specific rewrites.",
         "Fission IPC, HTTP/3, WebRender, WebGPU, security storage, and retained media behavior remain functional.",
@@ -140,7 +145,7 @@
       "order": 10,
       "id": "legacy-telemetry-runtime-cut",
       "patch": "patches/gecko/0010-remove-legacy-telemetry-runtime.patch",
-      "sha256": "20f96adfc947be7bac6aed9474f8bbe5fb3e499e9eb7c670bf3da034342e41e2",
+      "sha256": "89ed57b3860c645366914151a28a4ee591525cb6ea12dd8a00326c7e770969a3",
       "classification": "coherent-product-runtime-gate",
       "intent": "Extend the disabled observability profile across legacy Telemetry by removing its collectors, stores, archive, startup controller, pings, pingsender, diagnostic UI, and dedicated collection services while retaining a constant-off ABI/process-clock facade.",
       "invariants": [
@@ -149,6 +154,8 @@
         "The nsITelemetry compatibility service retains only empty/no-op methods and the process-clock behavior required by retained Gecko code.",
         "Remote Settings keeps its validation/status contract but performs no uptake recording.",
         "Extension startup does not import the removed TelemetrySession solely to annotate crash-report add-on state.",
+        "Retained GeckoView, form-fill and AddonManager paths neither import removed legacy-Telemetry helpers nor initialize add-on collection when observability is disabled.",
+        "Desktop DevTools does not import the removed TelemetryEnvironment provider when observability is disabled and reports Unknown OS instead.",
         "No pingsender executable, background task, Telemetry startup component, about:telemetry/about:glean UI, or dedicated idle collector enters the runtime."
       ],
       "port_review": "Inventory the target ESR's legacy Telemetry build, startup registrations, pingsender paths, diagnostic pages, dedicated collectors, and non-recording API consumers; rebuild a constant-off compatibility surface only for callers that remain in the selected Core graph."
@@ -173,7 +180,7 @@
       "order": 12,
       "id": "desktop-embedder-restricted-extension-surfaces",
       "patch": "patches/gecko/0012-restrict-desktop-embedder-extension-surfaces.patch",
-      "sha256": "5349e3ae3662bc3a1419e1a4f11f85ed0bb1fe06bef6b613418f93164ef5385d",
+      "sha256": "4c399a4d1c32907cd402facbe73537b52ae8d58dd0f3ce91d44e1e6e3166763c",
       "classification": "product-security-boundary",
       "intent": "Retain the WebExtensions execution paths needed by reviewed application built-ins while keeping public installation, Add-ons Manager, the unused extension-based default theme, autonomous extension updates and native-messaging implementations outside every Desktop Embedder product.",
       "invariants": [
@@ -211,13 +218,15 @@
       "order": 14,
       "id": "desktop-embedder-absent-service-gates-and-eme-cut",
       "patch": "patches/gecko/0014-declare-1.0-service-gates-and-remove-eme.patch",
-      "sha256": "8a0b7af2760df7b0d257fbc200c922d0ca32b0177f37d2c0b3de2a80f5e489cb",
+      "sha256": "b332d509b6bb5f7d701fec934d82634184e9c688827f0d6384a56a3de6783d1a",
       "classification": "coherent-product-runtime-gate",
       "intent": "Define upstream-default-on gates for EME, Web Push and Safe Browsing, then remove Navis 1.0's encrypted-media Web surface, concrete CDM packages and GMP product distribution/update runtime while retaining internal media ABI/adapter/process substrate required by ordinary Gecko playback.",
       "invariants": [
         "Omitting the new disable options preserves the selected ESR's normal EME, Web Push and Safe Browsing selections.",
         "A MOZ_EME_API=false build exposes neither Navigator.requestMediaKeySystemAccess nor HTMLMediaElement encrypted-media members and events.",
         "No ClearKey implementation, fake CDM or concrete CDM binary enters the disabled build or product package.",
+        "Android package manifests require the ClearKey shared library only when MOZ_EME_API is enabled, including under fatal missing-file packaging checks.",
+        "Android builds without MOZ_EME_API retain ordinary MediaCodec decoding while excluding MediaDrm-specific headers, state and Widevine decoder routing.",
         "When both EME and WebRTC are disabled, no GMP provider, update manager or OpenH264/Widevine distribution descriptor enters the product package.",
         "Generic Chromium CDM interfaces, adapter compatibility code, host types and GMP process substrate may remain only as inert internal dependencies of retained Gecko media code.",
         "The Web Push and Safe Browsing controls are consumed by their following semantic ports rather than by product-name predicates."
@@ -228,7 +237,7 @@
       "order": 15,
       "id": "desktop-embedder-web-push-cut",
       "patch": "patches/gecko/0015-remove-web-push-api-and-runtime.patch",
-      "sha256": "45d04ae4c312eadd2893a715d0dc5635fca81e3832ab7fc7d9b2c8ae72b26281",
+      "sha256": "ffdadc0be6791b0d53d1a9d0c763ecaefb9338fdad41998d0234e8569b89b702",
       "classification": "coherent-web-capability-gate",
       "intent": "Remove the Web Push WebIDL surface, DOM runtime, service-worker integration and content-process messaging together when MOZ_WEB_PUSH is disabled, while preserving ordinary Service Workers.",
       "invariants": [
@@ -236,6 +245,9 @@
         "A disabled build exposes no PushManager, PushEvent, PushMessageData, PushSubscription or push event handler to Web content.",
         "The dom/push runtime, Push IPC operations, quota notification and service-worker push dispatch do not enter the selected graph.",
         "Legacy nsIPush declarations may remain as inert ABI, but retained service-worker manager calls fail with NS_ERROR_NOT_AVAILABLE.",
+        "Android GeckoView packages and registers no Push module, process actor, controller or XPCOM service when MOZ_WEB_PUSH is false, and AppConstants reports that state truthfully.",
+        "Clear-data operations return before resolving the absent Push service when MOZ_WEB_PUSH is false, independently of product preferences.",
+        "DevTools service-worker inspection does not resolve or observe the absent Push service when MOZ_WEB_PUSH is false.",
         "Service Worker registration, fetch and lifecycle behavior unrelated to Push remain available."
       ],
       "port_review": "Inventory the target ESR's Push WebIDL, DOM directory, service-worker operations, IPDL, permission mapping, notification quota and legacy XPIDL consumers; remove the executable/runtime closure while retaining only compatibility declarations still required by ordinary Service Workers."
@@ -244,7 +256,7 @@
       "order": 16,
       "id": "desktop-embedder-safe-browsing-reputation-cut",
       "patch": "patches/gecko/0016-remove-safe-browsing-reputation-services.patch",
-      "sha256": "6f2a44e3a8a37c99481ad9bbe5d575377c713edd85fb064b23c06edb23edace7",
+      "sha256": "e48b1774a4a13c8b2300bc31c8377758fbb19f077f06347fb33123e23da19629",
       "classification": "coherent-provider-runtime-gate",
       "intent": "Remove Safe Browsing providers, application-reputation services, list-update modules, diagnostic UI and provider configuration together while retaining generic URL-classifier substrate shared by other privacy capabilities.",
       "invariants": [
@@ -253,6 +265,7 @@
         "The provider XPIDL is absent; retained generic downloads use a gated local copy of the stable verdict values only when the provider interface is unavailable.",
         "Generic URL-classifier database and classification infrastructure remain available to independently retained tracking-protection features.",
         "Downloads with a nonempty extension conservatively require confirmation when no application-reputation provider exists.",
+        "GeckoView neither imports nor initializes the absent SafeBrowsing module when MOZ_SAFE_BROWSING is false; retained remote certificate-state initialization is unchanged.",
         "No product-name predicate or replacement network provider is introduced."
       ],
       "port_review": "Inventory the target ESR's URL-classifier provider modules, application-reputation interface and implementation, Remote Settings/list updaters, diagnostic pages, download decision paths and preferences; remove provider-backed behavior without conflating it with generic classifier consumers, and verify the provider-free verdict fallback against the target interface values."
@@ -450,20 +463,21 @@
     },
     {
       "order": 29,
-      "id": "desktop-embedder-remote-settings-allowlist",
-      "patch": "patches/gecko/0029-scope-desktop-embedder-remote-settings.patch",
-      "sha256": "59f6db370e5b94e13fcce8263da6395aada127e677bece796eb6b78054e456e6",
+      "id": "navis-remote-settings-policy",
+      "patch": "patches/gecko/0029-scope-navis-remote-settings-policy.patch",
+      "sha256": "355d756ba767d35adc3d679f4fc706336dc79566c11cf84425b5b39225c42acd",
       "classification": "product-security-data-boundary",
-      "intent": "Let a Desktop Embedder declare an exact Remote Settings collection allowlist that governs packaged bootstrap dumps, polling, explicit client reads and synchronization without weakening Gecko content-signature verification.",
+      "intent": "Let an explicit Navis product policy file govern the exact Remote Settings runtime allowlist, cross-platform bootstrap package and remote-sync subset, without equating that policy with generic Desktop Embedder or GeckoView consumers and without weakening Gecko content-signature verification.",
       "invariants": [
-        "Omitting the allowlist preserves upstream and generic Desktop Embedder behavior; a nonempty list is valid only in Desktop Embedder mode and must be sorted and unique.",
-        "The same bucket/collection identifiers filter generated dump timestamps, packaged JSON and attachment payloads, central polling and explicit RemoteSettings clients.",
-        "A disallowed client returns no records and performs no synchronization even when an old profile database exists.",
+        "Omitting the explicit policy preserves upstream generic Desktop Embedder and GeckoView behavior; supplying it requires one source-tree-relative JSON file with sorted unique collections and a nonempty bootstrap subset.",
+        "Desktop and Android Navis consume the same policy file; allowed identifiers govern local client access, packaged_bootstrap identifiers govern generated JSON and attachment payloads, and only remote_sync identifiers may poll or mutate through synchronization.",
+        "The production runtime reads immutable allowed and sync collection lists from AppConstants; an absent or empty forced test list denies every collection rather than failing open.",
+        "A disallowed client returns no records even when an old profile database exists, while a packaged-only client can read bootstrap/profile data but cannot synchronize or mutate it.",
         "Production preview bucket names normalize to their reviewed base bucket; preview mode remains unavailable through Navis's locked production preferences.",
         "Test builds bypass the product allowlist by default so upstream arbitrary-collection and invalid-signature tests retain their original coverage, while a dedicated test can force the policy boundary.",
         "Collection signature verification, signer identities, rollback behavior and the Mozilla production endpoint remain Gecko-owned and unchanged."
       ],
-      "port_review": "Inventory the target ESR's dump installers, timestamp generator, startup bundle, polling/client factory and signature tests; reapply one generic allowlist at every current package and synchronization boundary, then replay both the forced policy test and the upstream invalid-signature suite."
+      "port_review": "Inventory the target ESR's dump installers, timestamp generator, startup bundle, polling/client factory and signature tests; reapply the explicit policy capability and separate local-access/bootstrap/sync sets at every current desktop and Android package/runtime boundary, then replay empty-policy fail-closed, packaged-only no-sync, forced allowlist and upstream invalid-signature cases."
     },
     {
       "order": 30,
@@ -647,6 +661,1049 @@
         "Registrable-domain matching uses Gecko's effective-TLD service; it does not reinterpret exact-host origins as suffix wildcards or apply a scoped parameter globally."
       ],
       "port_review": "Review the target ESR's query-stripping list service, Strip-on-Share rule dictionary, navigation stripper and Remote Settings initialization; preserve opt-in product policy and unified-consumer gates, then replay global, exact-host, registrable-domain, allow-domain, offline-first and provider-update replacement cases."
+    },
+    {
+      "order": 42,
+      "id": "desktop-embedder-page-devtools-opt-in",
+      "patch": "patches/gecko/0042-opt-in-desktop-page-devtools.patch",
+      "sha256": "b962c938887049db0a7b6cf754e471a1f9a065403e4eae6accc15bd467dc1712",
+      "classification": "coherent-product-runtime-gate",
+      "intent": "Let a Desktop Embedder explicitly retain Gecko's full page-target DevTools graph while generic embedders continue to omit it.",
+      "invariants": [
+        "The generic --enable-desktop-embedder mode still defaults MOZ_DEVTOOLS to none.",
+        "Full DevTools requires the explicit --enable-desktop-embedder-devtools opt-in and cannot be enabled through that option for another product type.",
+        "The explicit opt-in restores the complete heap-snapshot WebIDL, C++ and parent/content IPDL closure that generic Desktop Embedder builds omit.",
+        "The explicit opt-in also retains Toolkit view-source resources consumed by the page toolbox; generic Desktop Embedder builds continue to omit that component.",
+        "Responsive Design Mode exposes localized accessible width and height controls, while the profiler resolves the active Navis browser and uses product-neutral branding.",
+        "The selected state is exposed as a build-time AppConstants capability so the reusable Runtime can fail closed when absent.",
+        "The DevTools toolbox's engine-private about:devtools-toolbox host is admitted only when this capability is compiled; the product omnibox and internal-page namespace do not expose it.",
+        "This gate does not enable Browser Toolbox, privileged WebDriver chrome context or parent-process debugging from F12."
+      ],
+      "port_review": "Review the target ESR's MOZ_DEVTOOLS graph, AppConstants generation and toolbox host URI; preserve an explicit Desktop Embedder page-tools opt-in and its private about host, then verify client, server, shared, startup and platform paths as one coherent graph."
+    },
+    {
+      "order": 43,
+      "id": "shared-navis-core-android-geckoview-binding",
+      "patch": "patches/gecko/0043-expose-navis-core-to-android-geckoview.patch",
+      "sha256": "0d3729639367cedff9cff6b694b1027c537df0eb31f9ca7ebc8e1d63b790ac0b",
+      "classification": "core-semantic-adapter",
+      "intent": "Promote the dependency-free Navis Core link to an explicit cross-platform capability and provide a narrow GeckoView-internal Android JNI backend plus a deterministic Navis Android Gradle entry point.",
+      "invariants": [
+        "Desktop Embedder builds continue to imply the shared Core while an Android consumer must opt in explicitly through MOZ_NAVIS_CORE.",
+        "The shared Rust Runtime, Session, View, navigation and shutdown state remains platform-neutral and is linked once through gkrust on both desktop and Android.",
+        "The Android JNI layer matches the generator's generic object-return ABI while constructing a typed immutable snapshot, and otherwise translates only primitive values and copied UTF-8 strings; GeckoView, JNI, Android View and Gecko objects never enter the public Core contract.",
+        "Every borrowed Core snapshot string is copied before returning to Java, non-OK Core statuses become Java exceptions and invalid or closed identifiers fail closed.",
+        "The Navis Android application remains an external mounted source tree selected by an explicit Gradle subproject rather than becoming Gecko-owned browser state.",
+        "Navis Android locks background extension and system-add-on updates off, removes upstream store metadata endpoints, requires signed packages and runs WebExtensions remotely.",
+        "Navis Android locks telemetry submission and collection, Push, local ML and Translations preferences off as defense in depth for capabilities removed from its Gecko graph.",
+        "Disabling observability remains unavailable to unrelated upstream consumers and is admitted only for a build with the explicit shared Navis Core capability."
+      ],
+      "port_review": "Review the target ESR's gkrust aggregation, GeckoView JNI generation/initialization and Gradle subproject selection. Recreate the explicit Core capability, copy-before-return snapshot ABI and external Android source mount without importing Fenix or Android Components lifecycle ownership."
+    },
+    {
+      "order": 44,
+      "id": "navis-android-product-identity-projection",
+      "patch": "patches/gecko/0044-project-navis-android-product-identity.patch",
+      "sha256": "f125b381aa3b8031720120d96ecb449cc0a749a425dc32de157d277395060196",
+      "classification": "product-identity-boundary",
+      "intent": "Project the Navis product version and brand at Android's page and WebExtension-facing boundaries while retaining GeckoView's private Firefox-compatible engine identity.",
+      "invariants": [
+        "Only an Android build with MOZ_NAVIS_CORE receives the additional Navis user-agent token and WebExtension browser-info projection; unrelated GeckoView and desktop consumers are unchanged.",
+        "The page user agent retains Gecko's Firefox compatibility token before the Navis product token.",
+        "The Navis token uses the base product version selected from the mounted product/config version files rather than Gecko's engine milestone.",
+        "browser.runtime.getBrowserInfo reports Navis, Navis and the product display version without changing GeckoView's private application ID, basename or vendor.",
+        "GeckoView's generated mobile user-agent constants remain byte-for-byte consistent with Necko's constructed Android user agent for both Navis and upstream consumers."
+      ],
+      "port_review": "Review the target ESR's HTTP user-agent construction, GeckoView generated user-agent constants, AppConstants surface and WebExtensions runtime.getBrowserInfo implementation. Recreate the Android-and-Navis-only product projection without replacing the Firefox compatibility token or globally rebranding GeckoView internals."
+    },
+    {
+      "order": 45,
+      "id": "direct-navis-android-runtime-seam",
+      "patch": "patches/gecko/0045-own-direct-navis-android-runtime.patch",
+      "sha256": "1419b499f1b7ea3e200411a176a9cb0049695774b6761fb90b21e5c8de7fb103",
+      "classification": "direct-android-engine-embedding-boundary",
+      "intent": "Replace GeckoView-owned Android Runtime, Session and View lifecycle ownership with a Navis-owned JNI/widget seam while retaining only reviewed Gecko Android engine primitives and an isolated compatibility branch for upstream GeckoView.",
+      "invariants": [
+        "MOZ_NAVIS_ANDROID_RUNTIME is derived from the explicit Navis Core selection and switches Android wrapper generation, widget ownership and runtime consumers as one coherent capability.",
+        "The direct path owns process and session peers, a remote content host, top-level Android widget lifetime and compositor Surface attachment without constructing GeckoRuntime, GeckoSession, GeckoView, GeckoDisplay, PanZoomController or SessionTextInput.",
+        "The direct path neither registers nor packages GeckoViewStartup or its category manifest; the Navis chrome host publishes its own startup-complete topic and nsAppShell advances the engine state from that product-owned signal.",
+        "Navis Runtime and Session delegate signatures contain only Java primitives, strings and JDK CompletionStage values; GeckoBundle, EventDispatcher, GeckoResult, WebNotification and JNI objects remain private engine transport details.",
+        "Upstream GeckoView retains its public Runtime, Session, accessibility and web-executor APIs through non-Navis branches and compatibility facades with unchanged observable behavior.",
+        "Reusable accessibility and web-executor code lives in package-private Android engine bridges with no GeckoSession, PanZoomController, SessionTextInput or GeckoRuntime ownership; native JNI stems target those bridges directly.",
+        "The first direct slice uses Gecko's generic WebAuthn backend rather than retaining the GeckoRuntime-owned Android FIDO activity bridge, and records Android platform WebAuthn projection as unfinished instead of exposing a false owner.",
+        "Navis-owned APZ/touch event decoding feeds the existing native NPZCSupport, Navis-owned IME uses the Gecko editable Binder/native protocol, and direct accessibility attachment targets the package-private engine bridge; none may be implemented by restoring legacy GeckoView owner types.",
+        "The basic IME attachment preserves key, text, selection and composition transport while advanced IME cursor-anchor, handwriting, rich-content and device-workaround parity remains an explicit tested follow-up rather than a claimed capability.",
+        "The direct native window implementation includes the service-manager declaration it consumes rather than depending on an unrelated unified source to provide do_GetService transitively.",
+        "Navis live developer mode updates the remote-debugging preference and starts or stops the actual USB debugger socket against the Navis chrome window type without requiring GeckoViewStartup.",
+        "The direct Session projects terminal top-level load success and bounded versioned session-history state; restore uses Gecko SessionHistory and SessionStoreUtils primitives without exposing GeckoSession.SessionState.",
+        "Content-process termination is correlated with ipc:content-shutdown, invalidates and detaches the direct Session before reporting a plain crash-versus-kill fact, and cannot retain input or accessibility delegates after native error or spontaneous close.",
+        "DOM fullscreen reuses Gecko's cross-process content actors but exposes only Navis-owned enter/exit facts and an explicit exit command; retained actor modules are engine primitives rather than GeckoSession ownership.",
+        "New-window handoff is fail-closed and bounded: an opaque validated token links an opener request to an unopened child Session, nsIOpenWindowInfo is attached before FrameLoader creation, and acceptance completes only after the child native window is real; rejection, timeout, close and error all cancel.",
+        "Crash intent constants and media user-agent selection no longer force low-level Android primitives to depend on GeckoRuntime or GeckoSession.",
+        "The product-owned chrome host carries navigation, loading, terminal success, history, bounded session state and security facts over a private named EventDispatcher while page content remains remote and compositor-owned."
+      ],
+      "port_review": "Review the target ESR's Android widget, generated-JNI, process startup, compositor Surface, accessibility, text-input, APZ and platform-service ownership. Recreate the direct Navis peers and private engine bridges, preserve the non-Navis GeckoView branch, and require explicit new Navis seams for every unfinished Android capability rather than importing GeckoView lifecycle owners."
+    },
+    {
+      "order": 46,
+      "id": "direct-navis-android-runtime-build-graph",
+      "patch": "patches/gecko/0046-own-navis-android-runtime-build-graph.patch",
+      "sha256": "57efd7dddb2b165a1c9d6caec2a0e143994b8c2490cb439397f882570a2a7a61",
+      "classification": "direct-android-product-build-ownership",
+      "intent": "Give Navis Android an owned Gradle runtime module, generated-source graph and staged native package so the product consumes reviewed Gecko engine primitives without including or depending on the GeckoView project or AAR.",
+      "invariants": [
+        "The Navis Gradle settings branch includes only annotations, navis-runtime-android and navis product projects; GeckoView, Android Components and example projects remain isolated to upstream product branches.",
+        "The Navis application has one engine dependency on its private navis-runtime-android module and no GeckoView project, published AAR or broad GeckoView source dependency.",
+        "The private runtime compiles a reviewed Java primitive allowlist; product sources and the packaged DEX contain no GeckoRuntime, GeckoSession, GeckoView, GeckoDisplay or other excluded lifecycle-owner definition or type reference.",
+        "Navis SDK bindings and generated JNI wrappers are produced by navis-runtime-android rather than requiring the GeckoView Gradle project.",
+        "Generated manifest, child-process, XPCOM error and crash-report sources are projected into the selected runtime module's object directory.",
+        "Navis native libraries and assets stage under dist/navis-android, and candidate packaging verifies that owned stage rather than accepting dist/geckoview.",
+        "The non-Navis branch retains the selected ESR's GeckoView project, generated-source tasks and dist/geckoview staging behavior."
+      ],
+      "port_review": "Review the target ESR's Gradle project selection, JNI and SDK generator tasks, object-directory overlays and Android installer stage. Recreate one private Navis runtime module and exact source/package ownership gates without importing the target release's GeckoView project or AAR into the product graph."
+    },
+    {
+      "order": 47,
+      "id": "complete-direct-navis-android-platform",
+      "patch": "patches/gecko/0047-complete-direct-navis-android-platform.patch",
+      "sha256": "8774a3ad89ed30666d3e0bf03b3dc97fb063dc3f895b3a0cb142b2dda19eb625",
+      "classification": "direct-android-product-capability-and-extension-platform",
+      "intent": "Complete the direct product-owned Android capability and WebExtension platform above Navis Runtime, Session and View without adopting GeckoView lifecycle ownership.",
+      "invariants": [
+        "Runtime, Session and View ownership remains in Navis; only reviewed private engine adapters may import Gecko Android transport types.",
+        "One process-wide extension host projects the product tab and window topology, and initialization waits for every startup Session to report HostReady.",
+        "The extension inventory accepts product built-ins and signed profile-local packages through strict allowlists, exposes no online store, and fails closed on unsupported or invalid packages.",
+        "Optional permissions are granted transactionally with exact active-tab, private-browsing and inventory state; denial and cancellation cannot leave partial grants.",
+        "Reviewed direct projections cover tabs, windows, actions, popups, options, context menus, commands, downloads, notifications, management and browsingData while unsupported APIs fail closed.",
+        "Downloads consume the original response through the direct executor, keep product-owned history, isolate private state, and erase history without deleting completed files or active transfers.",
+        "browsingData clears Navis-owned history, passwords and download history through the direct runtime seam; Gecko retains engine site-data clearing and formData remains explicitly unsupported.",
+        "Notifications require product permission and privacy policy approval, publish exact lifecycle events, and fail closed when native delivery is unavailable.",
+        "The non-Navis GeckoView branch retains its selected-ESR behavior and is not used as the Navis Android lifecycle owner."
+      ],
+      "port_review": "Review the target ESR's WebExtension host, permissions, tab/window/action/menu/download/notification/management/browsingData APIs and Android platform hooks. Recreate only the direct Navis projections, preserve fail-closed policy and the upstream GeckoView branch, and keep all product persistence and lifecycle ownership outside GeckoView."
+    },
+    {
+      "order": 48,
+      "id": "navis-devtools-readable-font-size",
+      "patch": "patches/gecko/0048-set-navis-devtools-readable-font-size.patch",
+      "sha256": "471c49c61e7f84150bcbd6b85c559dbac227febc06de36be29ca0f3adb69622f",
+      "classification": "desktop-devtools-product-typography",
+      "intent": "Raise the Navis desktop page-tool body's, code editor's and top tool-label font tokens to 14px without changing toolbox zoom, menu geometry, icon sizing or docking behavior.",
+      "invariants": [
+        "The shared DevTools body/code tokens are 14px and the top tool labels consume the same body token.",
+        "Toolbox zoom remains at 1.0 by default so menus, icons, toolbars and panel geometry are not scaled as a side effect.",
+        "Gecko's user-controlled persistent toolbox zoom and docking preferences remain authoritative."
+      ],
+      "port_review": "Locate the target ESR's shared DevTools body/code typography tokens and fixed top tool-label declarations, then recreate the unified 14px Navis defaults without carrying unrelated theme overrides or altering the zoom preference."
+    },
+    {
+      "order": 49,
+      "id": "isolate-android-gms-webauthn-conversions",
+      "patch": "patches/gecko/0049-isolate-android-gms-webauthn-conversions.patch",
+      "sha256": "87f0c0f6f809fdae1073e5f723e3a9bb2c86a68c929dc8126d4f6e38be1e7f82",
+      "classification": "android-webauthn-provider-boundary",
+      "intent": "Keep Gecko's JNI WebAuthn value types independent of Google Mobile Services while preserving the selected ESR's GMS FIDO conversion in the non-Navis GeckoView owner.",
+      "invariants": [
+        "The JNI-facing org.mozilla.gecko.util.WebAuthnUtils source has no Google Mobile Services imports or return types.",
+        "GMS-specific transport conversion is owned by a GeckoView class that is outside the reviewed Navis Runtime primitive allowlist.",
+        "The non-Navis GeckoView WebAuthnTokenManager retains equivalent FIDO transport conversion behavior.",
+        "Navis Android keeps WebAuthn unavailable until it owns and enables an explicit provider port."
+      ],
+      "port_review": "Locate the target ESR's JNI WebAuthn response/value source and its GMS FIDO callers. Keep provider-neutral JNI values in the Navis primitive closure, move only GMS conversions behind the non-Navis GeckoView owner, and preserve upstream caller and test behavior."
+    },
+    {
+      "order": 50,
+      "id": "direct-android-accessibility-host-boundary",
+      "patch": "patches/gecko/0050-split-direct-android-accessibility-host.patch",
+      "sha256": "39b367d9821b6a5e309e370a7207f7021c3ceb3fb1d6e38b202c6961eef2e938",
+      "classification": "direct-android-platform-lifecycle-fix",
+      "intent": "Separate the direct Android Session's compositor input target from its virtual accessibility-tree host so Gecko accessibility events are delivered through a real Android ViewParent.",
+      "invariants": [
+        "The compositor SurfaceView remains the text, keyboard, pointer and drag input target.",
+        "The virtual accessibility provider is attached to an explicit enclosing ViewParent rather than casting a SurfaceView to ViewParent at event time.",
+        "Both normal product content and WebExtension popup surfaces use the same split host contract.",
+        "The product still owns its Android View hierarchy and does not adopt GeckoView lifecycle or UI owners."
+      ],
+      "port_review": "Review the target ESR's AndroidAccessibilityBridge host assumptions and direct Navis render hierarchy. Preserve separate input and accessibility targets, validate the accessibility host at attachment time, and keep the product ViewGroup as the virtual-tree owner."
+    },
+    {
+      "order": 51,
+      "id": "direct-android-live-developer-mode",
+      "patch": "patches/gecko/0051-fix-direct-android-live-developer-mode.patch",
+      "sha256": "a69d8b60b738d4a45bbe88bb49b60f9613d3210322f45e20a5f15be9f8918b66",
+      "classification": "direct-android-developer-mode-lifecycle-fix",
+      "intent": "Make Android developer mode bind and unbind Gecko remote debugging in the running process instead of requiring a Navis restart after the UI state changes.",
+      "invariants": [
+        "The DevTools remote-enabled engine preference is committed before DevToolsServer is asked to register its Android SocketListener.",
+        "Enabling, disabling, reconciliation and rollback all share the same preference/socket ordering.",
+        "Developer mode remains off by default and its product preference changes only after the engine transition succeeds.",
+        "Turning developer mode off still disables temporary extension development without changing signed-extension policy."
+      ],
+      "port_review": "Review the target ESR's DevToolsServer SocketListener admission check and Android remote-debugger lifecycle. Recreate the engine-preference-before-listener ordering while preserving the product transaction and fail-closed temporary-extension policy."
+    },
+    {
+      "order": 52,
+      "id": "direct-android-compositor-attachment-gate",
+      "patch": "patches/gecko/0052-gate-direct-android-surface-until-compositor-attach.patch",
+      "sha256": "be36934a747d4a7d08898a4b365d8ff9b9ffb370ea6d2837b8e6db4981f68109",
+      "classification": "direct-android-session-compositor-lifecycle-fix",
+      "intent": "Allow a Navis Android Session to become the active product tab before asynchronous Gecko window creation has attached its compositor JNI owner.",
+      "invariants": [
+        "Surface, pause and bounds native calls cannot run before the compositor weak JNI owner is attached.",
+        "The newest valid Android Surface and bounds are replayed immediately when compositor attachment reaches the Android UI thread.",
+        "Surface destruction and Session close clear retained Surface state, and compositor detachment closes the native-call gate.",
+        "Tab creation and tab switching retain Navis Runtime/Session/View ownership without moving lifecycle control into GeckoView."
+      ],
+      "port_review": "Review the target ESR's generated compositor JNI attachment semantics and Navis Session/View activation order. Preserve a fail-closed pre-attachment gate with latest-Surface replay, including detach, destroy and close cleanup."
+    },
+    {
+      "order": 53,
+      "id": "direct-android-process-actor-registration",
+      "patch": "patches/gecko/0053-register-direct-android-process-actors-once.patch",
+      "sha256": "60ef7c78a39a876df098827a2ea1902c97d179c95dd55fdf7bab75935974e7aa",
+      "classification": "direct-android-multi-session-lifecycle-fix",
+      "intent": "Register the direct Android getUserMedia process actor once per Gecko parent process instead of once per Session chrome host.",
+      "invariants": [
+        "Every direct Session may register its window actors and create its own chrome host without repeating a global JS process-actor registration.",
+        "The process-wide gate is owned by a cached Navis product module rather than by a Session window or Gecko's generic actor manager.",
+        "The registration flag is committed only after ActorManagerParent accepts the actor definition, so a failed first attempt remains retryable.",
+        "Multiple persisted normal Sessions can reach HostReady during one startup without triggering the initial extension-host timeout or terminating the product process."
+      ],
+      "port_review": "Review the target ESR's JS process-actor registration semantics and direct Navis multi-Session startup. Preserve one process-wide, retryable registration while keeping window-actor setup per chrome host."
+    },
+    {
+      "order": 54,
+      "id": "direct-android-in-app-devtools",
+      "patch": "patches/gecko/0054-host-full-android-devtools-in-process.patch",
+      "sha256": "077fc656337a48bf14163fcba455d9c7e98435e601ed995df2940e67c1c4b9c2",
+      "classification": "direct-android-shared-devtools-product-host",
+      "intent": "Host Gecko's complete page toolbox inside a dedicated Navis Android native Session over an in-process pipe, with the same client defaults as desktop and no remote-debugging product listener.",
+      "invariants": [
+        "The Android Navis build includes the complete Gecko DevTools client and generates its toolbox defaults from the pinned desktop source section.",
+        "The exact metadata-verified desktop zh-CN language pack is staged as immutable Android application assets and registered by Gecko Langpack before product/toolbox initialization.",
+        "A dedicated privileged toolbox Session is bound to one existing Navis content Session and cannot enter the product or extension content-tab registry.",
+        "The inspected content and toolbox host must have matching private-browsing contexts; toolbox readiness and close propagate through the Navis Session lifecycle.",
+        "DevTools uses connectPipe and never creates a network or Android abstract socket; extension developer mode owns a separate product preference.",
+        "Product session queries are bounded JSON messages selected from an explicit operation allowlist, with no script evaluation or arbitrary preference mutation.",
+        "Download retries are restricted to HTTP(S) GET navigations in the existing session context, use a null triggering principal and an explicit conservative referrer policy, and cannot load privileged URI schemes.",
+        "The Android product module reuses the desktop Clean Links module and the single bundled rule file."
+      ],
+      "port_review": "Review DevTools page-host/client initialization, descriptor browserId resolution, Android native host lifetime, preference generation markers and build graph. Preserve the in-process transport, private-context match, privileged dedicated host and fixed product-query boundary."
+    },
+    {
+      "order": 55,
+      "id": "android-product-settings-and-data",
+      "patch": "patches/gecko/0055-align-android-product-settings-and-data.patch",
+      "sha256": "94f221bf594f2a043e1878cbe1788bda1f1a27a4b7274cab4968623b1874af78",
+      "classification": "android-product-services",
+      "intent": "Project authenticated site security, bounded storage clearing, shared offline Clean Links, process locale and precise relaunch state into Android product services.",
+      "invariants": [
+        "Site clearing requires the original document, principal and unconsumed opaque request token.",
+        "Clean Links uses the identical desktop module and bundled policy for copy and eligible Gecko navigations.",
+        "Native product operations expose immutable data, not privileged browser objects, arbitrary preferences or executable scripts.",
+        "Relaunch waits for beforeunload permission and returns the current session history only if the document remains unchanged."
+      ],
+      "port_review": "Review security UI, clear-data flags, principal identity, SessionHistory and the shared query-stripper service against the target ESR."
+    },
+    {
+      "order": 56,
+      "id": "android-safe-download-retry",
+      "patch": "patches/gecko/0056-project-safe-android-download-retry.patch",
+      "sha256": "759fe6a537611b9064bcea4ca04b1f3e84eedd13c1df20605bd3616c0b96072c",
+      "classification": "android-download-request-projection",
+      "intent": "Project engine-authenticated bodyless GET retry metadata and retain extension request ownership for explicit download retries.",
+      "invariants": [
+        "Response URLs alone never authorize request replay; POST, uploaded bodies and unknown methods are not reconstructed.",
+        "Normal downloads retain their live session, privacy context and computed referrer without storing credentials.",
+        "Extension retries reuse the original extension request and permissions instead of becoming ordinary tab navigations."
+      ],
+      "port_review": "Review channel method/upload metadata and Java response bindings; preserve explicit user retry and response-body ownership."
+    },
+    {
+      "order": 57,
+      "id": "android-ordinary-context-menu-actions",
+      "patch": "patches/gecko/0057-project-ordinary-android-context-menus.patch",
+      "sha256": "aedb3b182cbba44caf260653a0350c89d5aa2e443408579b85f987414e32e7e5",
+      "classification": "android-context-actions",
+      "intent": "Deliver ordinary context menus without requiring extension entries and execute trusted text/media commands against the original content target.",
+      "invariants": [
+        "An empty extension contribution list still permits browser-owned navigation and copy commands.",
+        "Media and editing actions require the live original actor, DOM target and single-use menu token.",
+        "Native text-selection action mode remains authoritative; stale, synthetic and unoffered commands fail closed."
+      ],
+      "port_review": "Review content-delegate context events, native selection ownership and actor command lifetimes."
+    },
+    {
+      "order": 58,
+      "id": "android-devtools-lazy-build-defines",
+      "patch": "patches/gecko/0058-read-android-devtools-build-defines-correctly.patch",
+      "sha256": "9dc8dbe377f4528e2b8b9f1c3605ca042e45a621ab2cc10c52514afefe462a76",
+      "classification": "android-devtools-preference-generation-fix",
+      "intent": "Read the complete preprocessor definition group through Gecko's supported lazy buildconfig interface when generating shared toolbox defaults.",
+      "invariants": [
+        "Preference generation consumes buildconfig.defines[ALLDEFINES], not the non-iterable PartialConfigDict container.",
+        "Configured conditional branches are evaluated by Gecko's existing preprocessor while Firefox product preferences remain outside the selected toolbox section."
+      ],
+      "port_review": "Review the target ESR's buildconfig PartialConfigDict interface and preprocessor definition access; retain configured conditional evaluation and the shared pinned toolbox source section."
+    },
+    {
+      "order": 59,
+      "id": "android-shared-favicon-projection",
+      "patch": "patches/gecko/0059-project-shared-favicons-to-android-tabs.patch",
+      "sha256": "d0b5c1a2ab08b12bba63e1c0873e6aaa45fec158f8db6eec431498c91b53eab5",
+      "classification": "android-navigation-favicon-projection",
+      "intent": "Reuse the desktop favicon actors and content-principal loading policy to publish bounded document-owned PNG icons to Android tab state.",
+      "invariants": [
+        "The Android runtime packages the exact desktop favicon producer sources rather than a second network implementation.",
+        "Only an actor for the live top-level HTTP(S) document may publish an icon; navigation, same-URL reload, newer icons and teardown invalidate asynchronous decoding.",
+        "The privileged presentation bridge accepts authenticated image data only, normalizes it to a bounded 64-by-64 PNG, and never fetches arbitrary URLs.",
+        "Android image decoding stays off the UI thread and accepts bounded PNG data only; native pages and invalid or absent icons use local placeholders.",
+        "Favicon bytes remain transient session presentation state and do not enter persisted private history or the shared Core state machine."
+      ],
+      "port_review": "Review window-actor identity, shared favicon security checks, image-document decoding and navigation callback order. Preserve one shared producer, explicit image bounds and stale-document rejection."
+    },
+    {
+      "order": 60,
+      "id": "android-explicit-site-permission-decisions",
+      "patch": "patches/gecko/0060-preserve-android-site-permission-decisions.patch",
+      "sha256": "d630b83ece27710591450a11563b97f8d34170bcc3b2dcca87f57873a1cefcbd",
+      "classification": "android-permission-lifetime-and-data-clearing",
+      "intent": "Preserve dismissal, session grant, persistent grant and explicit blocking across the Android and Gecko permission boundary.",
+      "invariants": [
+        "Dismissal and failed OS authorization never persist a denial; private grants remain session-only.",
+        "Site clearing is bound to the authenticated document token, origin and private mode; extension permissions remain intact."
+      ],
+      "port_review": "Review Gecko content-permission result handling, expiration semantics and principal-scoped data removal."
+    },
+    {
+      "order": 61,
+      "id": "android-authorized-saf-directory-uploads",
+      "patch": "patches/gecko/0061-materialize-android-saf-folder-uploads.patch",
+      "sha256": "7d4a3f834480af06437efe5efab71e570d77f4547ebad5ccda22e6dbeadd503a",
+      "classification": "android-file-picker-directory-handoff",
+      "intent": "Accept product-materialized SAF selections and expose real directory-relative DOM files without duplicate copies.",
+      "invariants": [
+        "Only the private Navis staging root is accepted; external paths and symbolic links are rejected.",
+        "Directory contents retain real relative paths and bounded resource usage; cancellation is not reported as a successful selection."
+      ],
+      "port_review": "Review nsIFilePicker directory enumeration, DOM File conversion and temporary-file ownership."
+    },
+    {
+      "order": 62,
+      "id": "android-host-inert-favicon-csp",
+      "patch": "patches/gecko/0062-allow-inert-favicon-data-in-android-host.patch",
+      "sha256": "3817b5704ca86fcae75ea07a869124cac87ed1a4a1745a23f9ad1c73beaa28b9",
+      "classification": "android-host-image-content-policy",
+      "intent": "Permit bounded favicon image data in the privileged Android host without widening script or network authority.",
+      "invariants": [
+        "Only img-src gains data:; default-src, script and connection restrictions are unchanged."
+      ],
+      "port_review": "Review host CSP directives and the authenticated image normalization path."
+    },
+    {
+      "order": 63,
+      "id": "android-download-retry-current-native-api",
+      "patch": "patches/gecko/0063-align-android-download-retry-native-api.patch",
+      "sha256": "95aef13450ad4d62edca81454ce955a8f23ee069b4def01d8a26d5f977ffe958",
+      "classification": "android-download-channel-api-compatibility",
+      "intent": "Use the pinned native API to derive safe retry metadata and explicitly reject unknown authorization or referrer failures.",
+      "invariants": [
+        "Missing authorization is distinguished from failed authorization-header inspection.",
+        "A failed referrer read never silently becomes an empty retry referrer."
+      ],
+      "port_review": "Review nsIHttpChannel, nsIUploadChannel and nsIReferrerInfo signatures and retry eligibility."
+    },
+    {
+      "order": 64,
+      "id": "android-system-credential-webauthn",
+      "patch": "patches/gecko/0064-route-android-webauthn-through-system-credentials.patch",
+      "sha256": "bb40e6f42c3947a01fbe9bf203d21828b126c95d8ab58a3dc1eed67a5b040c10",
+      "classification": "android-system-webauthn-provider",
+      "intent": "Route real WebAuthn requests and cryptographic responses through the owned Navis JNI bridge and Android Credential Manager, without GMS or GeckoView lifecycle owners.",
+      "invariants": [
+        "Registration and authentication require real provider results; biometric success never substitutes for a credential response.",
+        "Requests are bound to the foreground session and browsing context; navigation, backgrounding, closure and cancellation invalidate late callbacks.",
+        "Unavailable system services, providers or browser-origin permission fail explicitly without weakening origin or relying-party checks."
+      ],
+      "port_review": "Review WebAuthn service selection, JNI value conversion, Android origin delegation, provider availability and request cancellation lifetimes."
+    },
+    {
+      "order": 65,
+      "id": "android-webauthn-header-dependencies",
+      "patch": "patches/gecko/0065-make-android-webauthn-header-self-contained.patch",
+      "sha256": "edd0332ac5189e793abdfb32a3a64dd60cdff051c6039fb447c83ba12173b754",
+      "classification": "android-native-header-self-containment",
+      "intent": "Declare native string and Android logging dependencies directly after replacing the legacy JNI header.",
+      "invariants": [
+        "The WebAuthn service header compiles independently of unrelated unified compilation order."
+      ],
+      "port_review": "Review complete string types, literals and Android logging declarations used by the service header."
+    },
+    {
+      "order": 66,
+      "id": "android-private-navigation-diagnostics",
+      "patch": "patches/gecko/0066-record-private-android-navigation-diagnostics.patch",
+      "sha256": "b6e37111cf649b6c42abdf52b54030e6a92471fb78e0ab38ea87d35c90136a89",
+      "classification": "android-bounded-navigation-diagnostics",
+      "intent": "Preserve anonymous request failure evidence when debugging an Android navigation without changing load semantics.",
+      "invariants": [
+        "The diagnostic profile file is opt-in and contains one bounded latest record, never full URLs, query strings or exception messages.",
+        "Diagnostic errors cannot alter, consume or replace the underlying navigation result."
+      ],
+      "port_review": "Review request status handling, opt-in preference, field allowlists and asynchronous diagnostic write ordering."
+    },
+    {
+      "order": 67,
+      "id": "android-navigation-outcome-projection",
+      "patch": "patches/gecko/0067-project-android-navigation-outcomes.patch",
+      "sha256": "c1c6edec5a0ee612a8a0c027f04b5b5bf9c4209f2fffbd767a15c43d3858f848",
+      "classification": "android-navigation-state-contract",
+      "intent": "Project real progress callback status, cancellation and engine error-page facts through the Android Session boundary.",
+      "invariants": [
+        "RemoteWebProgressRequest.status is never read; the progress callback supplies the actual nsresult.",
+        "Cancellation and download handoff do not become navigation failures; ambiguous overlapping completions do not create successful history.",
+        "Gecko error documents stay engine-owned and are not replaced by a product crash page."
+      ],
+      "port_review": "Review top-level progress ordering, cancellation codes, error-page flags and ambiguous completion handling."
+    },
+    {
+      "order": 68,
+      "id": "android-extension-popup-load-lifecycle",
+      "patch": "patches/gecko/0068-preserve-popup-loads-and-surface-action-failures.patch",
+      "sha256": "853e87ec26f75c9f3fd26b06df4cf1ad227cb3f9b63a7ad7f85b6e407d3a27b1",
+      "classification": "android-extension-popup-lifecycle",
+      "intent": "Keep initial blank and cancelled host loads separate from the actual extension popup result and expose actionable load failures.",
+      "invariants": [
+        "Only the current extension document can complete the popup load; blank and stale completions cannot dismiss it.",
+        "Extension identity, target token and origin checks remain enforced; stale action failures cannot close newer popups."
+      ],
+      "port_review": "Review popup document identity, loading timeout, terminal callbacks and action ownership."
+    },
+    {
+      "order": 69,
+      "id": "android-session-history-document-restore",
+      "patch": "patches/gecko/0069-load-selected-android-session-history-entry.patch",
+      "sha256": "4adb1b66e9a748660348ed714509b632cbdeb3cdaf795f6bd8afa15227ef4ef6",
+      "classification": "android-session-restore-navigation",
+      "intent": "Load the selected restored Gecko history entry through its canonical restoration API instead of restoring only currentURI and docshell capabilities.",
+      "invariants": [
+        "Restoration preserves serialized Gecko history metadata and index rather than replacing the entry with a URL-only navigation.",
+        "A newer navigation, restore or closed/replaced context prevents a stale asynchronous restore from taking over."
+      ],
+      "port_review": "Review SessionHistory serialization, docshell capability restoration, initializeRestore and selected-entry reload behavior."
+    },
+    {
+      "order": 70,
+      "id": "android-owned-extension-startup-readiness",
+      "patch": "patches/gecko/0070-release-android-extension-startup-after-product-readiness.patch",
+      "sha256": "2642cdd04f0b1229ab10a5058aef08f8f9d60a2a6924385fc454075a6bd35abc",
+      "classification": "android-extension-cold-start-lifecycle",
+      "intent": "Complete Gecko extension startup promises after Navis chrome hosts, product initialization and tab topology are ready.",
+      "invariants": [
+        "Startup observers exist before notifications; chrome-ready precedes extension-late-startup and both are emitted only once.",
+        "Readiness belongs to Navis and does not require GeckoView lifecycle owners or a Gecko content surface for a native new tab.",
+        "Extension inventory is initialized afterwards, avoiding a cycle with primed background listeners and suspended network requests."
+      ],
+      "port_review": "Review ExtensionParent startup promises, APP_STARTUP background priming and Navis product readiness ordering."
+    },
+    {
+      "order": 71,
+      "id": "android-built-in-private-permission-projection",
+      "patch": "patches/gecko/0071-project-actual-built-in-private-access.patch",
+      "sha256": "7201c89930442d546963b5156de7eb022e8f9ef59a7aa8cbf527037aa06f3d2f",
+      "classification": "android-extension-permission-state-projection",
+      "intent": "Display the real private-browsing grant for built-in extensions consistently with desktop without changing who may grant or edit it.",
+      "invariants": [
+        "Built-in identity alone never invents a permission; the actual grant and manifest prohibition determine the displayed state.",
+        "User extensions remain private-denied by default and built-in permission mutability is unchanged."
+      ],
+      "port_review": "Review actual ExtensionPermissions, manifest incognito restrictions and built-in mutability policy."
+    },
+    {
+      "order": 72,
+      "id": "android-bounded-popup-binding-failure-stages",
+      "patch": "patches/gecko/0072-preserve-bounded-popup-binding-failure-stages.patch",
+      "sha256": "d9823f9e8f76526094168e60c6a47131b8ae4fbd9c12c42c6480f5bbaba25788",
+      "classification": "android-extension-popup-error-contract",
+      "intent": "Preserve bounded popup binding failure stages across the private host and Java error boundary for focused diagnosis.",
+      "invariants": [
+        "All identity, origin, token, active-source and view-type checks remain unchanged.",
+        "Only closed-enum stage codes cross the diagnostic boundary, never full URLs, tokens or arbitrary exception messages."
+      ],
+      "port_review": "Review binding rejection branches, QueryException payload decoding and diagnostic allowlists."
+    },
+    {
+      "order": 73,
+      "id": "android-console-self-xss-default",
+      "patch": "patches/gecko/0073-initialize-android-console-self-xss-counter.patch",
+      "sha256": "5f8ab4b1a74e22b7a117cc2d4777a4e69022aed400cda17af69eab5831c260cb",
+      "classification": "android-devtools-console-preference-contract",
+      "intent": "Supply the same zero-valued self-XSS usage counter as desktop so Android console submission reaches script execution.",
+      "invariants": [
+        "New profiles start at zero; no acknowledgement or paste protection is bypassed.",
+        "The preference remains unlocked and existing user counts are preserved."
+      ],
+      "port_review": "Review WebConsoleUtils.usageCount, evaluateExpression submission ordering and upstream default preferences."
+    },
+    {
+      "order": 74,
+      "id": "android-extension-node-document-global",
+      "patch": "patches/gecko/0074-bind-popup-to-current-node-document-global.patch",
+      "sha256": "08e490b18b575f13d6ffd7a6f0bba0745924db05c4fc1afc31be17d19d4583f3",
+      "classification": "android-extension-host-node-api",
+      "intent": "Read the current Gecko Node.documentGlobal API for Navis extension popup ownership and menu host detection.",
+      "invariants": [
+        "Popup owner type, identity, transaction, source activity, privacy and view-type checks remain intact.",
+        "Tests model the pinned Node WebIDL surface rather than supplying the nonexistent ownerGlobal property."
+      ],
+      "port_review": "Review Node.webidl ChromeOnly global accessors and direct extension popup and context-menu host ownership."
+    },
+    {
+      "order": 75,
+      "id": "android-popup-surface-readiness-replay",
+      "patch": "patches/gecko/0075-refresh-popup-surface-and-layout-on-native-readiness.patch",
+      "sha256": "b7607b0609ac2cfe38562ff557048a566d7f33c94acfe196c1d74609d6c06d4b",
+      "classification": "android-popup-compositor-layout-lifecycle",
+      "intent": "Replay both valid popup Surface and widget bounds after native/compositor readiness, matching the ordinary render host.",
+      "invariants": [
+        "Early Android layout cannot leave Gecko widget bounds unset when its compositor attaches later.",
+        "Released, failed, invalid and zero-size surfaces are not replayed; popup product identity and access checks do not change."
+      ],
+      "port_review": "Review Surface caching, compositor attachment, widget bounds and Android layout callback order."
+    },
+    {
+      "order": 76,
+      "id": "android-popup-animated-screen-geometry",
+      "patch": "patches/gecko/0076-track-popup-screen-geometry-through-sheet-animation.patch",
+      "sha256": "ca3412ef75abf14250ca186ef20d83472dbf072c987e60f254ea4170540ea910",
+      "classification": "android-popup-accessibility-screen-position",
+      "intent": "Track popup screen geometry through Material sheet translation so accessibility bounds do not wait for the first touch to become correct.",
+      "invariants": [
+        "Static frames do not send bounds JNI or resume the compositor; screen coordinates use the same convention as input correction.",
+        "Observer replacement, failed surfaces, release and detach cannot retain a stale geometry listener."
+      ],
+      "port_review": "Review screen geometry conventions, pre-draw observer lifetime and layout-only versus translated movement."
+    },
+    {
+      "order": 77,
+      "id": "android-devtools-last-selected-panel",
+      "patch": "patches/gecko/0077-restore-android-devtools-selected-panel.patch",
+      "sha256": "499d761af856a5b7625b449f91f37223379c290f9932fd0b484bbf360bc9f43e",
+      "classification": "android-devtools-entry-intent",
+      "intent": "Let the ordinary DevTools menu restore Gecko's selected-panel preference while explicit Inspect continues to select the Inspector.",
+      "invariants": [
+        "The private default sentinel maps to an omitted toolbox toolId; it cannot become an arbitrary tool identifier.",
+        "Gecko retains ownership of panel configuration and persistence; explicit inspection still requests Inspector."
+      ],
+      "port_review": "Review Android entry routing, nullable requested tools, private token validation and Gecko LAST_TOOL preference semantics."
+    },
+    {
+      "order": 78,
+      "id": "android-download-channel-filename-metadata",
+      "patch": "patches/gecko/0078-preserve-channel-suggested-download-filename.patch",
+      "sha256": "58d39c96143bf9d16dac39789999eac77223621eb7c3e29c25d138729dd286e2",
+      "classification": "android-download-response-metadata",
+      "intent": "Preserve Gecko's already resolved download filename through the native response and Java boundary for the platform download writer.",
+      "invariants": [
+        "Gecko channel security and Content-Disposition precedence remain authoritative, including safe HTML download-name fallback.",
+        "The filename is separate metadata; no HTTP header is fabricated and no second network request is issued."
+      ],
+      "port_review": "Review channel filename resolution, JNI builder generation, response metadata lifetime and nullable adapter propagation."
+    },
+    {
+      "order": 79,
+      "id": "android-devtools-in-document-popups",
+      "patch": "patches/gecko/0079-use-in-document-devtools-tooltips-on-android.patch",
+      "sha256": "195f74f2c8cfa39881e02934b3283efe9559920254098eff91037c1c6e850d67",
+      "classification": "android-devtools-native-popup-capability",
+      "intent": "Use the existing HTMLTooltip in-document path on Android, where a system principal does not imply a renderable native XUL popup widget.",
+      "invariants": [
+        "All shared DevTools menus and tooltips use the same platform capability decision, not per-panel substitutes.",
+        "Desktop XUL wrapper behavior and non-system-document restrictions remain unchanged."
+      ],
+      "port_review": "Review Android widget popup rendering capability and HTMLTooltip focus, placement, dismissal and wrapper selection."
+    },
+    {
+      "order": 80,
+      "id": "android-relaunch-preference-write-barrier",
+      "patch": "patches/gecko/0080-flush-android-preferences-before-relaunch.patch",
+      "sha256": "90b0bd24aae196722ac66855c099c60c70cd217832123bea0200efd8fa1ebda2",
+      "classification": "android-relaunch-gecko-preference-persistence",
+      "intent": "Offer a fixed private preference-flush operation so process relaunch can wait for Gecko's blocking preference-save path.",
+      "invariants": [
+        "The save targets the active profile's explicit PrefF object; a null asynchronous save or timer cannot substitute for completion.",
+        "Only an acknowledged flush and unchanged live sessions allow the Android relaunch handoff; existing Gecko write-error semantics are not overstated."
+      ],
+      "port_review": "Review Preferences explicit-file blocking behavior, operation allowlist, save ordering and Android relaunch lifecycle validation."
+    },
+    {
+      "order": 81,
+      "id": "android-ordered-ime-shadow-confirmation",
+      "patch": "patches/gecko/0081-order-android-ime-edits-and-native-confirmations.patch",
+      "sha256": "91e30dd821744bc1802df0e9cdb057eda677dff262698cd449ba11c5ed3d0287",
+      "classification": "android-input-transaction-and-lifecycle",
+      "intent": "Separate Gecko-confirmed text from optimistic Android IME edits, with ordered native replies and one input thread instead of replaying increments onto locally edited text.",
+      "invariants": [
+        "Existing editable Binder methods remain the transport; no Console-specific character filtering or duplicate suppression is used.",
+        "Input connections are bound to their view and editor lifetime, and permanent Session closure clears text and pending actions.",
+        "Pre-IME dispatch does not swallow all keys and ACTION_MULTIPLE is expanded before reaching Gecko."
+      ],
+      "port_review": "Review GeckoEditable confirmed/shadow and ordered reply semantics, full resynchronization, selection ordering, composition and view/focus closure."
+    },
+    {
+      "order": 82,
+      "id": "android-extension-bookmarks-topsites-profile",
+      "patch": "patches/gecko/0082-android-bookmarks-topsites-profile-bridge.patch",
+      "sha256": "898fd62133870db1d15197ff73fd55c3ed4c052ee640ac829775006288f67a5b",
+      "classification": "android-extension-shared-product-profile",
+      "intent": "Expose bookmarks and topSites through the same Android product profile store, including committed bookmark events and strict permission-checked result delivery.",
+      "invariants": [
+        "Product UI and extensions share one bookmark tree; errors are not replaced with successful empty data.",
+        "Permissions, extension/context lifetime and private access are checked before access and again before delivering asynchronous data.",
+        "topSites reads normal-history aggregates only; this does not claim history, sessions, search or find API parity."
+      ],
+      "port_review": "Review WebExtension schemas and event contracts, transaction commit ordering, shared-profile routing and permission/lifetime checks."
+    },
+    {
+      "order": 83,
+      "id": "android-local-accessibility-client-coordinates",
+      "patch": "patches/gecko/0083-normalize-local-android-accessibility-bounds.patch",
+      "sha256": "2e2361feb38198203fa57b67b52c073227fb167e4d915b32d222d2052fd01b85",
+      "classification": "android-accessibility-coordinate-boundary",
+      "intent": "Normalize local accessible screen bounds to session client coordinates before the Android bridge applies the Surface offset once.",
+      "invariants": [
+        "Remote accessible coordinates are unchanged; local coordinates and widget offsets are both layout device pixels.",
+        "No second CSS or zoom conversion is introduced and a missing widget is not dereferenced."
+      ],
+      "port_review": "Review local versus remote accessible Bounds contracts and Android Surface/client screen translations."
+    },
+    {
+      "order": 84,
+      "id": "android-framework-input-connection-renewal",
+      "patch": "patches/gecko/0084-renew-android-input-connections-on-framework-restart.patch",
+      "sha256": "35795fed1c474e4d42d510d52088993e31cfcab72747c782badab6dc7081e94f",
+      "classification": "android-ime-framework-restart-lifecycle",
+      "intent": "Give each Android framework input restart a distinct InputConnection so retiring the old connection cannot close the newly served editor.",
+      "invariants": [
+        "Gecko-confirmed text and pending native replies stay with the Session, not the transient InputConnection.",
+        "Old connections cannot write or end a replacement connection's batch, and internal Unicode key fallback does not replace the IME connection."
+      ],
+      "port_review": "Review InputMethodManager create-new-then-deactivate-old ordering, connection ownership and stale batch closure."
+    },
+    {
+      "order": 85,
+      "id": "android-extension-history-real-visits",
+      "patch": "patches/gecko/0085-android-history-visits-profile-api.patch",
+      "sha256": "8e9c0e57c72cb656f5d4999097ede6dfbf13cb90d66f781ca63af5ad6b90d633",
+      "classification": "android-extension-shared-history-visits",
+      "intent": "Expose history through the same product store with real per-visit records, strict asynchronous results, committed events and normal-session-only ingestion.",
+      "invariants": [
+        "Migration preserves known legacy aggregates without inventing historical visit IDs or timestamps.",
+        "New visit range deletion is exact; potentially overlapping legacy aggregates are removed conservatively rather than claiming unavailable per-visit precision.",
+        "Extension permissions and lifetime checks remain mandatory, and private navigation never produces persisted history."
+      ],
+      "port_review": "Review history schema/API event semantics, database migration and range deletion, navigation identity and private/late callback boundaries."
+    },
+    {
+      "order": 86,
+      "id": "android-remote-document-titles",
+      "patch": "patches/gecko/0086-android-remote-page-titles.patch",
+      "sha256": "e14cf7640d03f80eebd5d06bf8140ef7c8d9119737800ac239174adda5f7c697",
+      "classification": "android-remote-navigation-title-boundary",
+      "intent": "Receive remote browser page-title changes from the current WindowGlobal, with URI and navigation generation, including dynamic and restored documents.",
+      "invariants": [
+        "Delayed events cannot update another document or a closed session, and native UI titles are not used as web history titles.",
+        "Private page titles update the live tab only and are not written into normal history."
+      ],
+      "port_review": "Review remote pagetitlechanged emission, WindowGlobal identity, location/STOP/BFCache ordering and Java-to-Core title ownership."
+    },
+    {
+      "order": 87,
+      "id": "android-extension-download-file-actions",
+      "patch": "patches/gecko/0087-android-download-file-actions.patch",
+      "sha256": "6bdb42a6a714a433e1c8c25001451b9eb4340bb1a860a2b2278b0ab4ce479711",
+      "classification": "android-extension-download-storage-boundary",
+      "intent": "Connect file removal, file icons, system download-location actions and staged overwrite to the actual Android download store.",
+      "invariants": [
+        "Destructive operations require exact owned or explicitly authorized files and the original extension/private-session authority.",
+        "Overwrite stages complete data first; provider replacement uses backup and rollback without claiming crash atomicity.",
+        "File-manager intent acceptance is not proof that a provider honored initial-folder positioning."
+      ],
+      "port_review": "Review download lifecycle and events, destination identity, Android file/document grants, staging cancellation and failed rollback recovery."
+    },
+    {
+      "order": 88,
+      "id": "android-extension-search-find",
+      "patch": "patches/gecko/0088-android-extension-search-find.patch",
+      "sha256": "b603b88ec38520809896602f6a252c5e5b630f52687029765ea76008c9268ca1",
+      "classification": "android-extension-product-search-gecko-find",
+      "intent": "Use the live Navis search setting for extension search and reuse the pinned Gecko find actor/range implementation for accessible web documents.",
+      "invariants": [
+        "Search and the omnibox share one provider catalog and URL policy; delayed operations retain their authorized target.",
+        "Find requires a current web presentation and document identity; native pages, private denial and stale results fail closed.",
+        "Per-browser find serialization protects the Gecko result cache; NEW_WINDOW uses the real windows backend and is not faked as NEW_TAB."
+      ],
+      "port_review": "Review search/find schemas, Gecko actor cache and frame traversal, context/permission lifetime, private tab ownership and mixed-presentation guards."
+    },
+    {
+      "order": 89,
+      "id": "android-native-real-session-history",
+      "patch": "patches/gecko/0089-bind-android-native-presentations-to-real-session-history.patch",
+      "sha256": "456d068a6376a7a4fa8a9c9987dd88d7bcf08149faea6511c1bd32d7f738bb89",
+      "classification": "android-single-session-native-web-presentation",
+      "intent": "Bind native product pages and web entries to one real Gecko SessionHistory so back, forward and new branches retain the correct same-session presentation.",
+      "invariants": [
+        "Traversal requires the actual entry identity and resolves only at the committed engine position; requested traversal is not completion.",
+        "Mixed metadata is validated against its engine snapshot and reanchored on restore; private history stays in memory.",
+        "Hidden native presentations cannot authorize extension find, late callbacks cannot steal navigation, and new branches do not retain discarded forward entries."
+      ],
+      "port_review": "Review Gecko SHEntry identity including child history, snapshot restore and traversal notifications, cancellation/timeout, branch replacement and native/web visibility ownership."
+    },
+    {
+      "order": 90,
+      "id": "android-real-closed-session-extension-api",
+      "patch": "patches/gecko/0090-add-android-real-closed-session-extension-api.patch",
+      "sha256": "cfe1ab0a23e7cc5532ae276d39713087667cec5b603e159a77a0d9ac8f98634b",
+      "classification": "android-product-session-restore-extension-api",
+      "intent": "Expose the real product closed-tab store and restoration through the shared extension profile bridge, preserving verified engine and mixed-presentation history.",
+      "invariants": [
+        "Normal HTTP(S) closed tabs only, bounded to 25; private tabs and window shutdown never enter the store.",
+        "POST history that cannot be serialized losslessly is not recorded as a misleading GET restoration.",
+        "Restore claims remain reserved until actual creation and durable consumption; failure retains the record and rolls back a partially restored tab.",
+        "Extension tab/window values are namespaced, closed-window restoration remains unsupported as on Desktop, and runtime window IDs are not persisted as stable identities."
+      ],
+      "port_review": "Review sessions schema, private access, value ownership, durable restore claims, engine snapshot capture and POST/subframe handling."
+    },
+    {
+      "order": 91,
+      "id": "android-product-windows",
+      "patch": "patches/gecko/0091-android-product-windows.patch",
+      "sha256": "283ff2414874f69fb94fe8774dc86f9c9f9f7125390201239421d068c84dee6a",
+      "classification": "android-shared-runtime-real-product-windows",
+      "intent": "Project real product Activity/Core windows into extension APIs while retaining one Runtime and exact session, view, prompt and restore ownership.",
+      "invariants": [
+        "Window creation, focus and removal resolve from real Activity, Core and topology acknowledgements, never from a new-tab substitute.",
+        "Privacy is window-scoped; extension tab lookup and action permissions use the source window, with real focus history and no private-window identifier leakage.",
+        "WebAuthn Activity leases are generation-bound and per window; old Activity destruction and late credential callbacks cannot replace or complete a new owner's request.",
+        "RestoreState is dispatched before HostReady reaches Platform, and recently-closed records are consumed only after actual restore-result and topology confirmation.",
+        "Android window geometry/state operations without an OS implementation explicitly reject instead of reporting fabricated success."
+      ],
+      "port_review": "Review Activity leases, window topology/MRU, private access and events, extension popup/action ownership, cancellation and asynchronous restore acknowledgements."
+    },
+    {
+      "order": 92,
+      "id": "android-popup-self-close",
+      "patch": "patches/gecko/0092-android-popup-self-close.patch",
+      "sha256": "b0fcfc950f84a57b3d36a1ac0bf87212511220f14dfa88921f2c166fd14795dd",
+      "classification": "android-extension-popup-lifecycle",
+      "intent": "Route extension popup window.close through the owning direct Session and the existing Platform popup observer.",
+      "invariants": [
+        "Only the current popup browser and its matching private window token may close that popup Session; normal content receives no popup close authority.",
+        "Popup-only allowscriptstoclose preserves Gecko closure semantics after popup navigation without changing the global script-close preference.",
+        "Late close callbacks cannot dismiss a replacement popup or another window; layout callbacks between close request and native acknowledgement do not access a closed Session."
+      ],
+      "port_review": "Review DOMWindowClose forwarding, popup token lifetime, frame-loader script-close permission, native acknowledgement and pending layout callbacks."
+    },
+    {
+      "order": 93,
+      "id": "android-live-session-responsive-design-host",
+      "patch": "patches/gecko/0093-host-android-responsive-design-on-live-session.patch",
+      "sha256": "e618226cfa56874f39044c328042cbe0a6194d62109ef6524925d5f11e9dc0d7",
+      "classification": "android-devtools-runtime-host",
+      "intent": "Host Gecko's original Responsive Design UI and actors on the existing Android page Session, alongside the independent in-app PAGE toolbox.",
+      "invariants": [
+        "The browser container exists before first remote-browser insertion; responsive mode never replaces, copies or reloads the target document to provide a preview.",
+        "The PAGE toolbox retains the local-pipe remote-tab command path and persisted panel selection; no GeckoView Runtime owner, desktop docking lifecycle or remote debugging socket is introduced.",
+        "Only fixed viewport and close operations are exposed by the dedicated tools Session, with target ownership and matching privacy context enforced.",
+        "Normal exit waits for real ResponsiveUIManager cleanup, including an already-running toolbar close, and restores the entry zoom before releasing the tool host.",
+        "Failed initialization rolls back acquired frame, actor and viewport resources; native pages and removed Sessions cannot receive viewport commands."
+      ],
+      "port_review": "Review the current ESR's ResponsiveUIManager, tab events, browserContainer/browserStack CSS and actor destruction together. Revalidate the actual target viewport, original device toolbar, close races and unchanged page state on Android."
+    },
+    {
+      "order": 94,
+      "id": "android-login-save-commit",
+      "patch": "patches/gecko/0094-android-login-save-commit.patch",
+      "sha256": "9e5eec6f935413c1c2aaae56055de1692b8a1fe67259d8753618b2450b67425f",
+      "classification": "android-credential-storage-transaction",
+      "intent": "Confirm password saving only after the real Android Keystore/SQLite transaction commits, retaining a retryable original prompt on failure.",
+      "invariants": [
+        "Engine-private candidates retain credential secrets; Platform prompt DTOs contain metadata and an opaque selection index only.",
+        "Actual Session privacy, request identity and callback ownership are checked before persistence; duplicate submissions and late results cannot resolve replacement prompts.",
+        "Storage exceptions, failed inserts and transaction commit failures propagate through the Java/Kotlin bridge; enqueue alone never reports success.",
+        "Gecko observers and native prompt completion follow commit, without issuing a duplicate storage write.",
+        "Closing a prompt withdraws presentation ownership, not a promise to undo an already accepted storage transaction. Document/POST association remains a separate required audit."
+      ],
+      "port_review": "Review LoginManager save/update producer semantics, immutable credential selection, private-session admission and completion/cancellation order through the Android storage transaction."
+    },
+    {
+      "order": 95,
+      "id": "android-responsive-toolbar-and-ime",
+      "patch": "patches/gecko/0095-adapt-android-responsive-toolbar-and-ime.patch",
+      "sha256": "4435e5d153768b2a93522a369c761e5415a78d8f4b47a2caa0a758afa7200af1",
+      "classification": "android-devtools-responsive-presentation",
+      "intent": "Make the original Gecko responsive toolbar and notification widget usable within the phone's owned page host without replacing its controls or emulation actors.",
+      "invariants": [
+        "Narrow layouts retain original controls and handlers; observed real toolbar height reserves the matching space above the live page.",
+        "Only the owned system-principal Android RDM iframe can acquire temporary popup viewport space; hiding, destroying or failing a tooltip releases it.",
+        "DevTools alone leases the Android resize adjustment and one IME inset; leaving restores the previous adjustment without overwriting a newer owner.",
+        "Notification resources are scoped to the Android runtime; the real explanation, dismissal and explicit reload remain, with no automatic page reload.",
+        "The existing target Session, responsive actor cleanup and entry-zoom restoration remain unchanged; desktop presentation is untouched."
+      ],
+      "port_review": "Review responsive toolbar structure, popup measurement and lifecycle, NotificationBox assets and document changes together. Verify actual narrow-screen geometry, IME and actor state on device."
+    },
+    {
+      "order": 96,
+      "id": "android-login-source-lifecycle",
+      "patch": "patches/gecko/0096-android-login-source-lifecycle.patch",
+      "sha256": "190882a9f040303094e68ee3ac16416def28d895a4db303bf5128945c80686c1",
+      "classification": "android-credential-document-authority",
+      "intent": "Bind delegated login selection and password-save authorization to the original remote document and real submission navigation instead of the long-lived chrome host.",
+      "invariants": [
+        "Save tokens are parent-owned and browser-scoped; Java checks their authority before entering the retained commit transaction, never after writing credentials.",
+        "A normal form submission may survive its HTTP redirect using the replacement document channel's triggeringWindowId and isFormSubmission; URL similarity cannot grant that authority.",
+        "Same-document successful fetch/removal remains valid; unrelated navigation, native presentation, private saves, superseded prompts and foreign tokens are rejected.",
+        "Selections fill only through the captured WindowGlobal actor; old actor destruction or pagehide cannot cancel another document's new prompt.",
+        "HTTP authentication tokens originate only from the real AuthPrompter, not an arbitrary httpRealm value; existing challenge behaviour is retained without claiming new per-channel challenge validation.",
+        "Shared code enters the new host path only for Navis Android; desktop does not require a native source token or gain an Android lifecycle owner."
+      ],
+      "port_review": "Review actor lifetime and BFCache, form submission reasons, parent documentChannel redirect identity, native authorization ordering and exact prompt cancellation together. Preserve normal POST landing and same-document fetch behavior; validate real device integration separately from the method-level tests."
+    },
+    {
+      "order": 97,
+      "id": "android-window-presentation-actions",
+      "patch": "patches/gecko/0097-android-window-presentation-actions.patch",
+      "sha256": "f4a3f4822bef6b37ff1f75eefda417c8e472a10c03f3efa8290ee0316d888281",
+      "classification": "android-extension-window-state-and-authority",
+      "intent": "Connect desktop-aligned extension window presentation and bounds requests to the existing Android product Runtime and actual platform Task state.",
+      "invariants": [
+        "Every asynchronous action rechecks the original extension/context, privacy access and source/target lease using an engine-owned bounded command token; CREATE reserves its new target before topology publication.",
+        "Window focus, minimization, browser immersive presentation and Task maximization are distinct facts, confirmed by actual Android state and Gecko topology rather than command admission.",
+        "API 34 Task mode changes carry trusted Gecko input qualification; system approval alone does not finish a mode transition. Confirmed same-Task restore ownership survives Activity recreation without reviving an old request lease.",
+        "Geometry uses public Android Task APIs, preserves existing Task/Session ownership, verifies only explicitly requested bounds fields and restores omitted focus state. Unsupported or ignored requests never report fabricated success.",
+        "Window attention obeys system notification authorization, private-safe text and exact live window ownership; it does not silently request permission or introduce an external debugging service.",
+        "Desktop behavior, the shared native engine ABI and GeckoView lifecycle ownership remain unchanged."
+      ],
+      "port_review": "Review extension call-context input metadata, event and topology conversion, command cancellation and private access together. Revalidate Android public Task APIs and observed mode/bounds acknowledgements separately from SDK type checks; never substitute View resizing or hidden APIs for Task behavior."
+    },
+    {
+      "order": 98,
+      "id": "android-read-only-site-identity",
+      "patch": "patches/gecko/0098-read-android-site-identity-without-clear-token.patch",
+      "sha256": "627f00461552e40f35811fae79ee7242a5cf788648a2f2a855b2bdd7d2d82b08",
+      "classification": "android-certificate-identity-query",
+      "intent": "Let Android browser chrome read the current engine certificate identity without issuing or replacing a site-information sheet's authority to clear site data.",
+      "invariants": [
+        "A site:get request with issueClearToken=false returns the existing authenticated identity and subject certificate while leaving the browser's clear-data token untouched.",
+        "Read-only results contain an empty navigationToken and canClearData=false; reading identity cannot grant or revive data-clearing authority.",
+        "Omitting the option or passing true preserves the existing sheet protocol; malformed option types are rejected before changing token state.",
+        "The current principal, document and WindowGlobal still govern site clearing; desktop behavior and the shared native engine ABI remain unchanged."
+      ],
+      "port_review": "Review the engine-owned securityUI and certificate projection together with siteRequests token lifetime. Verify repeated toolbar reads preserve an open sheet's token and do not revive tokens from a replaced document."
+    },
+    {
+      "order": 99,
+      "id": "android-session-surface-close-handoff",
+      "patch": "patches/gecko/0099-pause-android-session-surface-before-close.patch",
+      "sha256": "78ebe26f86eb1d3a4120115815da7675c8089177fc373094038e7f4a1c05df0e",
+      "classification": "android-session-compositor-lifecycle",
+      "intent": "Synchronously relinquish an Android Session's compositor Surface before terminal state hides its live native owner and a replacement tab reuses the Surface.",
+      "invariants": [
+        "Explicit Session close invokes the existing guarded synchronous surface pause before terminal cleanup and asynchronous native window destruction.",
+        "A shared Surface can move to the replacement tab without waiting for the old window's asynchronous close callback.",
+        "Nested finally blocks still attempt terminal cleanup and native close when surface pause or terminal callbacks throw; repeated close stays idempotent.",
+        "Unopened or compositor-detached Sessions do not call compositor JNI, and late compositor attachment cannot revive a closed Session.",
+        "The change is confined to the existing Android Java close method; native signatures, generated JNI declarations, shared engine ABI and desktop behavior remain unchanged."
+      ],
+      "port_review": "Review Java Surface ownership and compositor attachment guards together with synchronous native pause and asynchronous window close. Preserve exception cleanup and test actual-device rendering after closing the active tab; method-level ownership tests do not establish GPU output."
+    },
+    {
+      "order": 100,
+      "id": "android-desktop-site-security-details-parity",
+      "patch": "patches/gecko/0100-align-android-site-security-details.patch",
+      "sha256": "7cc6d7f52aa4c1bad2a3e7bf27ec70b98fa9bb0d47d10cdfe2ccf68a59bfc810",
+      "classification": "android-product-security-presentation",
+      "intent": "Expose the same engine certificate details and authenticated built-in extension distinction used by the desktop site-information presentation.",
+      "invariants": [
+        "Certificate display names, public-key digest, key exchange and signature are read from the existing engine security objects, never web content.",
+        "Certificate chains use the handshake fallback only when the succeeded chain is empty, remain bounded to sixteen entries and exclude missing certificates.",
+        "Only an authenticated active extension listed by the immutable application-built-ins preference receives builtInExtension=true; user extensions are not labeled application-owned.",
+        "Certificate errors retain priority over loopback identity; read-only queries and clearing-token principal/document/WindowGlobal checks are unchanged.",
+        "No JNI, native engine ABI, network service or desktop product behavior changes."
+      ],
+      "port_review": "Compare DesktopEngine projectCertificate/projectSecurityDetails and applicationBuiltInIds with the current engine security getters. Preserve bounded read-only projection and authenticated extension ownership."
+    },
+    {
+      "order": 101,
+      "id": "android-shared-product-management-services",
+      "patch": "patches/gecko/0101-share-android-product-management-services.patch",
+      "sha256": "93d96c52f1895baf0f4888fa1c4b27858091d0bea82811e989120a7e79045b4e",
+      "classification": "android-product-management",
+      "intent": "Reuse the desktop process manager, local diagnostics and packaged license reader behind the fixed Android product operation table.",
+      "invariants": [
+        "Only the native product host can issue these operations; no script evaluation or arbitrary preferences are exposed.",
+        "Process termination uses short-lived tokens, revalidates PID and child identity, and protects the current host process.",
+        "Diagnostics report actual retained runtime facts; license text comes from the packaged resource without network access.",
+        "Desktop and Android consume the same service implementation without JNI or native engine ABI changes."
+      ],
+      "port_review": "Review the fixed product dispatch table and shared DesktopProductPages module when updating upstream process info or packaged license resources."
+    },
+    {
+      "order": 102,
+      "id": "android-profile-child-service-namespaces",
+      "patch": "patches/gecko/0102-isolate-android-profile-child-services.patch",
+      "sha256": "66ac3db512e959ef91ca627786d6cbc07385c0dbd11fd769881c58ec0c1350db",
+      "classification": "android-profile-process-ownership",
+      "intent": "Allow Navis to select a distinct Android child service class namespace before each profile parent starts Gecko, so concurrent profiles never share fixed socket, GPU, RDD, utility or ordinary content service instances.",
+      "invariants": [
+        "Without product configuration Gecko retains the original GeckoChildProcessServices namespace.",
+        "Service class selection freezes on configuration or first lookup; an active parent cannot change child namespaces.",
+        "The existing allocator, isolated instance UUIDs, service flags and native JNI signatures remain unchanged.",
+        "Navis Gradle generates each profile namespace and distinct Android process names from the pinned service manifest, preserving isolatedProcess and useAppZygote attributes.",
+        "Extension notification receivers run in their owning profile process; system tags and PendingIntent identities include a fresh parent-process UUID, preventing cross-profile overwrites and stale clicks after slot reuse."
+      ],
+      "port_review": "Review service component naming, manifest service-count/flag queries and child ownership checks together. Keep every default and isolated child service in the selected profile namespace and verify two profile parents concurrently before package acceptance."
+    },
+    {
+      "order": 103,
+      "id": "desktop-settings-bounded-history-routing",
+      "patch": "patches/gecko/0103-allow-bounded-desktop-settings-history-routing.patch",
+      "sha256": "4e28ca15564ae55acdeb1ff5c8b764258d0f6c6f834b663635d8cf785769c595",
+      "classification": "desktop-internal-navigation-boundary",
+      "intent": "Permit the existing desktop settings document to change between its five canonical navis://settings routes through History API without a page reload.",
+      "invariants": [
+        "The additional path-rewrite branch compiles only when the desktop internal scheme is configured and Android is not targeted.",
+        "Both source and target must have the settings host, no credentials, no explicit port, no query and a known settings route.",
+        "The original scheme, same-origin and userpass checks remain mandatory; other internal hosts and unknown paths gain no rewrite permission.",
+        "Normal web, extension and existing fragment-only History API semantics are unchanged."
+      ],
+      "port_review": "Review Document::CanRewriteURL scheme and same-origin guards together with DesktopInternalPages settings route definitions. Verify actual packaged pushState/popstate, document identity preservation and rejected cross-host/unknown-route targets; mock History API tests alone are insufficient."
+    },
+    {
+      "order": 104,
+      "id": "android-appearance-product-operation",
+      "patch": "patches/gecko/0104-connect-android-appearance-product-operation.patch",
+      "sha256": "dbb64750c0dc8af21d75ae0cfd55b0c55b03ee070acfae47e7a9a4082789fbdb",
+      "classification": "android-product-startup-contract",
+      "intent": "Connect Android's startup and live appearance requests to the shared desktop appearance preference policy instead of rejecting the initialization chain as an unknown operation.",
+      "invariants": [
+        "The native host allowlist adds only appearance:set; unknown operations and invalid payload guards remain enforced.",
+        "Appearance requests contain exactly an own key and string value; only theme and accent are exposed, not arbitrary preferences or desktop-only settings.",
+        "The shared policy validates system/light/dark and six-digit RGB colours and applies the same content colour-scheme and system-theme preference semantics on both platforms.",
+        "The Android package explicitly installs the shared NavisSettingsPolicy module; this change adds no native code or runtime ABI."
+      ],
+      "port_review": "Review AndroidProductServices initialize/setAppearance, host PRODUCT_QUERIES, Android product dispatch and the shared module installation as one end-to-end contract. Exercise the actual JS dispatch with valid startup requests and rejected arbitrary keys/invalid values, then verify the packaged bytes before device acceptance."
+    },
+    {
+      "order": 105,
+      "id": "navis-user-extension-safe-mode-boundary",
+      "patch": "patches/gecko/0105-disable-navis-product-extensions-in-safe-mode.patch",
+      "sha256": "149b38a421923ecfa2aa5e5e17e524e0c1c4e63fa7d5c804476b7c3dbe7e35d8",
+      "classification": "shared-extension-restart-policy",
+      "intent": "Make Restart with Add-ons Disabled suspend Navis user-facing registered built-in and temporary extensions instead of inheriting Gecko's internal built-in safe-mode exemption.",
+      "invariants": [
+        "Only Navis Core products change behavior; unmodified Gecko retains its original policy.",
+        "The exact product-owned applicationBuiltins allowlist and extension type identify user-facing built-ins on Desktop and Android despite their different installation locations.",
+        "Locale packages and non-product system/runtime add-ons retain upstream exemptions, preserving Android locale initialization and required engine components.",
+        "Both fresh policy computation and the BootstrapScope getter reject affected extensions, even when an existing profile caches runInSafeMode=true.",
+        "Safe mode does not alter userDisabled or product extension preferences; a normal restart restores the user's previous enabled state without native code changes."
+      ],
+      "port_review": "Review canRunInSafeMode, XPIState startup caching and BootstrapScope together. Confirm real Services.appinfo.inSafeMode and extension isActive across normal-to-safe-to-normal process restarts using an existing cached profile, while retaining locale and system components. Android installBuiltinAddon uses a different location from Desktop's restricted application directory and must remain covered."
+    },
+    {
+      "order": 106,
+      "id": "android-colorpicker-packaged-license",
+      "patch": "patches/gecko/0106-package-android-colorpicker-license.patch",
+      "sha256": "5fb907b00d57c8faf3e2d4ffd6f23602cc09c7cda3e248e8a88680179ab5c0e5",
+      "classification": "android-offline-license-packaging",
+      "intent": "Include the Android color-picker library attribution and complete license in the Android module graph actually traversed by the runtime build.",
+      "invariants": [
+        "Only the Navis Android runtime adds the library notice; desktop packaging does not claim the Android UI dependency.",
+        "The packaged modules/navis-licenses path matches the fixed resource URI in the shared offline credits reader.",
+        "The application-owned notice preserves the unmodified pinned upstream Apache 2.0 license and attribution.",
+        "This resource declaration does not change native code, JNI, extension policy or the Kotlin/Compose toolchain."
+      ],
+      "port_review": "Review the Android mobile/shared/modules/navis graph, not the untraversed desktop module graph. Verify the final APK assets/omni.ja contains the exact modules/navis-licenses/colorpicker-compose-1.1.4.txt bytes and that shared credits can read it offline."
+    },
+    {
+      "order": 107,
+      "id": "navis-offline-search-service",
+      "patch": "patches/gecko/0107-restore-offline-navis-search-service.patch",
+      "sha256": "9fbb94aeaeeb7fa6fe6d575060460f3ccb43a1d50c5f1d061cc290e0d7cf224b",
+      "classification": "core-semantic-adapter",
+      "intent": "Restore Gecko SearchService, engine models, SearchSettings and anonymous suggestion controller behind a single Profile-owned Navis offline search policy.",
+      "invariants": [
+        "The fixed four seeds and existing custom or edited providers preserve stable IDs, names, templates, order and defaults through one-time migration.",
+        "Mozilla remote search configuration, eager remote icons, region/experiment policy and search telemetry do not activate under MOZ_NAVIS_CORE.",
+        "Navis search does not depend on Places or FormHistory; platform records enter only the bounded local suggestion contract.",
+        "Remote suggestions require durable opt-in and reject private contexts, addresses and paths before transport; cancellation prevents stale results. Navis Profile consent is the sole product gate, independent of GeckoView's disabled-by-default legacy suggestion preference.",
+        "Gecko-owned persistence is awaited and failures preserve acknowledged state; non-Navis upstream behavior remains unchanged."
+      ],
+      "port_review": "Re-inventory eager selector/configuration initializers, SearchSettings atomic persistence, UserSearchEngine mutation/submission and suggestion transport/cancellation. Review Android registration and all existing consumers against each target ESR."
+    },
+    {
+      "order": 108,
+      "id": "android-shared-search-service-and-suggestions",
+      "patch": "patches/gecko/0108-share-android-search-service-and-suggestions.patch",
+      "sha256": "bd144324f8102c073628be62967a2aabbc64214bbaecb5f36109cf3b40ce9992",
+      "classification": "core-semantic-adapter",
+      "intent": "Route Android search configuration, submissions, suggestions and extension search through the shared Gecko search service with one-time Profile migration.",
+      "invariants": [
+        "Android settings cache Core projections and never write a parallel search configuration.",
+        "Private Sessions never issue remote suggestions; opt-in, query classification, cancellation and stale-document guards stay inside Core.",
+        "Local bookmark/history/tab candidates remain bounded Profile values; private history and foreign-mode tabs are excluded.",
+        "Live extension catalogue and named/default submissions use Gecko without new extension permissions.",
+        "Only product:initialize accepts a 512KiB legacy payload; ordinary operations retain 64KiB bounds."
+      ],
+      "port_review": "Review Gecko search initialization, engine metadata/submission/controller APIs, Android host query bounds and extension privacy/navigation guards against the target ESR."
+    },
+    {
+      "order": 109,
+      "id": "navis-default-text-selection-theme",
+      "patch": "patches/gecko/0109-theme-default-text-selection.patch",
+      "sha256": "d6aa24fbf687964e2b5977f90442321b7244defc7e0abfde1b5e2a2995c6c29f",
+      "classification": "shared-selection-presentation",
+      "intent": "Apply the current Navis accent to normal default selected text while retaining author and system selection semantics.",
+      "invariants": [
+        "The fallback is limited to MOZ_NAVIS_CORE; authored foreground or background selection styles retain priority.",
+        "Attention, disabled and IME selection states retain upstream colors.",
+        "Forced document colors, OS accessibility themes, always-high-contrast and existing Highlight stand-ins bypass the product fallback.",
+        "No global ui.highlight or CSS system Highlight override is introduced.",
+        "A fixed accent default permits ordinary preference propagation, while existing style-change notifications repaint live windows."
+      ],
+      "port_review": "Review nsTextPaintStyle normal-selection fallback and contrast correction, color notification/pref propagation and platform accessibility/stand-in guards. Require native paint verification after each engine update."
+    },
+    {
+      "order": 110,
+      "id": "download-launch-without-enterprise-policies",
+      "patch": "patches/gecko/0110-allow-download-launch-without-enterprise-policies.patch",
+      "sha256": "d5b7e1f0e9634bf7687c07f4e1fe68b8f1de4a58b318e99d7a5348e68c7ce385",
+      "classification": "optional-service-boundary",
+      "intent": "Retain Gecko's complete safe download-launch path in embedders without the optional enterprise-policy service.",
+      "invariants": [
+        "An absent policy service grants no executable-confirmation exemption.",
+        "Present enterprise policies retain their domain and extension exemption decision.",
+        "Executable consent, Windows security-zone behavior, MIME/system handlers and the extensionless Windows safeguard remain unchanged.",
+        "Neither shell commands nor a direct nsIFile launch bypass replaces Download.launch."
+      ],
+      "port_review": "Review DownloadIntegration.launchDownload optional enterprise-policy lookup and the surrounding executable/MIME checks. Retain only the absent-service guard if the target ESR still assumes enterprise policies exist."
+    },
+    {
+      "order": 111,
+      "id": "navis-language-pack-brand-ownership",
+      "patch": "patches/gecko/0111-keep-language-packs-out-of-navis-branding.patch",
+      "sha256": "179075385fa5b417a72973844b1ec8e27e050470aa0921211b078f2483a6e997",
+      "classification": "shared-brand-resource-boundary",
+      "intent": "Keep Navis names and artwork owned by the product when a signed Mozilla language pack supplies all ordinary translated Gecko strings.",
+      "invariants": [
+        "The pinned Mozilla language-pack archive and its signature remain byte-for-byte unchanged.",
+        "Only branding/brand.ftl, toolkit/branding/brandings.ftl and the legacy branding locale alias fall back to application-owned resources; ordinary translated strings still come from the language pack.",
+        "The override is selected by MOZ_NAVIS_CORE and shared by desktop and Android rather than duplicated in platform UI.",
+        "The exact-index Fluent source uses the language pack's existing metasource, is registered after translated sources, and is removed with the language pack.",
+        "Android legacy and standard branding image names resolve to the canonical product/branding generated assets without changing native configuration or libraries.",
+        "Non-Navis Gecko products retain their original branding and language-pack behavior."
+      ],
+      "port_review": "Review language-pack chrome registration, L10nRegistry metasource ordering and Android branding jar paths together. Verify en-US and zh-CN product names, Navis Profiler, unchanged signed XPI bytes, content-process propagation and every packaged image alias on each target ESR."
     }
   ]
 }

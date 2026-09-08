@@ -386,7 +386,7 @@ def verify_source() -> list[str]:
             "webAuthn: {",
             "answerWebAuthnPrompt",
             "const restoreContentFocus = () =>",
-            "const focusOpenedPrompt = request =>",
+            "const focusOpenedPrompt = (request) =>",
             "promptPanel.contains(document.activeElement)",
             "activeRecord?.session.view?.focus()",
             'candidate?.category === "webauthn"',

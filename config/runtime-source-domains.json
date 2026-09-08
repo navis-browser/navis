@@ -7,8 +7,7 @@
     "^(?:@generated/)?services/(?:fxaccounts|sync)(?:/|$)",
     "^(?:@generated/)?toolkit/components/ml(?:/|$)",
     "^(?:@generated/)?toolkit/components/places/Unified_",
-    "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)",
-    "^(?:@generated/)?devtools/(?!platform(?:/|$))"
+    "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)"
   ],
   "domains": [
     {
@@ -28,6 +27,19 @@
         "^(?:@generated/)?devtools/platform(?:/|$)",
         "^(?:@generated/)?testing/(?:firefox-ui|marionette)(?:/|$)",
         "^(?:@generated/)?toolkit/components/telemetry/tests/marionette(?:/|$)"
+      ]
+    },
+    {
+      "id": "page-developer-tools",
+      "classification": "product-page-debugging",
+      "state": "profile-dependent",
+      "requires_config": {
+        "MOZ_DESKTOP_EMBEDDER_DEVTOOLS": "1",
+        "MOZ_DEVTOOLS": "all"
+      },
+      "patterns": [
+        "^(?:@generated/)?devtools/(?!platform(?:/|$))",
+        "^(?:@generated/)?toolkit/components/viewsource(?:/|$)"
       ]
     },
     {

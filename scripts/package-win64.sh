@@ -59,7 +59,16 @@ fi
 if [[ -e "$source_dir" || -L "$source_dir" ]]; then
   rm -r -- "$source_dir"
 fi
+# Unlike the build wrappers, stage-package invokes make directly rather than
+# mach.sh. Verify the prepared Gecko tree here so an unowned tracked resource
+# edit between the build and package phases cannot bypass the source freeze.
+python3 "$workspace_dir/scripts/prepare-desktop-embedder.py" \
+  --gecko "$gecko_dir" --no-clone --no-mount
 make -C "$objdir" -s stage-package
+if [[ -n "${NAVIS_SOURCE_FREEZE:-}" ]]; then
+  python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+    --manifest "$NAVIS_SOURCE_FREEZE"
+fi
 python3 "$workspace_dir/scripts/verify-builtin-extensions.py" \
   --package-root "$source_dir"
 python3 "$workspace_dir/scripts/verify-webdriver-boundary.py" \
@@ -77,10 +86,23 @@ version="$(awk -F= '$1 == "Version" { print $2; exit }' \
   "$source_dir/application.ini")"
 build_id="$(awk -F= '$1 == "BuildID" { print $2; exit }' \
   "$source_dir/application.ini")"
+source_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
 if [[ -z "$version" || ! "$build_id" =~ ^[0-9]{14}$ ]]; then
   printf 'Invalid Version or BuildID in packaged application.ini.\n' >&2
   exit 1
 fi
+if [[ "$version" != "$source_version" ]]; then
+  printf 'application.ini Version mismatch: expected %s, found %s\n' \
+    "$source_version" "$version" >&2
+  exit 1
+fi
+if [[ -n "${NAVIS_BUILD_ID:-}" && "$build_id" != "$NAVIS_BUILD_ID" ]]; then
+  printf 'application.ini BuildID mismatch: expected %s, found %s\n' \
+    "$NAVIS_BUILD_ID" "$build_id" >&2
+  exit 1
+fi
+python3 "$workspace_dir/scripts/verify-desktop-build-id.py" \
+  --runtime "$source_dir" --platform win64 --build-id "$build_id"
 
 variant_suffix=""
 if [[ -n "$artifact_variant" ]]; then

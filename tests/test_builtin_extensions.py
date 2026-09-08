@@ -156,6 +156,53 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
             command.extend(("--package-root", str(package)))
         return subprocess.run(command, text=True, capture_output=True, check=False)
 
+    def add_application_locale(
+        self, root: pathlib.Path, package: pathlib.Path
+    ) -> tuple[pathlib.Path, pathlib.Path]:
+        addon_id = "langpack-zh-CN@firefox.mozilla.org"
+        artifact_name = f"{addon_id}.xpi"
+        locale_dir = root / "product" / "locales" / "zh-CN"
+        locale_dir.mkdir(parents=True)
+        source = locale_dir / artifact_name
+        source.write_bytes(b"official Mozilla zh-CN locale fixture")
+        payload = source.read_bytes()
+        (locale_dir / "metadata.json").write_text(
+            json.dumps(
+                {
+                    "schema": 1,
+                    "locale": "zh-CN",
+                    "id": addon_id,
+                    "artifact": artifact_name,
+                    "size": len(payload),
+                    "sha256": hashlib.sha256(payload).hexdigest(),
+                }
+            ),
+            encoding="utf-8",
+        )
+        locale_registry = locale_dir.parent / "locales.json"
+        locale_registry.write_text(
+            json.dumps(
+                {
+                    "schema": 1,
+                    "locales": [
+                        {"required": True, "metadata": "zh-CN/metadata.json"}
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+        profile = root / "product" / "app" / "profile" / "navis.js"
+        profile.write_text(
+            profile.read_text(encoding="utf-8").replace(
+                "builtin-one@example.test,companion@example.test",
+                f"builtin-one@example.test,companion@example.test,{addon_id}",
+            ),
+            encoding="utf-8",
+        )
+        packaged = package / "extensions" / artifact_name
+        packaged.write_bytes(payload)
+        return source, packaged
+
     def test_registry_and_package_support_multiple_builtins(self) -> None:
         root, package = self.make_workspace()
         result = self.run_verifier(root, package)
@@ -174,7 +221,30 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
         )
         result = self.run_verifier(root, package)
         self.assertNotEqual(result.returncode, 0)
-        self.assertIn("packaged extension set differs from registry", result.stderr)
+        self.assertIn(
+            "packaged application XPI set differs from reviewed registries",
+            result.stderr,
+        )
+
+    def test_package_accepts_byte_identical_application_locale(self) -> None:
+        root, package = self.make_workspace()
+        self.add_application_locale(root, package)
+        result = self.run_verifier(root, package)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn(
+            "Application locale verified: langpack-zh-CN@firefox.mozilla.org",
+            result.stdout,
+        )
+
+    def test_package_rejects_modified_application_locale(self) -> None:
+        root, package = self.make_workspace()
+        _source, packaged = self.add_application_locale(root, package)
+        payload = bytearray(packaged.read_bytes())
+        payload[-1] ^= 1
+        packaged.write_bytes(payload)
+        result = self.run_verifier(root, package)
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("packaged application locale hash differs", result.stderr)
 
     def test_registry_rejects_native_messaging_permission(self) -> None:
         root, _package = self.make_workspace(["nativeMessaging"])

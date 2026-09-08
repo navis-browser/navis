@@ -5,17 +5,34 @@ set -euo pipefail
 workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 gecko_dir="$workspace_dir/gecko"
 product_dir="$workspace_dir/product"
+android_dir="$workspace_dir/android"
 
 python3 "$workspace_dir/scripts/prepare-desktop-embedder.py" \
   --source-root "$workspace_dir" --gecko "$gecko_dir"
 
-overlay_path="$gecko_dir/navis"
-if [[ -e "$overlay_path" && ! -L "$overlay_path" ]]; then
-  printf '%s exists and is not the Navis overlay link.\n' "$overlay_path" >&2
-  exit 1
-fi
+mount_product_overlay() {
+  local navis_source_path="$1"
+  local navis_overlay_path="$2"
+  local navis_label="$3"
+  local navis_current_target=""
 
-ln -sfn "$product_dir" "$overlay_path"
+  navis_source_path="$(readlink -f -- "$navis_source_path")"
+  if [[ -L "$navis_overlay_path" ]]; then
+    navis_current_target="$(readlink -f -- "$navis_overlay_path" || true)"
+    if [[ "$navis_current_target" == "$navis_source_path" ]]; then
+      return
+    fi
+    unlink -- "$navis_overlay_path"
+  elif [[ -e "$navis_overlay_path" ]]; then
+    printf '%s exists and is not the %s overlay link.\n' \
+      "$navis_overlay_path" "$navis_label" >&2
+    exit 1
+  fi
+  ln -s -- "$navis_source_path" "$navis_overlay_path"
+}
+
+mount_product_overlay "$product_dir" "$gecko_dir/navis" "Navis"
+mount_product_overlay "$android_dir" "$gecko_dir/navis-android" "Navis Android"
 actual_commit="$(git -C "$gecko_dir" rev-parse HEAD)"
-printf 'Gecko %s is ready with the embedder and Navis product mounted.\n' \
+printf 'Gecko %s is ready with the embedder and Navis products mounted.\n' \
   "$actual_commit"

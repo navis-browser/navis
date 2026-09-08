@@ -16,19 +16,44 @@ from typing import Any
 
 
 WORKSPACE = Path(__file__).resolve().parent.parent
-POLICY_PATH = WORKSPACE / "config/navis-remote-settings-policy.json"
+POLICY_PATH = WORKSPACE / "product/config/navis-remote-settings-policy.json"
 PORTS_PATH = WORKSPACE / "config/gecko-semantic-ports.json"
 PRODUCT_CONFIG = WORKSPACE / "product/moz.configure"
 PRODUCT_PREFS = WORKSPACE / "product/app/profile/navis.js"
+ANDROID_MOZCONFIG = WORKSPACE / "mozconfig.android-aarch64.sccache"
+ANDROID_PREFS = WORKSPACE / "gecko/mobile/android/app/geckoview-prefs.js"
+TOOLKIT_CONFIG = WORKSPACE / "gecko/toolkit/moz.configure"
+APP_CONSTANTS = WORKSPACE / "gecko/toolkit/modules/AppConstants.sys.mjs"
+TOOLKIT_MODULES_BUILD = WORKSPACE / "gecko/toolkit/modules/moz.build"
+REMOTE_SETTINGS_RUNTIME = WORKSPACE / "gecko/services/settings/remote-settings.sys.mjs"
 PATCH_PATH = (
-    WORKSPACE / "patches/gecko/0029-scope-desktop-embedder-remote-settings.patch"
+    WORKSPACE / "patches/gecko/0029-scope-navis-remote-settings-policy.patch"
 )
-OPTION_NAME = "--with-desktop-embedder-remote-settings-collections"
-CONFIG_NAME = "MOZ_DESKTOP_EMBEDDER_REMOTE_SETTINGS_COLLECTIONS"
-RUNTIME_PREF = "services.settings.desktop_embedder_allowed_collections"
+POLICY_RELATIVE_PATH = "navis/config/navis-remote-settings-policy.json"
+OPTION_NAME = "--with-navis-remote-settings-policy"
+CAPABILITY_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_POLICY"
+CONFIG_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_COLLECTIONS"
+BOOTSTRAP_CONFIG_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_BOOTSTRAP_COLLECTIONS"
+CSV_CONFIG_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_COLLECTIONS_CSV"
+SYNC_CONFIG_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS"
+SYNC_CSV_CONFIG_NAME = "MOZ_NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS_CSV"
+TEST_RUNTIME_PREF = "services.settings.navis_allowed_collections"
+TEST_SYNC_PREF = "services.settings.navis_sync_collections"
 SERVER_PREF = "services.settings.server"
 PREVIEW_PREF = "services.settings.preview_enabled"
 IDENTIFIER = re.compile(r"^[a-z0-9_-]+/[a-z0-9_-]+$")
+
+
+def has_enabled_app_constant(source: str, name: str) -> bool:
+    return (
+        re.search(
+            rf"(?m)^[ \t]*{re.escape(name)}:[ \t]*\r?$\n"
+            rf"(?:[ \t]*//@line[^\r\n]*\r?$\n)*"
+            rf"[ \t]*true,",
+            source,
+        )
+        is not None
+    )
 
 
 class PolicyError(RuntimeError):
@@ -68,7 +93,7 @@ def source_collection_inventory() -> set[str]:
     return inventory
 
 
-def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
+def validate_policy() -> tuple[dict[str, Any], list[str], set[str], set[str]]:
     policy = load_json(POLICY_PATH)
     expected_keys = {
         "schema_version",
@@ -83,7 +108,7 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
             f"missing={sorted(expected_keys - set(policy))}, "
             f"extra={sorted(set(policy) - expected_keys)}"
         )
-    if policy["schema_version"] != 1 or policy["product"] != "Navis 1.0":
+    if policy["schema_version"] != 2 or policy["product"] != "Navis 1.0":
         raise PolicyError("unsupported Remote Settings policy identity")
 
     provider = policy["provider"]
@@ -105,9 +130,16 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
     entries = policy["allowed_collections"]
     if not isinstance(entries, list) or not entries:
         raise PolicyError("allowed_collections must be a nonempty array")
-    entry_keys = {"identifier", "packaged_bootstrap", "signer", "purpose"}
+    entry_keys = {
+        "identifier",
+        "packaged_bootstrap",
+        "remote_sync",
+        "signer",
+        "purpose",
+    }
     allowed: list[str] = []
     packaged: set[str] = set()
+    syncable: set[str] = set()
     known_signers = {
         provider["default_signer"],
         provider["security_state_signer"],
@@ -120,6 +152,12 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
             raise PolicyError(f"invalid collection identifier: {identifier!r}")
         if not isinstance(entry["packaged_bootstrap"], bool):
             raise PolicyError(f"{identifier} packaged_bootstrap is not boolean")
+        if not isinstance(entry["remote_sync"], bool):
+            raise PolicyError(f"{identifier} remote_sync is not boolean")
+        if not entry["remote_sync"] and not entry["packaged_bootstrap"]:
+            raise PolicyError(
+                f"{identifier} disables remote sync without a packaged bootstrap"
+            )
         if entry["signer"] not in known_signers:
             raise PolicyError(f"{identifier} has an unknown signer")
         if not isinstance(entry["purpose"], str) or not entry["purpose"].strip():
@@ -127,6 +165,8 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
         allowed.append(identifier)
         if entry["packaged_bootstrap"]:
             packaged.add(identifier)
+        if entry["remote_sync"]:
+            syncable.add(identifier)
     if allowed != sorted(set(allowed)):
         raise PolicyError("allowed collections must be sorted and unique")
 
@@ -143,7 +183,7 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str]]:
             "excluded source inventory differs: "
             f"expected={expected_excluded}, declared={excluded}"
         )
-    return policy, allowed, packaged
+    return policy, allowed, packaged, syncable
 
 
 def require_single(pattern: str, content: str, description: str) -> str:
@@ -153,34 +193,103 @@ def require_single(pattern: str, content: str, description: str) -> str:
     return matches[0]
 
 
-def verify_product_declaration(policy: dict[str, Any], allowed: list[str]) -> None:
+def verify_product_declaration(
+    policy: dict[str, Any], allowed: list[str], syncable: set[str]
+) -> None:
     expected = ",".join(allowed)
     product_config = PRODUCT_CONFIG.read_text(encoding="utf-8")
     configured = require_single(
         rf'imply_option\(\s*"{re.escape(OPTION_NAME)}"\s*,\s*"([^"]+)"\s*,?\s*\)',
         product_config,
-        "product configure allowlist",
+        "product policy path",
     )
-    if configured != expected:
-        raise PolicyError("product configure allowlist differs from policy")
+    if configured != POLICY_RELATIVE_PATH:
+        raise PolicyError("desktop product does not consume the owned policy file")
+
+    android_mozconfig = ANDROID_MOZCONFIG.read_text(encoding="utf-8")
+    expected_android_option = f"ac_add_options {OPTION_NAME}={POLICY_RELATIVE_PATH}"
+    if android_mozconfig.count(expected_android_option) != 1:
+        raise PolicyError("Android product does not consume the owned policy file")
 
     prefs = PRODUCT_PREFS.read_text(encoding="utf-8")
-    declared_pref = require_single(
-        rf'pref\("{re.escape(RUNTIME_PREF)}",\s*"([^"]+)",\s*locked\);',
-        prefs,
-        "locked runtime allowlist",
-    )
-    if declared_pref != expected:
-        raise PolicyError("runtime preference allowlist differs from policy")
+    android_prefs = ANDROID_PREFS.read_text(encoding="utf-8")
     server = re.escape(policy["provider"]["production_server"])
     required_pref_patterns = (
         rf'pref\("{re.escape(SERVER_PREF)}",\s*"{server}",\s*locked\);',
         rf'pref\("{re.escape(PREVIEW_PREF)}",\s*false,\s*locked\);',
-        rf'#ifndef ENABLE_TESTS[\s\S]+?pref\("{re.escape(RUNTIME_PREF)}"',
     )
-    for pattern in required_pref_patterns:
-        if not re.search(pattern, prefs):
-            raise PolicyError(f"required product preference policy is absent: {pattern}")
+    for owner, content in (("desktop", prefs), ("Android", android_prefs)):
+        for pattern in required_pref_patterns:
+            if not re.search(pattern, content):
+                raise PolicyError(
+                    f"required {owner} provider preference is absent: {pattern}"
+                )
+
+    toolkit_config = TOOLKIT_CONFIG.read_text(encoding="utf-8")
+    app_constants = APP_CONSTANTS.read_text(encoding="utf-8")
+    toolkit_modules_build = TOOLKIT_MODULES_BUILD.read_text(encoding="utf-8")
+    runtime = REMOTE_SETTINGS_RUNTIME.read_text(encoding="utf-8")
+    for marker in (
+        OPTION_NAME,
+        CAPABILITY_NAME,
+        CONFIG_NAME,
+        BOOTSTRAP_CONFIG_NAME,
+        CSV_CONFIG_NAME,
+        SYNC_CONFIG_NAME,
+        SYNC_CSV_CONFIG_NAME,
+        'policy.get("allowed_collections")',
+        'entry.get("packaged_bootstrap")',
+        'entry.get("remote_sync")',
+        "source-tree-relative",
+    ):
+        if marker not in toolkit_config:
+            raise PolicyError(f"configure policy parser lacks marker: {marker}")
+    for marker in (
+        CAPABILITY_NAME,
+        "NAVIS_REMOTE_SETTINGS_ALLOWED_COLLECTIONS",
+        f'"@{CSV_CONFIG_NAME}@".split(",")',
+        "NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS",
+        f'"@{SYNC_CSV_CONFIG_NAME}@".split(",")',
+    ):
+        if marker not in app_constants:
+            raise PolicyError(f"AppConstants policy projection lacks marker: {marker}")
+    define_loops = re.findall(
+        r"for var in \((.*?)\):\s*DEFINES\[var\]\s*=\s*CONFIG\[var\]\s*or\s*\"\"",
+        toolkit_modules_build,
+        flags=re.DOTALL,
+    )
+    for config_name in (CSV_CONFIG_NAME, SYNC_CSV_CONFIG_NAME):
+        if sum(f'"{config_name}"' in body for body in define_loops) != 1:
+            raise PolicyError(
+                "AppConstants preprocessing does not project the configured "
+                f"{config_name} string with an empty policy-off fallback"
+            )
+    for marker in (
+        f"AppConstants.{CAPABILITY_NAME}",
+        "AppConstants.NAVIS_REMOTE_SETTINGS_ALLOWED_COLLECTIONS",
+        "AppConstants.NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS",
+        "navisAllowedCollections()",
+        "navisSyncCollections()",
+        "Collection disabled by Navis product policy",
+        "Remote synchronization disabled by Navis product policy",
+    ):
+        if marker not in runtime:
+            raise PolicyError(f"runtime policy gate lacks marker: {marker}")
+    for forbidden in (
+        "desktop_embedder_allowed_collections",
+        "desktop_embedder_enforce_allowed_collections_in_tests",
+        "MOZ_DESKTOP_EMBEDDER_REMOTE_SETTINGS_COLLECTIONS",
+    ):
+        if forbidden in toolkit_config + app_constants + runtime + prefs + android_prefs:
+            raise PolicyError(f"retired desktop-only policy marker remains: {forbidden}")
+    if expected not in app_constants and f"@{CSV_CONFIG_NAME}@" not in app_constants:
+        raise PolicyError("AppConstants does not consume the configured collection CSV")
+    expected_sync = ",".join(sorted(syncable))
+    if (
+        expected_sync not in app_constants
+        and f"@{SYNC_CSV_CONFIG_NAME}@" not in app_constants
+    ):
+        raise PolicyError("AppConstants does not consume the configured sync CSV")
 
 
 def verify_semantic_port() -> None:
@@ -191,7 +300,7 @@ def verify_semantic_port() -> None:
         port
         for port in ports
         if isinstance(port, dict)
-        and port.get("id") == "desktop-embedder-remote-settings-allowlist"
+        and port.get("id") == "navis-remote-settings-policy"
     ]
     if len(matches) != 1 or matches[0].get("order") != 29:
         raise PolicyError("Remote Settings semantic port is missing or misordered")
@@ -202,14 +311,26 @@ def verify_semantic_port() -> None:
     patch = PATCH_PATH.read_text(encoding="utf-8")
     required_markers = (
         OPTION_NAME,
+        CAPABILITY_NAME,
         CONFIG_NAME,
-        "desktop_embedder_allowed_collections",
-        "desktop_embedder_enforce_allowed_collections_in_tests",
-        "Collection disabled by Desktop Embedder policy",
-        "if (this._disabled)",
+        BOOTSTRAP_CONFIG_NAME,
+        CSV_CONFIG_NAME,
+        SYNC_CONFIG_NAME,
+        SYNC_CSV_CONFIG_NAME,
+        'DEFINES[var] = CONFIG[var] or ""',
+        "NAVIS_REMOTE_SETTINGS_ALLOWED_COLLECTIONS",
+        "NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS",
+        "navis_allowed_collections",
+        "navis_sync_collections",
+        "navis_enforce_allowed_collections_in_tests",
+        "Collection disabled by Navis product policy",
+        "Remote synchronization disabled by Navis product policy",
+        "if (this._disabled || this._syncDisabled)",
         "allowed_collections and identifier not in allowed_collections",
-        "test_desktop_embedder_collection_policy.js",
+        "test_navis_collection_policy.js",
+        "An empty policy denies every collection",
         "A disallowed collection cannot read stale profile data",
+        "A packaged-only collection cannot synchronize or mutate local data",
     )
     for marker in required_markers:
         if marker not in patch:
@@ -219,9 +340,17 @@ def verify_semantic_port() -> None:
         "services/settings/dumps/main/moz.build",
         "services/settings/dumps/security-state/moz.build",
         "services/settings/static-dumps/main/moz.build",
+        "toolkit/modules/moz.build",
     ):
         if path not in patch:
             raise PolicyError(f"semantic port does not filter {path}")
+    for forbidden in (
+        "--with-desktop-embedder-remote-settings-collections",
+        "MOZ_DESKTOP_EMBEDDER_REMOTE_SETTINGS_COLLECTIONS",
+        "AppConstants.MOZ_DESKTOP_EMBEDDER ||",
+    ):
+        if forbidden in patch:
+            raise PolicyError(f"semantic port retains desktop-only policy: {forbidden}")
 
     signatures = (
         WORKSPACE
@@ -260,7 +389,11 @@ def read_substs(path: Path) -> dict[str, Any]:
 
 
 def verify_runtime(
-    runtime: Path, policy: dict[str, Any], allowed: list[str], packaged: set[str]
+    runtime: Path,
+    policy: dict[str, Any],
+    allowed: list[str],
+    packaged: set[str],
+    syncable: set[str],
 ) -> None:
     omni = runtime / "omni.ja"
     if not omni.is_file():
@@ -319,22 +452,54 @@ def verify_runtime(
             )
 
         packaged_prefs = archive.read("defaults/pref/navis.js").decode("utf-8")
-        expected = ",".join(allowed)
         for marker in (
-            f'pref("{RUNTIME_PREF}", "{expected}", locked);',
             f'pref("{SERVER_PREF}", "{policy["provider"]["production_server"]}", locked);',
             f'pref("{PREVIEW_PREF}", false, locked);',
         ):
             if marker not in packaged_prefs:
                 raise PolicyError(f"runtime policy preference is missing: {marker}")
 
+        app_constants = archive.read("modules/AppConstants.sys.mjs").decode("utf-8")
+        expected_csv = ",".join(allowed)
+        expected_sync_csv = ",".join(sorted(syncable))
+        if not has_enabled_app_constant(app_constants, CAPABILITY_NAME):
+            raise PolicyError(
+                f"runtime AppConstants policy is not enabled: {CAPABILITY_NAME}"
+            )
+        for marker in (
+            "NAVIS_REMOTE_SETTINGS_ALLOWED_COLLECTIONS:",
+            f'Object.freeze("{expected_csv}".split(","))',
+            "NAVIS_REMOTE_SETTINGS_SYNC_COLLECTIONS:",
+            f'Object.freeze("{expected_sync_csv}".split(","))',
+        ):
+            if marker not in app_constants:
+                raise PolicyError(f"runtime AppConstants policy is missing: {marker}")
+
     config_status = runtime.parent.parent / "config.status"
     if config_status.is_file():
-        configured = read_substs(config_status).get(CONFIG_NAME)
+        substs = read_substs(config_status)
+        configured = substs.get(CONFIG_NAME)
         if tuple(configured or ()) != tuple(allowed):
             raise PolicyError(
                 f"configured collection allowlist differs: {configured!r}"
             )
+        configured_bootstraps = substs.get(BOOTSTRAP_CONFIG_NAME)
+        if set(configured_bootstraps or ()) != packaged:
+            raise PolicyError(
+                "configured bootstrap inventory differs: "
+                f"{configured_bootstraps!r}"
+            )
+        if substs.get(CSV_CONFIG_NAME) != ",".join(allowed):
+            raise PolicyError("configured collection CSV differs from policy")
+        configured_sync = substs.get(SYNC_CONFIG_NAME)
+        if set(configured_sync or ()) != syncable:
+            raise PolicyError(
+                f"configured sync collection inventory differs: {configured_sync!r}"
+            )
+        if substs.get(SYNC_CSV_CONFIG_NAME) != ",".join(sorted(syncable)):
+            raise PolicyError("configured sync collection CSV differs from policy")
+        if not substs.get(CAPABILITY_NAME):
+            raise PolicyError("configured runtime lacks the Navis policy capability")
 
 
 def main() -> int:
@@ -342,11 +507,13 @@ def main() -> int:
     parser.add_argument("--runtime", type=Path)
     args = parser.parse_args()
     try:
-        policy, allowed, packaged = validate_policy()
-        verify_product_declaration(policy, allowed)
+        policy, allowed, packaged, syncable = validate_policy()
+        verify_product_declaration(policy, allowed, syncable)
         verify_semantic_port()
         if args.runtime:
-            verify_runtime(args.runtime.resolve(), policy, allowed, packaged)
+            verify_runtime(
+                args.runtime.resolve(), policy, allowed, packaged, syncable
+            )
     except (OSError, UnicodeError, zipfile.BadZipFile, PolicyError) as error:
         print(f"Remote Settings policy verification failed: {error}", file=sys.stderr)
         return 1
@@ -354,7 +521,8 @@ def main() -> int:
     suffix = f"; runtime={args.runtime.resolve()}" if args.runtime else ""
     print(
         "Navis Remote Settings policy verified: "
-        f"{len(allowed)} allowed collections, {len(packaged)} bootstrap dumps"
+        f"{len(allowed)} readable collections, {len(packaged)} bootstrap dumps, "
+        f"{len(syncable)} remotely synchronized collections"
         f"{suffix}"
     )
     return 0

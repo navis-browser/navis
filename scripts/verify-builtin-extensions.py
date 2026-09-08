@@ -46,6 +46,66 @@ def safe_child(root: pathlib.Path, relative: str) -> pathlib.Path:
     return result
 
 
+def load_application_locale_packages(
+    root: pathlib.Path,
+) -> list[tuple[str, str, str]]:
+    locale_root = (root / "product" / "locales").resolve()
+    registry_path = locale_root / "locales.json"
+    if not registry_path.is_file():
+        return []
+    registry = load_json(registry_path)
+    if registry.get("schema") != 1 or not isinstance(
+        registry.get("locales"), list
+    ):
+        fail("application locale registry is invalid")
+    packages = []
+    for entry in registry["locales"]:
+        if (
+            not isinstance(entry, dict)
+            or set(entry) != {"required", "metadata"}
+            or entry["required"] is not True
+            or not isinstance(entry["metadata"], str)
+        ):
+            fail("application locale registry entry is invalid")
+        metadata_path = safe_child(locale_root, entry["metadata"])
+        metadata = load_json(metadata_path)
+        addon_id = metadata.get("id")
+        artifact_name = metadata.get("artifact")
+        if (
+            not isinstance(addon_id, str)
+            or not addon_id
+            or not isinstance(artifact_name, str)
+            or artifact_name != f"{addon_id}.xpi"
+        ):
+            fail("application locale metadata has an invalid package identity")
+        artifact = safe_child(metadata_path.parent, artifact_name)
+        if not artifact.is_file():
+            fail(f"application locale package is missing: {artifact}")
+        try:
+            payload = artifact.read_bytes()
+        except OSError as error:
+            fail(f"cannot read application locale package {artifact}: {error}")
+        digest = hashlib.sha256(payload).hexdigest()
+        expected_size = metadata.get("size")
+        expected_digest = metadata.get("sha256")
+        if not isinstance(expected_size, int) or expected_size < 0:
+            fail("application locale metadata has an invalid package size")
+        if len(payload) != expected_size:
+            fail(
+                f"{artifact.name} size is {len(payload)}, expected {expected_size}"
+            )
+        if not isinstance(expected_digest, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", expected_digest
+        ):
+            fail("application locale metadata has an invalid package SHA-256")
+        if digest != expected_digest:
+            fail(
+                f"{artifact.name} SHA-256 is {digest}, expected {expected_digest}"
+            )
+        packages.append((addon_id, artifact.name, digest))
+    return packages
+
+
 def verify_extension(
     builtin_dir: pathlib.Path,
     entry: dict,
@@ -166,6 +226,12 @@ def main() -> int:
         identities.add(addon_id)
         results.append(result)
 
+    locale_packages = load_application_locale_packages(args.root)
+    for addon_id, _artifact_name, _digest in locale_packages:
+        if addon_id in identities:
+            fail(f"duplicate application package ID: {addon_id}")
+        identities.add(addon_id)
+
     for relative in PRODUCTION_MOZCONFIGS:
         mozconfig_path = args.root / relative
         try:
@@ -180,7 +246,10 @@ def main() -> int:
     profile = (args.root / "product" / "app" / "profile" / "navis.js").read_text(
         encoding="utf-8"
     )
-    expected_ids = ",".join(addon_id for addon_id, *_rest in results)
+    expected_ids = ",".join(
+        [addon_id for addon_id, *_rest in results]
+        + [addon_id for addon_id, _artifact_name, _digest in locale_packages]
+    )
     expected_pref = (
         'pref("extensions.applicationBuiltins.allowedIds", '
         f'"{expected_ids}", locked);'
@@ -226,7 +295,12 @@ def main() -> int:
             fail("packaged built-in registry differs from the reviewed source")
 
         extension_dir = args.package_root / "extensions"
-        expected_files = {f"{addon_id}.xpi" for addon_id in identities}
+        expected_files = {
+            f"{addon_id}.xpi" for addon_id, *_rest in results
+        } | {
+            artifact_name
+            for _addon_id, artifact_name, _digest in locale_packages
+        }
         actual_files = (
             {path.name for path in extension_dir.iterdir()}
             if extension_dir.is_dir()
@@ -234,9 +308,17 @@ def main() -> int:
         )
         if actual_files != expected_files:
             fail(
-                "packaged extension set differs from registry: "
+                "packaged application XPI set differs from reviewed registries: "
                 f"actual={sorted(actual_files)}, expected={sorted(expected_files)}"
             )
+        for _addon_id, artifact_name, source_digest in locale_packages:
+            packaged = extension_dir / artifact_name
+            try:
+                packaged_digest = hashlib.sha256(packaged.read_bytes()).hexdigest()
+            except OSError as error:
+                fail(f"cannot read packaged application locale {packaged}: {error}")
+            if packaged_digest != source_digest:
+                fail(f"packaged application locale hash differs: {packaged}")
 
     for addon_id, pinned, version, digest, _artifact_path in results:
         print(
@@ -244,6 +326,8 @@ def main() -> int:
             f"{addon_id} {version} default-pinned={str(pinned).lower()} "
             f"sha256={digest}"
         )
+    for addon_id, _artifact_name, digest in locale_packages:
+        print(f"Application locale verified: {addon_id} sha256={digest}")
     return 0
 
 

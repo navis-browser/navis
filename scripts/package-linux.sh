@@ -65,6 +65,30 @@ python3 "$workspace_dir/scripts/verify-native-services-boundary.py"
 python3 "$workspace_dir/scripts/verify-spellcheck.py"
 python3 "$workspace_dir/scripts/verify-webauthn.py"
 
+# Gecko's BuildID header and libxul source use separate generator stamps.  Pin
+# both to this package identity before the single incremental native build;
+# otherwise application.ini can advance while libxul retains an older ID.
+generated_build_id_stamps=(
+  "$objdir/.deps/buildid.h.stub"
+  "$objdir/toolkit/library/.deps/buildid.cpp.stub"
+)
+for stamp in "${generated_build_id_stamps[@]}"; do
+  if [[ "$stamp" != "$objdir"/* || -L "$stamp" ]]; then
+    printf 'Unsafe generated BuildID stamp path: %s\n' "$stamp" >&2
+    exit 1
+  fi
+done
+rm -f -- "${generated_build_id_stamps[@]}"
+NAVIS_MOZCONFIG="$mozconfig" "$workspace_dir/scripts/mach.sh" build buildid.h
+generated_build_id_header="$objdir/buildid.h"
+expected_build_id_header="#define MOZ_BUILDID $build_id"
+if [[ ! -f "$generated_build_id_header" || \
+  "$(tr -d '\r\n' < "$generated_build_id_header")" != \
+  "$expected_build_id_header" ]]; then
+  printf 'Generated Linux BuildID header does not match %s.\n' "$build_id" >&2
+  exit 1
+fi
+
 # Gecko's incremental install manifests do not always remove chrome entries
 # after a feature changes from enabled to excluded. Recreate only the derived
 # distribution staging, then let the existing object files repopulate it. This
@@ -73,8 +97,14 @@ dist_dir="$objdir/dist"
 rm -rf -- "${dist_dir:?}/bin" "${dist_dir:?}/navis"
 NAVIS_MOZCONFIG="$mozconfig" "$workspace_dir/scripts/mach.sh" build
 NAVIS_MOZCONFIG="$mozconfig" "$workspace_dir/scripts/mach.sh" package
+if [[ -n "${NAVIS_SOURCE_FREEZE:-}" ]]; then
+  python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+    --manifest "$NAVIS_SOURCE_FREEZE"
+fi
 
 runtime_dir="$objdir/dist/navis"
+python3 "$workspace_dir/scripts/verify-desktop-build-id.py" \
+  --runtime "$runtime_dir" --platform linux-x86_64 --build-id "$build_id"
 python3 "$workspace_dir/scripts/verify-builtin-extensions.py" \
   --package-root "$runtime_dir"
 python3 "$workspace_dir/scripts/verify-webdriver-boundary.py" \
@@ -108,10 +138,16 @@ fi
 
 version="$(awk -F= '$1 == "Version" { print $2; exit }' \
   "$runtime_dir/application.ini")"
+source_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
 packaged_build_id="$(awk -F= '$1 == "BuildID" { print $2; exit }' \
   "$runtime_dir/application.ini")"
 if [[ -z "$version" || ! "$packaged_build_id" =~ ^[0-9]{14}$ ]]; then
   printf 'Invalid Version or BuildID in packaged application.ini.\n' >&2
+  exit 1
+fi
+if [[ "$version" != "$source_version" ]]; then
+  printf 'application.ini Version mismatch: expected %s, found %s\n' \
+    "$source_version" "$version" >&2
   exit 1
 fi
 if [[ "$packaged_build_id" != "$build_id" ]]; then
@@ -123,6 +159,11 @@ fi
 platform_archive="${package_name#navis-"${version}".en-US.}"
 if [[ "$platform_archive" == "$package_name" ]]; then
   printf 'Unexpected generated package name: %s\n' "$package_name" >&2
+  exit 1
+fi
+if [[ "$platform_archive" != "linux-x86_64.tar.xz" ]]; then
+  printf 'Unexpected Linux x86_64 package architecture: %s\n' \
+    "$platform_archive" >&2
   exit 1
 fi
 

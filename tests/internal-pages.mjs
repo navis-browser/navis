@@ -35,6 +35,9 @@ const pages = getNavisInternalPages();
 assert.deepEqual(
   pages.map((page) => page.id),
   [
+    "processes",
+    "profiles",
+    "credits",
     "newtab",
     "history",
     "bookmarks",
@@ -155,7 +158,8 @@ assert.match(support, /Copy diagnostic information/u);
 assert.match(support, /Security and capabilities/u);
 assert.match(support, /state\.diagnostics/u);
 assert.match(support, /<script nonce="test-nonce">/u);
-assert.equal(support.match(/<script nonce="test-nonce">/gu)?.length, 3);
+assert.equal(support.match(/<script nonce="test-nonce">/gu)?.length, 4);
+assert.match(support, /NavisAppearanceState/u);
 assert.match(support, /window\.NavisL10n/u);
 assert.match(support, /material-ripple/u);
 assert.match(support, /diagnosticsState/u);
@@ -188,7 +192,8 @@ for (const page of pages) {
 assert.match(urls, /navis:\/\/settings\//u);
 assert.doesNotMatch(urls, /navis:\/\/settings\/help/u);
 assert.match(urls, /script-src 'nonce-urls-nonce'/u);
-assert.equal(urls.match(/<script nonce="urls-nonce">/gu)?.length, 1);
+assert.equal(urls.match(/<script nonce="urls-nonce">/gu)?.length, 2);
+assert.match(urls, /NavisAppearanceState/u);
 assert.match(urls, /material-ripple/u);
 assert.doesNotMatch(urls, /<script[^>]+src=/u);
 
@@ -240,15 +245,17 @@ assert.match(
 );
 assert.match(settings, /target="_blank" rel="noopener noreferrer"/u);
 assert.match(settings, /How query-parameter stripping works \(Mozilla\)/u);
-assert.match(settings, /navis:\/\/history\//u);
-assert.match(settings, /navis:\/\/bookmarks\//u);
-assert.match(settings, /navis:\/\/passwords\//u);
-assert.match(settings, /navis:\/\/downloads\//u);
-assert.match(settings, /navis:\/\/extensions\//u);
+const settingsNav = settings.match(/<nav class="settings-nav"[\s\S]*?<\/nav>/u)[0];
+for (const route of ["search", "privacy", "appearance", "downloads", "help"]) {
+  assert.ok(settingsNav.includes(`navis://settings/${route}`));
+}
+for (const route of ["history", "bookmarks", "passwords", "downloads", "extensions"]) {
+  assert.ok(!settingsNav.includes(`href="navis://${route}/"`));
+}
 assert.match(settings, /Clear cookies and site data/u);
 assert.match(settings, /script-src 'nonce-settings-nonce'/u);
 assert.match(settings, /<script nonce="settings-nonce">/u);
-assert.doesNotMatch(settings, /NavisDiagnosticsCommand/u);
+assert.match(settings, /NavisDiagnosticsCommand/u);
 
 const help = renderNavisInternalPage({
   page: getNavisInternalPage("settings", "help"),
@@ -269,8 +276,27 @@ assert.match(help, /navis:\/\/support\//u);
 assert.match(help, /navis:\/\/urls\//u);
 assert.match(help, /data-page-key="settings\/help"/u);
 assert.match(help, /NavisDiagnosticsCommand/u);
-assert.doesNotMatch(help, /NavisSettingsCommand/u);
+assert.match(help, /NavisSettingsCommand/u);
 assert.doesNotMatch(help, /Process model/u);
+assert.match(help, /class="about-footer"/u);
+assert.match(help, /Copyright 2026 William Varmus\. All rights reserved\./u);
+assert.match(
+  help,
+  /Navis is made possible by the <a [^>]+>Mozilla Gecko<\/a> open-source project and <a href="navis:\/\/credits\/">other open-source software<\/a>\./u,
+);
+
+const chineseHelp = renderNavisInternalPage({
+  page: getNavisInternalPage("settings", "help"),
+  pages,
+  diagnostics: { application: [], engine: [], system: [] },
+  locale: "zh-CN",
+  nonce: "zh-help-nonce",
+});
+assert.match(chineseHelp, /版权所有 2026 冷曜。保留所有权利。/u);
+assert.match(
+  chineseHelp,
+  /Navis 的诞生离不开 <a [^>]+>Mozilla Gecko<\/a> 开源项目及<a href="navis:\/\/credits\/">其他开源软件<\/a>。/u,
+);
 
 for (const [id, marker] of [
   ["newtab", 'id="newtab-search"'],

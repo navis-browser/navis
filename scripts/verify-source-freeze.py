@@ -19,6 +19,7 @@ from typing import Any
 
 WORKSPACE = Path(__file__).resolve().parent.parent
 SOURCE_DIRECTORIES = (
+    "android",
     "config",
     "core",
     "docs",
@@ -30,7 +31,12 @@ SOURCE_DIRECTORIES = (
     "vendor",
 )
 TOP_LEVEL_FILES = (".gitignore", "LICENSE", "README.md")
-EXCLUDED_PREFIXES = ("core/rust/target/",)
+EXCLUDED_PREFIXES = (
+    "android/.cxx/",
+    "android/.gradle/",
+    "android/build/",
+    "core/rust/target/",
+)
 EXCLUDED_PARTS = {"__pycache__", ".ruff_cache"}
 SHA256 = re.compile(r"^[0-9a-f]{64}$")
 

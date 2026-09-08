@@ -195,6 +195,7 @@
         ],
         "omni_required": [
           "modules/DesktopEngine.sys.mjs",
+          "modules/DesktopDevTools.sys.mjs",
           "modules/DesktopEmbedderStartup.sys.mjs"
         ],
         "omni_content_required": {
@@ -226,6 +227,84 @@
           "modules/DesktopEngine.sys.mjs": [
             "^export class Engine(Runtime|Session) extends EventTarget",
             "^  respondToPrompt\\("
+          ]
+        }
+      }
+    },
+    {
+      "id": "desktop-page-developer-tools",
+      "classification": "product-capability",
+      "state": "required",
+      "contract": "F12, the application menu and a page-context Inspect command expose Gecko's full page-target developer-tool client, server and protocol through a Core-private adapter. Browser Toolbox and privileged parent-process debugging are not exposed by these commands.",
+      "checks": {
+        "config": {
+          "MOZ_DESKTOP_EMBEDDER_DEVTOOLS": true,
+          "MOZ_DEVTOOLS": "all"
+        },
+        "graph_required": [
+          "^devtools/client/",
+          "^devtools/platform/",
+          "^devtools/server/",
+          "^devtools/shared/",
+          "^devtools/startup/"
+        ],
+        "omni_required": [
+          "chrome/devtools/content/framework/toolbox.xhtml",
+          "chrome/devtools/content/inspector/index.xhtml",
+          "chrome/devtools/content/webconsole/index.html",
+          "chrome/devtools-startup/content/DevToolsShim.sys.mjs",
+          "chrome/toolkit/content/global/viewSourceUtils.js",
+          "defaults/pref/debugger.js",
+          "defaults/pref/navis-devtools.js",
+          "modules/DesktopContextMenuChild.sys.mjs",
+          "modules/DesktopDevTools.sys.mjs"
+        ],
+        "omni_content_required": {
+          "modules/DevToolsStartup.sys.mjs": [
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER_DEVTOOLS\\) \\{[\\s\\S]*?JsonView\\.initialize\\(\\);[\\s\\S]*?return;[\\s\\S]*?this\\.hookWindow\\(window\\)"
+          ],
+          "defaults/pref/navis-devtools.js": [
+            "pref\\(\"devtools\\.chrome\\.enabled\", false, locked\\);",
+            "pref\\(\"devtools\\.debugger\\.remote-enabled\", false, locked\\);",
+            "pref\\(\"devtools\\.toolbox\\.footer\\.height\", 250\\);",
+            "pref\\(\"devtools\\.toolbox\\.zoomValue\", \"1\"\\);",
+            "pref\\(\"devtools\\.inspector\\.enabled\", true\\);",
+            "pref\\(\"devtools\\.netmonitor\\.enabled\", true\\);",
+            "pref\\(\"devtools\\.webconsole\\.input\\.autocomplete\", true\\);",
+            "pref\\(\"devtools\\.responsive\\.viewport\\.width\", 320\\);"
+          ],
+          "modules/DesktopDevTools.sys.mjs": [
+            "DevToolsServer\\.chromeWindowType = \"navis:browser\"",
+            "gDevTools\\.chromeWindowType = \"navis:browser\"",
+            "async inspect\\(session, domReference\\)",
+            "gDevTools\\.inspectNode\\(tab, domReference, ChromeUtils\\.now\\(\\)\\)"
+          ],
+          "modules/DesktopEngine.sys.mjs": [
+            "developerTools: AppConstants\\.MOZ_DESKTOP_EMBEDDER_DEVTOOLS",
+            "async toggleDeveloperTools\\(session, options = undefined\\)",
+            "async closeDeveloperTools\\(session\\)",
+            "\"inspect-element\": \"developer\"",
+            "INSPECT_CONTEXT_TARGET"
+          ],
+          "modules/DesktopContextMenuChild.sys.mjs": [
+            "ContentDOMReference\\.get\\(target\\)",
+            "command\\(\"inspect-element\", \"developer\"\\)"
+          ],
+          "chrome/navis/content/main.mjs": [
+            "for \\(const \\{ element, toolId \\} of developerToolsShortcutBindings\\) \\{[\\s\\S]*?element\\.addEventListener\\(\"command\"[\\s\\S]*?toggleActiveDeveloperTools\\(toolId\\)",
+            "\\.toggleDeveloperTools\\(activeRecord\\.session, options\\)",
+            "menuDeveloperTools\\.addEventListener\\(\"click\"[\\s\\S]*?toggleActiveDeveloperTools\\(\\)",
+            "\"inspect-element\""
+          ],
+          "chrome/navis/content/main.xhtml": [
+            "<xul:key id=\"navis-toggle-devtools-key\" keycode=\"VK_F12\" />",
+            "id=\"menu-developer-tools\"[\\s\\S]*?data-l10n-aria-label=\"menu\\.developerTools\""
+          ],
+          "chrome/navis/content/main.css": [
+            "--browser-stack-z-index-devtools-splitter: 1;",
+            "--browser-stack-z-index-dialog-stack: 2;",
+            "--browser-stack-z-index-rdm-toolbar: 3;",
+            "--browser-stack-z-index-screenshots-panel: 4;"
           ]
         }
       }
@@ -618,9 +697,9 @@
         },
         "graph_forbidden": [
           "^third_party/opentelemetry-cpp/",
+          "^toolkit/components/dap/",
           "^toolkit/components/glean/xpcom/",
           "^toolkit/components/glean/Unified_cpp_components_glean1\\.cpp$",
-          "^toolkit/components/telemetry/dap/",
           "^toolkit/components/telemetry/pingsender/"
         ],
         "generated_required": {
@@ -664,6 +743,7 @@
         ],
         "omni_forbidden": [
           "^chrome/toolkit/content/global/about(?:Glean|Telemetry)[^/]*$",
+          "^modules/DAP(?:Incrementality|ReportController|Sender|TelemetrySender|VisitCounter)\\.sys\\.mjs$",
           "^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\\.sys\\.mjs$",
           "^modules/backgroundtasks/BackgroundTask_pingsender\\.sys\\.mjs$"
         ],
@@ -685,6 +765,7 @@
           ]
         },
         "rust_graph_forbidden": [
+          "^toolkit/components/dap/ffi/",
           "^toolkit/components/glean/api/",
           "^third_party/rust/firefox-on-glean/"
         ]
@@ -787,20 +868,16 @@
       "id": "development-automation",
       "classification": "product-testability",
       "state": "required",
-      "contract": "The production runtime retains loopback-only Gecko WebDriver BiDi and Marionette plus the minimal devtools/platform SpiderMonkey Debugger bridge needed by script realms; tests, geckodriver, DevTools client/server/shared/startup code and privileged parent-process access remain outside the package. Desktop Embedder registers no extension mutation commands; SetContext remains available for content automation but rejects chrome context in production.",
+      "contract": "The production runtime retains loopback-only Gecko WebDriver BiDi and Marionette. Tests, geckodriver, privileged parent-process access and extension mutation commands remain outside the package; SetContext remains available for content automation but rejects chrome context in production. The separately declared page DevTools capability does not widen this automation boundary.",
       "checks": {
         "config": {
           "ENABLE_TESTS": false,
-          "ENABLE_WEBDRIVER": true,
-          "MOZ_DEVTOOLS": "none"
+          "ENABLE_WEBDRIVER": true
         },
         "graph_required": [
           "^remote/",
           "^testing/marionette/",
           "^devtools/platform/"
-        ],
-        "graph_forbidden": [
-          "^devtools/(?!platform(?:/|$))"
         ],
         "omni_required": [
           "chrome/remote/content/components/Marionette.sys.mjs",
@@ -943,7 +1020,7 @@
         ],
         "omni_content_required": {
           "chrome/toolkit/content/extensions/parent/ext-storage.js": [
-            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\) \\{[\\s\\S]*?return null;"
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\|\\|\\s*navisDirectRuntime\\) \\{\\s*return null;\\s*\\}"
           ],
           "components/components.manifest": [
             "^category webextension-modules navis chrome://navis-extensions/content/ext-navis\\.json$",
@@ -976,7 +1053,7 @@
         ],
         "omni_content_required": {
           "chrome/toolkit/content/extensions/parent/ext-storage.js": [
-            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\) \\{[\\s\\S]*?return null;"
+            "if \\(AppConstants\\.MOZ_DESKTOP_EMBEDDER\\s*\\|\\|\\s*navisDirectRuntime\\) \\{\\s*return null;\\s*\\}"
           ],
           "modules/addons/XPIProvider.sys.mjs": [
             "!AppConstants\\.MOZ_DESKTOP_EMBEDDER"

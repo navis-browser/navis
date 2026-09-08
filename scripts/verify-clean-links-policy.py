@@ -19,7 +19,7 @@ POLICY_PATH = WORKSPACE / "product/chrome/content/clean-links-policy.json"
 PRODUCT_PREFS = WORKSPACE / "product/app/profile/navis.js"
 PRODUCT_JAR = WORKSPACE / "product/chrome/jar.mn"
 PRODUCT_CONFIG = WORKSPACE / "product/moz.configure"
-REMOTE_POLICY = WORKSPACE / "config/navis-remote-settings-policy.json"
+REMOTE_POLICY = WORKSPACE / "product/config/navis-remote-settings-policy.json"
 PORTS_PATH = WORKSPACE / "config/gecko-semantic-ports.json"
 PATCH_PATH = WORKSPACE / "patches/gecko/0041-unify-product-query-stripping-policy.patch"
 

@@ -192,6 +192,18 @@ def compile_manifest(manifest: dict) -> tuple[list[dict], list[re.Pattern[str]]]
         seen.add(domain_id)
         item = dict(domain)
         item["compiled_patterns"] = [re.compile(pattern) for pattern in patterns]
+        requires_config = domain.get("requires_config", {})
+        if not isinstance(requires_config, dict) or not all(
+            isinstance(name, str)
+            and name
+            and isinstance(expected, str)
+            and expected
+            for name, expected in requires_config.items()
+        ):
+            raise ValueError(
+                f"source domain {domain_id!r} has invalid requires_config"
+            )
+        item["requires_config"] = dict(requires_config)
         reference_patterns = domain.get("reference_patterns", [])
         if not isinstance(reference_patterns, list) or not all(
             isinstance(pattern, str) for pattern in reference_patterns
@@ -210,6 +222,25 @@ def compile_manifest(manifest: dict) -> tuple[list[dict], list[re.Pattern[str]]]
     if not isinstance(forbidden, list):
         raise ValueError("forbidden_patterns must be an array")
     return compiled, [re.compile(pattern) for pattern in forbidden]
+
+
+def configured_domains(domains: list[dict], objdir: Path) -> list[dict]:
+    substitutions: dict[str, str | None] = {}
+    selected: list[dict] = []
+    for domain in domains:
+        requirements = domain["requires_config"]
+        enabled = True
+        for name, expected in requirements.items():
+            if name not in substitutions:
+                try:
+                    substitutions[name] = config_substitution(objdir, name)
+                except ValueError:
+                    substitutions[name] = None
+            if substitutions[name] != expected:
+                enabled = False
+        if enabled:
+            selected.append(domain)
+    return selected
 
 
 def source_bytes(path: Path | None) -> int:
@@ -321,8 +352,8 @@ def main() -> int:
     gecko = lexical_absolute(args.gecko)
     objdir = lexical_absolute(args.objdir)
     manifest = json.loads(args.domains.read_text(encoding="utf-8"))
-    domains, forbidden_patterns = compile_manifest(manifest)
-    domain_ids = {domain["id"] for domain in domains}
+    all_domains, forbidden_patterns = compile_manifest(manifest)
+    domain_ids = {domain["id"] for domain in all_domains}
     explain_domains = set(args.explain_domain)
     reference_domains = set(args.explain_references)
     unknown_explain_domains = sorted(
@@ -332,6 +363,15 @@ def main() -> int:
         raise ValueError(
             "unknown source domain(s) requested for explanation: "
             + ", ".join(unknown_explain_domains)
+        )
+    domains = configured_domains(all_domains, objdir)
+    inactive_explain_domains = sorted(
+        explain_domains - {domain["id"] for domain in domains}
+    )
+    if inactive_explain_domains:
+        raise ValueError(
+            "source domain(s) inactive for this build configuration: "
+            + ", ".join(inactive_explain_domains)
         )
 
     c_sources, c_outside = load_c_family_sources(gecko, objdir)
