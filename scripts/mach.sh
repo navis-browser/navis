@@ -75,12 +75,15 @@ fi
 export MACH_MAIN_PID="${MACH_MAIN_PID:-0}"
 
 # Host resource limits vary without changing the target/configuration identity.
-# Use Mach's own job limit; keep the profile default when no override is given.
+# client.mk also reads MOZ_MAKE_FLAGS from the profile. Pass that variable as
+# a make command-line override so recursive make cannot restore its -j16.
+# Keep the profile default when no override is given.
 if [[ "${1:-}" == "build" && -n "${NAVIS_BUILD_JOBS:-}" ]]; then
   if [[ ! "$NAVIS_BUILD_JOBS" =~ ^[1-9][0-9]*$ ]]; then
     printf 'NAVIS_BUILD_JOBS must be a positive integer.\n' >&2
     exit 1
   fi
+  export MAKEFLAGS="${MAKEFLAGS:+$MAKEFLAGS }MOZ_MAKE_FLAGS=-j$NAVIS_BUILD_JOBS"
   shift
   set -- build "--jobs=$NAVIS_BUILD_JOBS" "$@"
 fi
