@@ -74,5 +74,16 @@ fi
 # interpreter shutdown.
 export MACH_MAIN_PID="${MACH_MAIN_PID:-0}"
 
+# Host resource limits vary without changing the target/configuration identity.
+# Use Mach's own job limit; keep the profile default when no override is given.
+if [[ "${1:-}" == "build" && -n "${NAVIS_BUILD_JOBS:-}" ]]; then
+  if [[ ! "$NAVIS_BUILD_JOBS" =~ ^[1-9][0-9]*$ ]]; then
+    printf 'NAVIS_BUILD_JOBS must be a positive integer.\n' >&2
+    exit 1
+  fi
+  shift
+  set -- build "--jobs=$NAVIS_BUILD_JOBS" "$@"
+fi
+
 cd "$gecko_dir"
 exec "$mach_python" "$gecko_dir/mach" "$@"
