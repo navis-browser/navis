@@ -2,16 +2,18 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-gecko_dir="${NAVIS_GECKO_DIR:-$workspace_dir/gecko}"
-objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/gecko/obj-navis-win64}"
-output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/artifacts}"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+runtime_dir="$workspace_dir/runtime"
+gecko_dir="${NAVIS_GECKO_DIR:-$runtime_dir/gecko}"
+objdir="${NAVIS_WIN64_OBJDIR:-$runtime_dir/gecko/obj-navis-win64}"
+output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/work/artifacts}"
 capability_profile="${NAVIS_CAPABILITY_PROFILE:-desktop-embedder-core}"
 artifact_variant="${NAVIS_ARTIFACT_VARIANT:-}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-1.94.1}"
 
 if [[ "$gecko_dir" != /* ]]; then
-  gecko_dir="$workspace_dir/$gecko_dir"
+  gecko_dir="$runtime_dir/$gecko_dir"
 fi
 if [[ ! -d "$gecko_dir" ]]; then
   printf 'Navis Gecko source tree does not exist: %s\n' "$gecko_dir" >&2
@@ -25,15 +27,15 @@ if [[ -n "$artifact_variant" && ! "$artifact_variant" =~ ^[A-Za-z0-9._-]+$ ]]; t
   exit 1
 fi
 
-python3 "$workspace_dir/scripts/verify-core-abi.py"
-python3 "$workspace_dir/scripts/verify-deferred-web-apis.py"
-python3 "$workspace_dir/scripts/verify-remote-settings-policy.py"
-python3 "$workspace_dir/scripts/verify-clean-links-policy.py"
-python3 "$workspace_dir/scripts/verify-builtin-extensions.py"
-python3 "$workspace_dir/scripts/verify-webdriver-boundary.py"
-python3 "$workspace_dir/scripts/verify-native-services-boundary.py"
-python3 "$workspace_dir/scripts/verify-spellcheck.py"
-python3 "$workspace_dir/scripts/verify-webauthn.py"
+python3 "$navis_dir/scripts/verify-core-abi.py"
+python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
+python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
+python3 "$navis_dir/scripts/verify-clean-links-policy.py"
+python3 "$navis_dir/scripts/verify-builtin-extensions.py"
+python3 "$navis_dir/scripts/verify-webdriver-boundary.py"
+python3 "$navis_dir/scripts/verify-native-services-boundary.py"
+python3 "$navis_dir/scripts/verify-spellcheck.py"
+python3 "$navis_dir/scripts/verify-webauthn.py"
 
 if [[ ! -f "$objdir/dist/bin/application.ini" || \
   ! -f "$objdir/dist/bin/navis.exe" ]]; then
@@ -62,31 +64,33 @@ fi
 # Unlike the build wrappers, stage-package invokes make directly rather than
 # mach.sh. Verify the prepared Gecko tree here so an unowned tracked resource
 # edit between the build and package phases cannot bypass the source freeze.
-python3 "$workspace_dir/scripts/prepare-desktop-embedder.py" \
+python3 "$navis_dir/scripts/prepare-desktop-embedder.py" \
+  --source-root "$navis_dir" --runtime-root "$runtime_dir" \
   --gecko "$gecko_dir" --no-clone --no-mount
 make -C "$objdir" -s stage-package
 if [[ -n "${NAVIS_SOURCE_FREEZE:-}" ]]; then
-  python3 "$workspace_dir/scripts/verify-source-freeze.py" \
+  python3 "$navis_dir/scripts/verify-source-freeze.py" \
     --manifest "$NAVIS_SOURCE_FREEZE"
 fi
-python3 "$workspace_dir/scripts/verify-builtin-extensions.py" \
+python3 "$navis_dir/scripts/verify-builtin-extensions.py" \
   --package-root "$source_dir"
-python3 "$workspace_dir/scripts/verify-webdriver-boundary.py" \
+python3 "$navis_dir/scripts/verify-webdriver-boundary.py" \
   --runtime "$source_dir"
-python3 "$workspace_dir/scripts/verify-native-services-boundary.py" \
+python3 "$navis_dir/scripts/verify-native-services-boundary.py" \
   --runtime "$source_dir"
-python3 "$workspace_dir/scripts/audit-runtime-source-domains.py" \
+python3 "$navis_dir/scripts/audit-runtime-source-domains.py" \
   --gecko "$gecko_dir" --objdir "$objdir"
-python3 "$workspace_dir/scripts/verify-runtime-capabilities.py" \
+python3 "$navis_dir/scripts/verify-runtime-capabilities.py" \
   --objdir "$objdir" --runtime "$source_dir" --scope all \
   --profile "$capability_profile"
-"$workspace_dir/scripts/verify-runtime-package.sh" "$source_dir"
+"$navis_dir/scripts/verify-runtime-package.sh" "$source_dir"
 
 version="$(awk -F= '$1 == "Version" { print $2; exit }' \
   "$source_dir/application.ini")"
 build_id="$(awk -F= '$1 == "BuildID" { print $2; exit }' \
   "$source_dir/application.ini")"
-source_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
+source_version="$(tr -d '\r\n' < \
+  "$workspace_dir/platform/gecko-chrome/config/version.txt")"
 if [[ -z "$version" || ! "$build_id" =~ ^[0-9]{14}$ ]]; then
   printf 'Invalid Version or BuildID in packaged application.ini.\n' >&2
   exit 1
@@ -101,7 +105,7 @@ if [[ -n "${NAVIS_BUILD_ID:-}" && "$build_id" != "$NAVIS_BUILD_ID" ]]; then
     "$NAVIS_BUILD_ID" "$build_id" >&2
   exit 1
 fi
-python3 "$workspace_dir/scripts/verify-desktop-build-id.py" \
+python3 "$navis_dir/scripts/verify-desktop-build-id.py" \
   --runtime "$source_dir" --platform win64 --build-id "$build_id"
 
 variant_suffix=""

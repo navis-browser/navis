@@ -2,20 +2,22 @@
 
 set -euo pipefail
 
-workspace_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-objdir="${NAVIS_WIN64_OBJDIR:-$workspace_dir/gecko/obj-navis-win64}"
+navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+workspace_dir="$(cd "$navis_dir/.." && pwd)"
+runtime_dir="$workspace_dir/runtime"
+objdir="${NAVIS_WIN64_OBJDIR:-$runtime_dir/gecko/obj-navis-win64}"
 build_id="${NAVIS_BUILD_ID:-$(date -u +%Y%m%d%H%M%S)}"
 export RUSTUP_TOOLCHAIN="${RUSTUP_TOOLCHAIN:-1.94.1}"
 
-python3 "$workspace_dir/scripts/verify-core-abi.py"
-python3 "$workspace_dir/scripts/verify-deferred-web-apis.py"
-python3 "$workspace_dir/scripts/verify-remote-settings-policy.py"
-python3 "$workspace_dir/scripts/verify-clean-links-policy.py"
-python3 "$workspace_dir/scripts/verify-spellcheck.py"
-python3 "$workspace_dir/scripts/verify-webauthn.py"
+python3 "$navis_dir/scripts/verify-core-abi.py"
+python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
+python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
+python3 "$navis_dir/scripts/verify-clean-links-policy.py"
+python3 "$navis_dir/scripts/verify-spellcheck.py"
+python3 "$navis_dir/scripts/verify-webauthn.py"
 
 if [[ "$objdir" != /* ]]; then
-  objdir="$workspace_dir/$objdir"
+  objdir="$runtime_dir/gecko/$objdir"
 fi
 if [[ -d "$objdir" ]]; then
   objdir="$(cd "$objdir" && pwd -P)"
@@ -49,7 +51,7 @@ if [[ -d "$msitools_bin" ]]; then
 fi
 
 export MOZ_BUILD_DATE="$build_id"
-export NAVIS_MOZCONFIG="${NAVIS_MOZCONFIG:-$workspace_dir/mozconfig.win64}"
+export NAVIS_MOZCONFIG="${NAVIS_MOZCONFIG:-$runtime_dir/mozconfig.win64}"
 export WINE="$wine_binary"
 export WINEDEBUG="${WINEDEBUG:--all}"
 export WINEPREFIX="${WINEPREFIX:-$HOME/.mozbuild/navis-system-wine}"
@@ -69,7 +71,7 @@ for stamp in "${generated_build_id_stamps[@]}"; do
   fi
 done
 rm -f -- "${generated_build_id_stamps[@]}"
-"$workspace_dir/scripts/mach.sh" build buildid.h
+"$navis_dir/scripts/mach.sh" build buildid.h
 generated_build_id_header="$objdir/buildid.h"
 expected_build_id_header="#define MOZ_BUILDID $build_id"
 if [[ ! -f "$generated_build_id_header" || \
@@ -78,14 +80,15 @@ if [[ ! -f "$generated_build_id_header" || \
   printf 'Generated Win64 BuildID header does not match %s.\n' "$build_id" >&2
   exit 1
 fi
-"$workspace_dir/scripts/mach.sh" build
+"$navis_dir/scripts/mach.sh" build
 
 dist_dir="$objdir/dist/bin"
 application_build_id="$(awk -F= '$1 == "BuildID" { print $2; exit }' \
   "$dist_dir/application.ini")"
 application_version="$(awk -F= '$1 == "Version" { print $2; exit }' \
   "$dist_dir/application.ini")"
-source_version="$(tr -d '\r\n' < "$workspace_dir/product/config/version.txt")"
+source_version="$(tr -d '\r\n' < \
+  "$workspace_dir/platform/gecko-chrome/config/version.txt")"
 if [[ "$application_build_id" != "$build_id" ]]; then
   printf 'application.ini BuildID mismatch: expected %s, found %s\n' \
     "$build_id" "$application_build_id" >&2
