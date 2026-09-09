@@ -16,10 +16,10 @@ import zipfile
 WORKSPACE = pathlib.Path(__file__).resolve().parent.parent
 GECKO = WORKSPACE / "../runtime/gecko"
 PREFS = WORKSPACE / "../platform/gecko-chrome/app/profile/navis.js"
-PATCH = WORKSPACE / "../runtime/patches/gecko/0017-enforce-native-only-geolocation-policy.patch"
+PATCH = WORKSPACE / "../runtime/patches/gecko/0011-native-only-geolocation-policy.patch"
 NOTIFICATION_PATCH = (
     WORKSPACE
-    / "../runtime/patches/gecko/0033-enable-native-notification-activation-for-desktop-embedder.patch"
+    / "../runtime/patches/gecko/0002-windows-host-integration.patch"
 )
 
 

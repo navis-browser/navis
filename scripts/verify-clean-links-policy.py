@@ -23,7 +23,7 @@ PRODUCT_JAR = WORKSPACE / "../platform/gecko-chrome/chrome/jar.mn"
 PRODUCT_CONFIG = WORKSPACE / "../platform/gecko-chrome/moz.configure"
 REMOTE_POLICY = WORKSPACE / "../platform/gecko-chrome/config/navis-remote-settings-policy.json"
 PORTS_PATH = WORKSPACE / "../runtime/config/gecko-semantic-ports.json"
-PATCH_PATH = WORKSPACE / "../runtime/patches/gecko/0041-unify-product-query-stripping-policy.patch"
+PATCH_PATH = WORKSPACE / "../runtime/patches/gecko/0021-unified-product-query-stripping-policy.patch"
 
 MOZILLA_SNAPSHOT_PARAMETERS = [
     "__hsfp",
@@ -288,7 +288,7 @@ def verify_semantic_port() -> None:
         if isinstance(port, dict)
         and port.get("id") == "unified-product-query-stripping-policy"
     ]
-    if len(matches) != 1 or matches[0].get("order") != 41:
+    if len(matches) != 1 or matches[0].get("order") != 21:
         raise PolicyError("Clean Links semantic port is missing or misordered")
     if not PATCH_PATH.is_file():
         raise PolicyError("Clean Links semantic patch is missing")

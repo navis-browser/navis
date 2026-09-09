@@ -17,7 +17,7 @@ from pathlib import Path
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
 PORT_ID = "direct-navis-android-runtime-build-graph"
-PORT_PATH = "patches/gecko/0046-own-navis-android-runtime-build-graph.patch"
+PORT_PATH = "patches/gecko/0025-direct-navis-android-runtime-build-graph.patch"
 WORKSPACE_PORT_PATH = f"runtime/{PORT_PATH}"
 PRIMITIVE_LIST_PATH = "runtime/android/gecko-java-primitives.list"
 GECKO_JAVA_SOURCE_ROOT = (

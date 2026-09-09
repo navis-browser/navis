@@ -17,19 +17,19 @@ from pathlib import Path
 WORKSPACE = Path(__file__).resolve().parent.parent
 SEMANTIC_PORT = (
     WORKSPACE
-    / "../runtime/patches/gecko/0030-route-desktop-embedder-webauthn-related-origin.patch"
+    / "../runtime/patches/gecko/0018-native-webauthn-providers.patch"
 )
 VIRTUAL_AUTHENTICATOR_PORT = (
     WORKSPACE
-    / "../runtime/patches/gecko/0032-route-webdriver-virtual-authenticators.patch"
+    / "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch"
 )
 WINDOWS_LIFETIME_TIMEOUT_PORT = (
     WORKSPACE
-    / "../runtime/patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch"
+    / "../runtime/patches/gecko/0018-native-webauthn-providers.patch"
 )
 ACTIVE_VIRTUAL_ROUTING_PORT = (
     WORKSPACE
-    / "../runtime/patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch"
+    / "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch"
 )
 
 
@@ -262,13 +262,13 @@ def verify_source() -> list[str]:
         port = next(
             item
             for item in ledger.get("ports", [])
-            if item.get("id") == "desktop-embedder-webauthn-related-origin-consent"
+            if item.get("id") == "native-webauthn-providers"
         )
     except (json.JSONDecodeError, StopIteration):
         failures.append("semantic port ledger has no related-origin WebAuthn port")
     else:
         require(
-            failures, port.get("order") == 30, "WebAuthn semantic port is misordered"
+            failures, port.get("order") == 18, "WebAuthn semantic port is misordered"
         )
         require(
             failures,
@@ -307,14 +307,14 @@ def verify_source() -> list[str]:
         virtual_port = next(
             item
             for item in ledger.get("ports", [])
-            if item.get("id") == "webdriver-virtual-authenticator-routing"
+            if item.get("id") == "webdriver-automation-boundary"
         )
     except (json.JSONDecodeError, StopIteration):
         failures.append("semantic port ledger has no virtual-authenticator route")
     else:
         require(
             failures,
-            virtual_port.get("order") == 32,
+            virtual_port.get("order") == 7,
             "virtual-authenticator semantic port is misordered",
         )
         require(
@@ -329,7 +329,7 @@ def verify_source() -> list[str]:
             item
             for item in ledger.get("ports", [])
             if item.get("id")
-            == "webdriver-virtual-authenticator-platform-routing"
+            == "webdriver-automation-boundary"
         )
     except (json.JSONDecodeError, StopIteration):
         failures.append(
@@ -338,7 +338,7 @@ def verify_source() -> list[str]:
     else:
         require(
             failures,
-            active_virtual_port.get("order") == 35,
+            active_virtual_port.get("order") == 7,
             "active virtual-authenticator semantic port is misordered",
         )
         require(
@@ -351,7 +351,7 @@ def verify_source() -> list[str]:
         require_markers(
             failures,
             read(
-                "../runtime/patches/gecko/0035-route-active-webdriver-virtual-authenticators.patch",
+                "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch",
                 failures,
             ),
             "active virtual-authenticator semantic patch",
@@ -472,14 +472,14 @@ def verify_source() -> list[str]:
         timeout_port = next(
             item
             for item in ledger.get("ports", [])
-            if item.get("id") == "windows-webauthn-lifetime-timeout"
+            if item.get("id") == "native-webauthn-providers"
         )
     except (json.JSONDecodeError, StopIteration):
         failures.append("semantic port ledger has no Windows WebAuthn lifetime port")
     else:
         require(
             failures,
-            timeout_port.get("order") == 34,
+            timeout_port.get("order") == 18,
             "Windows WebAuthn lifetime semantic port is misordered",
         )
         require(
@@ -492,7 +492,7 @@ def verify_source() -> list[str]:
         invariants = timeout_port.get("invariants", [])
         require(
             failures,
-            len(invariants) == 4
+            len(invariants) >= 4
             and any("exact Gecko transaction ID" in item for item in invariants)
             and any("WebAuthNCancelCurrentOperation" in item for item in invariants)
             and any("expired timer cannot cancel a later transaction" in item for item in invariants)
@@ -502,7 +502,7 @@ def verify_source() -> list[str]:
         require_markers(
             failures,
             read(
-                "../runtime/patches/gecko/0034-enforce-windows-webauthn-transaction-timeout.patch",
+                "../runtime/patches/gecko/0018-native-webauthn-providers.patch",
                 failures,
             ),
             "Windows WebAuthn lifetime semantic patch",

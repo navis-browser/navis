@@ -29,7 +29,7 @@ APP_CONSTANTS = WORKSPACE / "../runtime/gecko/toolkit/modules/AppConstants.sys.m
 TOOLKIT_MODULES_BUILD = WORKSPACE / "../runtime/gecko/toolkit/modules/moz.build"
 REMOTE_SETTINGS_RUNTIME = WORKSPACE / "../runtime/gecko/services/settings/remote-settings.sys.mjs"
 PATCH_PATH = (
-    WORKSPACE / "../runtime/patches/gecko/0029-scope-navis-remote-settings-policy.patch"
+    WORKSPACE / "../runtime/patches/gecko/0017-navis-remote-settings-policy.patch"
 )
 POLICY_RELATIVE_PATH = "navis/config/navis-remote-settings-policy.json"
 OPTION_NAME = "--with-navis-remote-settings-policy"
@@ -304,7 +304,7 @@ def verify_semantic_port() -> None:
         if isinstance(port, dict)
         and port.get("id") == "navis-remote-settings-policy"
     ]
-    if len(matches) != 1 or matches[0].get("order") != 29:
+    if len(matches) != 1 or matches[0].get("order") != 17:
         raise PolicyError("Remote Settings semantic port is missing or misordered")
     digest = hashlib.sha256(PATCH_PATH.read_bytes()).hexdigest()
     if matches[0].get("sha256") != digest:

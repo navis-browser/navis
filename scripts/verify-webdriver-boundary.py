@@ -20,12 +20,12 @@ PRODUCT_MOZCONFIGS = (
     "../runtime/mozconfig.win64",
     "../runtime/mozconfig.win64.release",
 )
-PATCH = WORKSPACE / "../runtime/patches/gecko/0013-restrict-desktop-embedder-webdriver.patch"
+PATCH = WORKSPACE / "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch"
 TEST_BOUNDARY_PATCH = (
-    WORKSPACE / "../runtime/patches/gecko/0020-allow-test-build-system-automation.patch"
+    WORKSPACE / "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch"
 )
 REALM_LIFECYCLE_PATCH = (
-    WORKSPACE / "../runtime/patches/gecko/0037-guard-window-realm-navigation-cleanup.patch"
+    WORKSPACE / "../runtime/patches/gecko/0007-webdriver-automation-boundary.patch"
 )
 PACKAGE_MANIFEST = WORKSPACE / "../platform/gecko-chrome/installer/package-manifest.in"
 

@@ -19,8 +19,8 @@ DISPLAY_VERSION = "0.2.0-dev"
 ANDROID_VERSION_CODE_EPOCH = 1_577_836_800
 ANDROID_VERSION_CODE_BASE = 100_000_000
 ANDROID_VERSION_CODE_MAX = 2_100_000_000
-PORT_ID = "navis-android-product-identity-projection"
-PORT_PATH = "patches/gecko/0044-project-navis-android-product-identity.patch"
+PORT_ID = "navis-product-brand-identity"
+PORT_PATH = "patches/gecko/0023-navis-product-brand-identity.patch"
 WORKSPACE_PORT_PATH = f"runtime/{PORT_PATH}"
 
 
@@ -267,10 +267,13 @@ def verify(root: Path) -> list[str]:
         ),
     )
     allowed_paths = {
+        "mobile/android/branding/unofficial/content/jar.mn",
+        "mobile/android/branding/unofficial/locales/jar.mn",
         "mobile/android/geckoview/build.gradle",
         "netwerk/protocol/http/moz.build",
         "netwerk/protocol/http/nsHttpHandler.cpp",
         "toolkit/components/extensions/parent/ext-runtime.js",
+        "toolkit/components/extensions/Extension.sys.mjs",
         "toolkit/modules/AppConstants.sys.mjs",
         "toolkit/modules/moz.build",
         "toolkit/moz.configure",
@@ -299,10 +302,10 @@ def verify(root: Path) -> list[str]:
         entry = matches[0]
         require(
             failures,
-            entry.get("order") == 44
-            and len(ports) >= 44
-            and ports[43].get("id") == PORT_ID,
-            "product identity semantic port is not the contiguous order-44 entry",
+            entry.get("order") == 23
+            and len(ports) >= 23
+            and ports[22].get("id") == PORT_ID,
+            "product identity semantic port is not the contiguous order-23 entry",
         )
         require(
             failures,

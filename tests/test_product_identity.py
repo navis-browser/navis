@@ -127,7 +127,7 @@ class ProductIdentityTest(unittest.TestCase):
         ledger = json.loads(path.read_text(encoding="utf-8"))
         ledger["ports"].append(
             {
-                "order": 45,
+                "order": len(ledger["ports"]) + 1,
                 "id": "future-port",
                 "patch": "patches/gecko/0045-future.patch",
                 "sha256": "0" * 64,
