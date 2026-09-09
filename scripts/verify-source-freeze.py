@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Create or verify the exact Navis project-source snapshot used for a release."""
 

@@ -1,3 +1,5 @@
+# SPDX-License-Identifier: MPL-2.0
+
 """Public packaging stays self-contained without a private lab workspace."""
 import importlib.util
 import json

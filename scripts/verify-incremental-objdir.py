@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Fail closed unless a Navis candidate object directory is safe to reuse."""
 

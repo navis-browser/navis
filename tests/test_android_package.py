@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 from __future__ import annotations
 
@@ -6,6 +8,7 @@ import argparse
 import hashlib
 import importlib.util
 import io
+import json
 import struct
 import tempfile
 import unittest
@@ -316,6 +319,19 @@ class AndroidPackageTests(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.root = Path(self.temporary.name) / "navis"
         self.root.mkdir()
+        license_dir = self.root / "../platform/android/licenses"
+        license_dir.mkdir(parents=True)
+        license_data = b"Fixture Apache license text\n"
+        (license_dir / "Apache-2.0.txt").write_bytes(license_data)
+        component = {"coordinate": "example:library:1", "artifact": "library-1.jar",
+                     "sha256": "a" * 64, "licenses": ["Apache-2.0"], "source": "https://example.org/source"}
+        (license_dir / "dependencies.json").write_text(json.dumps({
+            "variants": {"debug": ["example:library:1@jar"]},
+            "artifacts": {"example:library:1@jar": component},
+            "licenses": {"Apache-2.0": {"file": "Apache-2.0.txt", "sha256": hashlib.sha256(license_data).hexdigest()}}}))
+        self.license_text = b"example:library:1@jar\n" + license_data
+        self.license_report = {"schema": "navis-android-license-report-v1", "variant": "debug",
+                               "components": [component], "text_sha256": hashlib.sha256(self.license_text).hexdigest()}
         version_dir = self.root / "../platform/gecko-chrome/config"
         version_dir.mkdir(parents=True)
         (version_dir / "version.txt").write_text("0.2.0\n", encoding="utf-8")
@@ -374,9 +390,15 @@ class AndroidPackageTests(unittest.TestCase):
         include_navis_prefs: bool = True,
         packaged_navis_prefs: bytes | None = None,
         manifest_bytes: bytes = b"manifest",
+        include_licenses: bool = True,
+        license_text: bytes | None = None,
     ) -> None:
         with zipfile.ZipFile(self.apk, "w") as archive:
             archive.writestr("AndroidManifest.xml", manifest_bytes)
+            if include_licenses:
+                archive.writestr("assets/navis-licenses/android-dependencies.txt",
+                                 self.license_text if license_text is None else license_text)
+                archive.writestr("assets/navis-licenses/android-dependencies.json", json.dumps(self.license_report))
             if dex_members is not None:
                 for name, data in dex_members:
                     archive.writestr(name, data)
@@ -447,6 +469,33 @@ class AndroidPackageTests(unittest.TestCase):
         self.assertEqual("org.navis.browser.debug", badging["application_id"])
         self.assertEqual(26, badging["min_sdk"])
         self.assertEqual(["arm64-v8a"], badging["abis"])
+
+    def test_license_report_required_and_tamper_rejected(self) -> None:
+        for change in ({"include_licenses": False}, {"license_text": b"tampered"}):
+            with self.subTest(change=change):
+                self.write_apk(**change)
+                with self.assertRaisesRegex(VERIFY.PackageError, "license report"):
+                    self.inspect_candidate()
+
+    def test_unreviewed_dependency_and_wrong_variant_rejected(self) -> None:
+        self.license_report["variant"] = "release"
+        self.write_apk()
+        with self.assertRaisesRegex(VERIFY.PackageError, "variant"):
+            self.inspect_candidate()
+        self.license_report["variant"] = "debug"
+        self.license_report["components"][0]["coordinate"] = "unknown:library:2"
+        self.write_apk()
+        with self.assertRaisesRegex(VERIFY.PackageError, "unreviewed"):
+            self.inspect_candidate()
+
+    def test_omitted_dependency_rejected(self) -> None:
+        policy_path = self.root / "../platform/android/licenses/dependencies.json"
+        policy = json.loads(policy_path.read_text())
+        policy["variants"]["debug"].append("example:another:1@jar")
+        policy_path.write_text(json.dumps(policy))
+        self.write_apk()
+        with self.assertRaisesRegex(VERIFY.PackageError, "dependency set"):
+            self.inspect_candidate()
 
     def test_parses_legacy_sdk_version_badging(self) -> None:
         badging = VERIFY.parse_aapt_badging(

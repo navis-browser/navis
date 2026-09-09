@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";

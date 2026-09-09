@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 import assert from "node:assert/strict";
 import vm from "node:vm";
 import { renderNavisInternalPage } from "../../platform/gecko-chrome/chrome/content/internal-pages.mjs";

@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Verify Navis's native geolocation and notification product boundary."""
 

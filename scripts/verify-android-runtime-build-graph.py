@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Verify that Navis Android owns its Gradle and staged-engine build graph."""
 

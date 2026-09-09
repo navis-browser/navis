@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MPL-2.0
+
 // Execute the retained Gecko actors and the real Session/Platform close paths.
 // No product instance, user tab, rendered document or native app is opened.
 import assert from "node:assert/strict";

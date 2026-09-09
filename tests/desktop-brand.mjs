@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: MPL-2.0
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import vm from "node:vm";

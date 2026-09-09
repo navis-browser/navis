@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Verify that deferred browser-mediated Web APIs stay hidden in Navis 1.0."""
 

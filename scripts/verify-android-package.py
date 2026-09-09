@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+
 
 """Verify and describe an exact-source Navis Android test-candidate APK."""
 
@@ -923,6 +925,46 @@ def verify_ublock_assets(
     }
 
 
+def verify_dependency_notices(workspace: Path, archive: zipfile.ZipFile) -> dict[str, Any]:
+    prefix = "assets/navis-licenses/"
+    try:
+        text_info = archive.getinfo(prefix + "android-dependencies.txt")
+        manifest_info = archive.getinfo(prefix + "android-dependencies.json")
+        if max(text_info.file_size, manifest_info.file_size) > 4 * 1024 * 1024:
+            raise PackageError("Android license report exceeds the reader bound")
+        text = archive.read(text_info)
+        report = json.loads(archive.read(manifest_info))
+        policy = json.loads((workspace / "../platform/android/licenses/dependencies.json").read_text())
+        if report.get("schema") != "navis-android-license-report-v1" or report.get("variant") != "debug":
+            raise PackageError("Android candidate license report schema/variant differs")
+        if hashlib.sha256(text).hexdigest() != report.get("text_sha256"):
+            raise PackageError("Android license report content hash differs")
+        seen = set()
+        components = report.get("components")
+        if not isinstance(components, list) or not components:
+            raise PackageError("Android license report has no dependency inventory")
+        for component in components:
+            key = component["coordinate"] + "@" + Path(component["artifact"]).suffix.lstrip(".")
+            reviewed = policy["artifacts"].get(key)
+            if key in seen or reviewed is None:
+                raise PackageError("Android license report has duplicate/unreviewed dependencies")
+            seen.add(key)
+            if any(component.get(field) != reviewed[field] for field in ("sha256", "licenses", "source")):
+                raise PackageError(f"Android license report differs from reviewed metadata: {key}")
+            if key.encode() not in text:
+                raise PackageError(f"Android dependency omitted from readable notices: {key}")
+        if seen != set(policy.get("variants", {}).get("debug", [])):
+            raise PackageError("Android license report dependency set differs from reviewed variant")
+        for license_id in {item for c in components for item in c["licenses"]}:
+            license_data = policy["licenses"][license_id]
+            canonical = (workspace / "../platform/android/licenses" / license_data["file"]).read_bytes()
+            if hashlib.sha256(canonical).hexdigest() != license_data["sha256"] or canonical not in text:
+                raise PackageError(f"Android license text missing or changed: {license_id}")
+        return {"components": len(seen), "text_sha256": report["text_sha256"]}
+    except (KeyError, ValueError, TypeError, OSError) as error:
+        raise PackageError(f"Android dependency license report is missing or invalid: {error}") from error
+
+
 def inspect_apk(
     workspace: Path, apk_path: Path, expected_build_id: str
 ) -> dict[str, Any]:
@@ -930,6 +972,7 @@ def inspect_apk(
         with zipfile.ZipFile(apk_path) as archive:
             members = safe_members(archive)
             names = {member.filename for member in members}
+            dependency_notices = verify_dependency_notices(workspace, archive)
             for required in (
                 "AndroidManifest.xml",
                 "assets/omni.ja",
@@ -1031,6 +1074,7 @@ def inspect_apk(
         "geckoview_owner_type_references": geckoview_owner_type_references,
         "google_mobile_services": google_mobile_services,
         "native_libraries": native_libraries,
+        "dependency_notices": dependency_notices,
         "ublock_origin": ublock,
     }
 
