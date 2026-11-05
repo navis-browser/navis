@@ -4,6 +4,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import shutil
@@ -135,6 +136,32 @@ class ProductIdentityTest(unittest.TestCase):
         )
         path.write_text(json.dumps(ledger), encoding="utf-8")
         self.assertEqual([], VERIFY.verify(self.root))
+
+    def write_identity_patch(self, content: str) -> None:
+        (self.root / VERIFY.WORKSPACE_PORT_PATH).write_text(content, encoding="utf-8")
+        path = self.root / "runtime/config/gecko-semantic-ports.json"
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+        entry = next(port for port in ledger["ports"] if port["id"] == VERIFY.PORT_ID)
+        entry["sha256"] = hashlib.sha256(content.encode("utf-8")).hexdigest()
+        path.write_text(json.dumps(ledger), encoding="utf-8")
+
+    def test_identity_port_rejects_unrelated_path_with_valid_hash(self) -> None:
+        content = (self.root / VERIFY.WORKSPACE_PORT_PATH).read_text(encoding="utf-8")
+        content += (
+            "diff --git a/dom/base/Unrelated.cpp b/dom/base/Unrelated.cpp\n"
+            "--- a/dom/base/Unrelated.cpp\n+++ b/dom/base/Unrelated.cpp\n"
+            "@@ -1 +1 @@\n-old\n+new\n"
+        )
+        self.write_identity_patch(content)
+        self.assert_failure("unexpected Gecko path")
+
+    def test_identity_port_requires_indexed_localization_source(self) -> None:
+        content = (self.root / VERIFY.WORKSPACE_PORT_PATH).read_text(encoding="utf-8")
+        marker = "diff --git a/intl/l10n/rust/l10nregistry-ffi/src/registry.rs "
+        begin = content.index(marker)
+        end = content.index("diff --git ", begin + len(marker))
+        self.write_identity_patch(content[:begin] + content[end:])
+        self.assert_failure("unexpected Gecko path")
 
     def test_default_version_code_is_second_monotonic(self) -> None:
         epoch = VERIFY.ANDROID_VERSION_CODE_EPOCH

@@ -1,6 +1,6 @@
 # Navis spellcheck boundary
 
-Pinned Gecko: Firefox ESR 153.1 (`468445e58d3acc7e4e059be99856daff1f2ae8f1`)
+Pinned Gecko: Firefox ESR 153.6.0 (`a34c4160e3f75ab9918fbe4669ff7ae56f1977c8`)
 
 ## Product boundary
 

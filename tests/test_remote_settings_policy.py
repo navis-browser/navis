@@ -45,16 +45,10 @@ class RemoteSettingsPolicyTest(unittest.TestCase):
         policy, allowed, packaged, syncable = POLICY.validate_policy()
         POLICY.verify_product_declaration(policy, allowed, syncable)
         POLICY.verify_semantic_port()
-        self.assertEqual(len(allowed), 12)
+        self.assertEqual(len(allowed), 10)
         self.assertEqual(len(packaged), 10)
-        self.assertEqual(len(syncable), 10)
-        self.assertEqual(
-            packaged - syncable,
-            {
-                "main/devtools-compatibility-browsers",
-                "main/devtools-devices",
-            },
-        )
+        self.assertEqual(len(syncable), 0)
+        self.assertEqual(packaged, set(allowed))
 
     def test_unsorted_allowlist_fails_closed(self) -> None:
         payload = json.loads(POLICY.POLICY_PATH.read_text(encoding="utf-8"))

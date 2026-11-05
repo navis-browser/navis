@@ -268,7 +268,7 @@ def verify_source() -> list[str]:
         failures.append("semantic port ledger has no related-origin WebAuthn port")
     else:
         require(
-            failures, port.get("order") == 18, "WebAuthn semantic port is misordered"
+            failures, port.get("order") == 17, "WebAuthn semantic port is misordered"
         )
         require(
             failures,
@@ -314,7 +314,7 @@ def verify_source() -> list[str]:
     else:
         require(
             failures,
-            virtual_port.get("order") == 7,
+            virtual_port.get("order") == 6,
             "virtual-authenticator semantic port is misordered",
         )
         require(
@@ -338,7 +338,7 @@ def verify_source() -> list[str]:
     else:
         require(
             failures,
-            active_virtual_port.get("order") == 7,
+            active_virtual_port.get("order") == 6,
             "active virtual-authenticator semantic port is misordered",
         )
         require(
@@ -479,7 +479,7 @@ def verify_source() -> list[str]:
     else:
         require(
             failures,
-            timeout_port.get("order") == 18,
+            timeout_port.get("order") == 17,
             "Windows WebAuthn lifetime semantic port is misordered",
         )
         require(

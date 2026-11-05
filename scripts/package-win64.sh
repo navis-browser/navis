@@ -30,7 +30,8 @@ if [[ -n "$artifact_variant" && ! "$artifact_variant" =~ ^[A-Za-z0-9._-]+$ ]]; t
 fi
 
 python3 "$navis_dir/../runtime/scripts/verify-core-abi.py"
-python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
+python3 "$navis_dir/scripts/verify-excluded-web-apis.py"
+python3 "$navis_dir/scripts/verify-certificate-security.py"
 python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
 python3 "$navis_dir/scripts/verify-clean-links-policy.py"
 python3 "$navis_dir/scripts/verify-builtin-extensions.py"

@@ -8,14 +8,17 @@ Personal host configuration and agent-operation preferences are not contributor 
 
 - [Architecture](navis-architecture.md): Runtime/Core and Platform ownership.
 - [Capability matrix](navis-capability-matrix.md): requirements, retained substrate and deliberate exclusions; it takes precedence over historical tests.
+- [Excluded browser-mediated APIs](navis-excluded-web-apis.md): build, binding, package and content absence.
 - [Extension platform](navis-extension-platform.md): local extension compatibility and security boundaries.
 - [Desktop API](https://github.com/navis-browser/runtime/blob/main/docs/desktop-embedder-api.md): Runtime, Session, View and Delegates.
 - [UI standard](https://github.com/navis-browser/platform/blob/main/docs/navis-ui-standard.md) and [localization](https://github.com/navis-browser/platform/blob/main/docs/navis-i18n.md).
+- [Offline certificate security and maintenance](certificate-security-maintenance.md): trust/revocation/CT provenance, freshness gates and package-only updates.
 - [Development standards](development-standards.md): code, testing and safety.
 - [Licensing and distribution](licensing.md): MPL scope, corresponding source and third-party notices.
 - [Contributor inputs](source-layout.md): public scripts/tests/config versus private experiments and evidence.
 - [Source packaging](https://github.com/navis-browser/runtime/blob/main/docs/desktop-embedder-source-package.md) and [upstream maintenance](https://github.com/navis-browser/runtime/blob/main/docs/gecko-esr-update-review.md).
 - [Runtime validation](https://github.com/navis-browser/runtime/blob/main/docs/runtime-validation.md): reproducible checks and evidence boundaries, not private host logs or a machine-specific acceptance record.
+- [Android builds](android-build.md): separate Debug/Release graphs, candidate signing, R8 evidence and device-test boundaries.
 
 Additional policy/API documents in this directory apply when the selected version implements that capability. Android is absent at the 0.1.0 baseline; desktop DevTools and Android enter on the 0.2.0 development line.
 

@@ -128,14 +128,13 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
         for mozconfig_name in (
             "../runtime/mozconfig.runtime",
             "../runtime/mozconfig.runtime.release",
-            "../runtime/mozconfig.runtime.no-webrtc.sccache",
-            "../runtime/mozconfig.runtime.no-webrtc.tests.sccache",
+            "../runtime/mozconfig.linux-test-fixtures",
             "../runtime/mozconfig.win64",
             "../runtime/mozconfig.win64.release",
         ):
             (root / mozconfig_name).parent.mkdir(parents=True, exist_ok=True)
             (root / mozconfig_name).write_text(
-                "ac_add_options --enable-webextensions-runtime\n",
+                "",
                 encoding="utf-8",
             )
 
@@ -265,7 +264,7 @@ class BuiltinExtensionVerifierTests(unittest.TestCase):
         result = self.run_verifier(root)
         self.assertNotEqual(result.returncode, 0)
         self.assertIn(
-            "production profile does not retain built-ins: ../runtime/mozconfig.win64",
+            "production profile disables built-ins: ../runtime/mozconfig.win64",
             result.stderr,
         )
 

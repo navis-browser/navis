@@ -173,6 +173,14 @@ class IncrementalObjectDirectoryTests(unittest.TestCase):
         self.assertTrue(any("--enable-release" in item for item in failures))
         self.assertTrue(any("--disable-release" in item for item in failures))
 
+    def test_android_release_requires_release_variant_and_no_debug(self) -> None:
+        root, _, _ = self.make_workspace("android-release")
+        self.assertEqual([], MODULE.verify("android-release", "configured", root))
+        for values in ({"GRADLE_ANDROID_NAVIS_RUNTIME_VARIANT_NAME": "debug"},
+                       {"MOZ_DEBUG": "1"}, {"DEVELOPER_OPTIONS": "1"}, {"MOZ_OPTIMIZE": ""}):
+            root, _, _ = self.make_workspace("android-release", substs=values)
+            self.assertTrue(MODULE.verify("android-release", "configured", root), values)
+
     def test_missing_linux_release_graph_does_not_reuse_development_graph(self) -> None:
         temporary = tempfile.TemporaryDirectory()
         self.addCleanup(temporary.cleanup)

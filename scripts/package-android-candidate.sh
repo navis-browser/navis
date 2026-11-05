@@ -6,8 +6,20 @@ set -euo pipefail
 
 navis_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 workspace_dir="$(cd "$navis_dir/.." && pwd)"
-candidate_mozconfig="$workspace_dir/runtime/mozconfig.android-aarch64.sccache"
-candidate_objdir="$workspace_dir/runtime/gecko/obj-navis-android-aarch64-sccache"
+variant="${NAVIS_ANDROID_VARIANT:-debug}"
+case "$variant" in
+  debug)
+    candidate_profile=android
+    candidate_mozconfig="$workspace_dir/runtime/mozconfig.android-aarch64.sccache"
+    candidate_objdir="$workspace_dir/runtime/gecko/obj-navis-android-aarch64-sccache"
+    ;;
+  release)
+    candidate_profile=android-release
+    candidate_mozconfig="$workspace_dir/runtime/mozconfig.android-aarch64.release"
+    candidate_objdir="$workspace_dir/runtime/gecko/obj-navis-android-aarch64-release"
+    ;;
+  *) printf 'NAVIS_ANDROID_VARIANT must be debug or release.\n' >&2; exit 1 ;;
+esac
 output_dir="${NAVIS_ARTIFACT_DIR:-$workspace_dir/work/artifacts}"
 build_id="${NAVIS_BUILD_ID:-}"
 
@@ -46,6 +58,23 @@ if [[ ! "$build_id" =~ ^[0-9]{14}$ ]]; then
   printf 'NAVIS_BUILD_ID must explicitly name the shared 14-digit candidate ID.\n' >&2
   exit 1
 fi
+if [[ "$variant" == release ]]; then
+  signing_inputs=(NAVIS_ANDROID_KEYSTORE NAVIS_ANDROID_KEYSTORE_PASSWORD_FILE)
+  if [[ -n "${NAVIS_ANDROID_KEY_PASSWORD_FILE:-}" ]]; then
+    signing_inputs+=(NAVIS_ANDROID_KEY_PASSWORD_FILE)
+  fi
+  for name in "${signing_inputs[@]}"; do
+    value="${!name:-}"
+    if [[ "$value" != /* || ! -f "$value" || -L "$value" ]]; then
+      printf '%s must name an absolute regular signing input.\n' "$name" >&2
+      exit 1
+    fi
+  done
+  if [[ -z "${NAVIS_ANDROID_KEY_ALIAS:-}" || ! "${NAVIS_ANDROID_SIGNER_SHA256:-}" =~ ^[0-9a-f]{64}$ ]]; then
+    printf 'Release candidates require a key alias and pinned signer SHA-256.\n' >&2
+    exit 1
+  fi
+fi
 for name in ANDROID_SDK_ROOT ANDROID_NDK_ROOT JAVA_HOME; do
   value="${!name:-}"
   if [[ "$value" != /* || ! -d "$value" ]]; then
@@ -79,6 +108,7 @@ fi
 python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 python3 "$navis_dir/scripts/verify-release-profiles.py"
+python3 "$navis_dir/scripts/verify-certificate-security.py"
 python3 "$navis_dir/scripts/verify-product-identity.py"
 python3 "$navis_dir/scripts/verify-android-runtime-build-graph.py"
 
@@ -88,10 +118,10 @@ export NAVIS_ANDROID_VERSION_CODE="$version_code"
 export NAVIS_MOZCONFIG="$candidate_mozconfig"
 
 python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
-  --platform android --phase identity
+  --platform "$candidate_profile" --phase identity
 "$navis_dir/scripts/mach.sh" configure
 python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
-  --platform android --phase configured
+  --platform "$candidate_profile" --phase configured
 
 # Gradle's machBuildFaster/machStagePackage tasks refresh packaged resources,
 # but they do not compile or relink Gecko's native libraries.  Close the
@@ -126,13 +156,23 @@ if [[ ! -f "$generated_build_id_header" || \
     "$build_id" >&2
   exit 1
 fi
+# Reconcile tracked resource installs before the first APK is assembled. The
+# recursive native build alone can leave obsolete chrome files from an older
+# capability graph in dist/bin; the faster install backend removes them while
+# retaining compiled objects and libraries.
+"$navis_dir/scripts/mach.sh" build faster
 "$navis_dir/scripts/mach.sh" build
 python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 
-"$navis_dir/scripts/mach.sh" gradle :navis:assembleDebug
-
-source_apk="$candidate_objdir/gradle/build/navis-android/outputs/apk/debug/navis-debug.apk"
+# The reviewed Navis Android graph already assembles the app at the end of a
+# full mach build. A second Gradle call would repeat faster/stage-package work.
+# Audit that build's APK directly, including its exact native libraries below.
+if [[ "$variant" == release ]]; then
+  source_apk="$candidate_objdir/gradle/build/navis-android/outputs/apk/release/navis-release-unsigned.apk"
+else
+  source_apk="$candidate_objdir/gradle/build/navis-android/outputs/apk/debug/navis-debug.apk"
+fi
 if [[ ! -s "$source_apk" ]]; then
   printf 'Android candidate APK was not generated: %s\n' "$source_apk" >&2
   exit 1
@@ -159,7 +199,9 @@ if [[ "$display_version" != "$base_version" && \
     "$base_version" "$display_version" >&2
   exit 1
 fi
-archive_name="navis-${display_version}-android-arm64-v8a-test-candidate-${build_id}.apk"
+variant_tag=test-candidate
+if [[ "$variant" == release ]]; then variant_tag=release-test-candidate; fi
+archive_name="navis-${display_version}-android-arm64-v8a-${variant_tag}-${build_id}.apk"
 archive_path="$output_dir/$archive_name"
 manifest_path="$archive_path.manifest.json"
 if [[ -e "$archive_path" || -e "$manifest_path" ]]; then
@@ -180,7 +222,24 @@ trap cleanup EXIT
 staged_apk="$staging_dir/$archive_name"
 staged_manifest="$staging_dir/$archive_name.manifest.json"
 cp --reflink=auto -- "$source_apk" "$staged_apk"
+variant_args=(--variant "$variant")
+if [[ "$variant" == release ]]; then
+  signing_args=(sign --ks "$NAVIS_ANDROID_KEYSTORE"
+    --ks-key-alias "$NAVIS_ANDROID_KEY_ALIAS"
+    --ks-pass "file:$NAVIS_ANDROID_KEYSTORE_PASSWORD_FILE")
+  # apksigner reuses the store password when --key-pass is absent. Repeating
+  # the same password file instead consumes a second line from that file.
+  if [[ -n "${NAVIS_ANDROID_KEY_PASSWORD_FILE:-}" &&
+    ! "$NAVIS_ANDROID_KEY_PASSWORD_FILE" -ef "$NAVIS_ANDROID_KEYSTORE_PASSWORD_FILE" ]]; then
+    signing_args+=(--key-pass "file:$NAVIS_ANDROID_KEY_PASSWORD_FILE")
+  fi
+  "$build_tools_dir/apksigner" "${signing_args[@]}" "$staged_apk" </dev/null
+  variant_args+=(--signer-sha256 "$NAVIS_ANDROID_SIGNER_SHA256" \
+    --jni-wrappers "$candidate_objdir/widget/android/GeneratedJNI" \
+    --r8-output "$candidate_objdir/gradle/build/navis-android/intermediates/mapping/release/minifyReleaseWithR8")
+fi
 python3 "$navis_dir/scripts/verify-android-package.py" \
+  "${variant_args[@]}" \
   --apk "$staged_apk" \
   --source-freeze "$source_freeze" \
   --build-id "$build_id" \
@@ -194,5 +253,5 @@ python3 "$navis_dir/scripts/verify-android-package.py" \
 mv -- "$staged_apk" "$archive_path"
 mv -- "$staged_manifest" "$manifest_path"
 sha256sum "$archive_path"
-printf 'Installable Android arm64 test candidate: %s\n' "$archive_path"
+printf 'Installable Android arm64 %s test candidate: %s\n' "$variant" "$archive_path"
 printf 'Android candidate manifest: %s\n' "$manifest_path"

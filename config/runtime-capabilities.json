@@ -4,180 +4,13 @@
   "description": "Executable capability and dependency contract for the Navis Desktop Gecko Embedder runtime.",
   "profiles": {
     "desktop-embedder-core": {
-      "description": "Default Navis 1.0 browsing profile without product observability, real media capture, PeerConnection, data channels, or native libwebrtc."
-    },
-    "desktop-embedder-core-esr140": {
-      "description": "General-browsing profile on ESR 140, whose release channel compiles JPEG XL out upstream.",
-      "overrides": {
-        "jpeg-xl-image-decoding": {
-          "state": "excluded",
-          "contract": "JPEG XL image decoding is absent because upstream ESR 140 restricts its decoder to Nightly builds.",
-          "checks": {
-            "config": {
-              "MOZ_JXL": false
-            },
-            "graph_forbidden": [
-              "^image/rust/jxl/"
-            ]
-          }
-        }
-      }
-    },
-    "desktop-embedder-core-esr140-no-observability": {
-      "description": "ESR 140 general-browsing profile with the Glean/FOG, DAP, and Gecko Trace runtime integrations removed.",
-      "inherits": "desktop-embedder-core-esr140",
-      "overrides": {
-        "observability-runtime": {
-          "state": "excluded",
-          "contract": "No executable observability collector, store, archive, or submission pipeline is present; only constant-off ABI and process-clock compatibility surfaces remain."
-        }
-      }
-    },
-    "desktop-embedder-minimal-no-webrtc": {
-      "description": "Experimental general-media profile without real camera/microphone capture, PeerConnection, data channels, or native libwebrtc.",
-      "overrides": {
-        "media-capture": {
-          "state": "excluded",
-          "contract": "Real camera/microphone capture and its product permission/indicator actors are absent; the nonfunctional web entry point is locked off.",
-          "checks": {
-            "config": {
-              "MOZ_WEBRTC": false
-            },
-            "omni_forbidden": [
-              "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
-              "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
-            ],
-            "omni_content_required": {
-              "defaults/pref/navis.js": [
-                "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
-                "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
-              ]
-            },
-            "omni_content_forbidden": {
-              "defaults/pref/navis.js": [
-                "^#ifn?def MOZ_WEBRTC$"
-              ]
-            }
-          }
-        },
-        "webrtc-peer-connection": {
-          "state": "excluded",
-          "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent.",
-          "checks": {
-            "config": {
-              "MOZ_WEBRTC": false
-            },
-            "graph_forbidden": [
-              "^media/webrtc/",
-              "^third_party/libwebrtc/"
-            ],
-            "generated_required": {
-              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-                "MediaEngineFake\\.cpp",
-                "MediaEngineSource\\.cpp",
-                "MediaTrackConstraints\\.cpp"
-              ]
-            },
-            "generated_forbidden": {
-              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-                "MediaEngineRemoteVideoSource\\.cpp",
-                "MediaEngineWebRTCAudio\\.cpp",
-                "RTCCertificate\\.cpp",
-                "RTCIdentityProviderRegistrar\\.cpp",
-                "PWebrtcGlobal(Child|Parent)?\\.cpp"
-              ]
-            }
-          }
-        }
-      }
-    },
-    "desktop-embedder-controlled-content": {
-      "description": "Experimental controlled-content profile without real-time communication or JPEG XL decoding.",
-      "overrides": {
-        "jpeg-xl-image-decoding": {
-          "state": "excluded",
-          "contract": "JPEG XL image decoding is absent even when content enables the otherwise opt-in preference.",
-          "checks": {
-            "config": {
-              "MOZ_JXL": false
-            },
-            "graph_forbidden": [
-              "^image/rust/jxl/"
-            ]
-          }
-        },
-        "media-capture": {
-          "state": "excluded",
-          "contract": "Real camera/microphone capture and its product permission/indicator actors are absent; the nonfunctional web entry point is locked off.",
-          "checks": {
-            "config": {
-              "MOZ_WEBRTC": false
-            },
-            "omni_forbidden": [
-              "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
-              "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
-            ],
-            "omni_content_required": {
-              "defaults/pref/navis.js": [
-                "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
-                "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
-              ]
-            },
-            "omni_content_forbidden": {
-              "defaults/pref/navis.js": [
-                "^#ifn?def MOZ_WEBRTC$"
-              ]
-            }
-          }
-        },
-        "webrtc-peer-connection": {
-          "state": "excluded",
-          "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent.",
-          "checks": {
-            "config": {
-              "MOZ_WEBRTC": false
-            },
-            "graph_forbidden": [
-              "^media/webrtc/",
-              "^third_party/libwebrtc/"
-            ],
-            "generated_required": {
-              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-                "MediaEngineFake\\.cpp",
-                "MediaEngineSource\\.cpp",
-                "MediaTrackConstraints\\.cpp"
-              ]
-            },
-            "generated_forbidden": {
-              "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-                "MediaEngineRemoteVideoSource\\.cpp",
-                "MediaEngineWebRTCAudio\\.cpp",
-                "RTCCertificate\\.cpp",
-                "RTCIdentityProviderRegistrar\\.cpp",
-                "PWebrtcGlobal(Child|Parent)?\\.cpp"
-              ]
-            }
-          }
-        }
-      }
-    },
-    "desktop-embedder-controlled-content-no-observability": {
-      "description": "Controlled-content profile with the Glean/FOG, DAP, and Gecko Trace runtime integrations removed.",
-      "inherits": "desktop-embedder-controlled-content",
-      "overrides": {
-        "observability-runtime": {
-          "state": "excluded",
-          "contract": "No executable observability collector, store, archive, or submission pipeline is present; only constant-off ABI and process-clock compatibility surfaces remain."
-        }
-      }
+      "description": "Default Navis browsing profile with product observability disabled and Gecko WebRTC, real camera/microphone capture, PeerConnection, and data channels retained; Web Push and screen capture remain excluded."
     }
   },
   "states": {
     "required": "Part of the published web/embedder contract and must stay in the graph.",
     "retained-substrate": "Not a product capability, but retained because Gecko core consumes its policy or security substrate.",
-    "excluded": "Outside the runtime contract and required to be absent from the build or package checks listed here.",
-    "candidate": "A reviewed removal candidate; no absence claim is made yet.",
-    "deferred": "Required eventually, but the listed platform evidence is not complete."
+    "excluded": "Outside the runtime contract and required to be absent from the build or package checks listed here."
   },
   "capabilities": [
     {
@@ -423,7 +256,7 @@
       "id": "encrypted-media",
       "classification": "excluded-web-capability",
       "state": "excluded",
-      "contract": "Encrypted Media Extensions, ClearKey and packaged CDMs are absent from Navis 1.0 and cannot be restored with a content preference.",
+      "contract": "Encrypted Media Extensions, ClearKey and packaged CDMs are absent from Navis and cannot be restored with a content preference.",
       "checks": {
         "config": {
           "MOZ_EME_API": false
@@ -437,22 +270,16 @@
           "(?i)(^|/)gmp-(?:clearkey|widevinecdm(?:-l1)?)(?:/|$)"
         ],
         "omni_forbidden": [
-          "^chrome/toolkit/content/global/gmp-sources/(?:widevinecdm(?:_l1)?|openh264)\\.json$",
-          "^modules/(?:GMPExtractor\\.worker\\.js|GMPInstallManager|GMPUtils)\\.sys\\.mjs$",
-          "^modules/addons/GMPProvider\\.sys\\.mjs$"
+          "^chrome/toolkit/content/global/gmp-sources/widevinecdm(?:_l1)?\\.json$"
         ],
-        "omni_content_forbidden": {
-          "components/components.manifest": [
-            "category addon-provider-module GMPProvider"
-          ]
-        }
+        "omni_content_forbidden": {}
       }
     },
     {
       "id": "web-push",
       "classification": "excluded-web-capability",
       "state": "excluded",
-      "contract": "PushManager, push service-worker events and the provider-backed Push runtime are absent from Navis 1.0 and cannot be restored with a content preference.",
+      "contract": "PushManager, push service-worker events and the provider-backed Push runtime are absent from Navis and cannot be restored with a content preference.",
       "checks": {
         "config": {
           "MOZ_WEB_PUSH": false
@@ -469,7 +296,7 @@
       "id": "safe-browsing-reputation",
       "classification": "excluded-product-capability",
       "state": "excluded",
-      "contract": "Safe Browsing providers, update clients, malware/phishing tables and download reputation are absent from Navis 1.0; TLS, certificate validation and the generic URL-classifier substrate remain.",
+      "contract": "Safe Browsing providers, update clients, malware/phishing tables and download reputation are absent from Navis; TLS, certificate validation and the generic URL-classifier substrate remain.",
       "checks": {
         "config": {
           "MOZ_SAFE_BROWSING": false
@@ -492,9 +319,9 @@
     },
     {
       "id": "jpeg-xl-image-decoding",
-      "classification": "optional-web-capability",
-      "state": "candidate",
-      "contract": "The compiled JPEG XL decoder is available when a product explicitly enables Gecko's opt-in image.jxl.enabled preference.",
+      "classification": "declared-web-capability",
+      "state": "required",
+      "contract": "Retain the selected ESR's compiled JPEG XL decoder and its upstream exposure policy; Navis carries no separate decoder cut.",
       "checks": {
         "config": {
           "MOZ_JXL": true
@@ -508,7 +335,7 @@
       "id": "webgpu",
       "classification": "declared-web-capability",
       "state": "required",
-      "contract": "The Navis 1.0 baseline retains WebGPU WebIDL, DOM, Canvas/IPC, wgpu, and composition integration; exposure still follows the selected ESR's compatibility policy.",
+      "contract": "The Navis baseline retains WebGPU WebIDL, DOM, Canvas/IPC, wgpu, and composition integration; exposure still follows the selected ESR's compatibility policy.",
       "checks": {
         "graph_required": [
           "^dom/webgpu/",
@@ -519,25 +346,35 @@
     {
       "id": "media-capture",
       "classification": "declared-web-capability",
-      "state": "excluded",
-      "contract": "Real camera/microphone capture and its product permission/indicator actors are absent from the Navis 1.0 baseline; ordinary media playback remains available.",
+      "state": "required",
+      "contract": "Real camera/microphone capture remains available through Gecko's WebRTC device backends, with Navis-owned permission, device-selection and recording-indicator delegates.",
       "checks": {
         "config": {
-          "MOZ_WEBRTC": false
+          "MOZ_WEBRTC": true
         },
-        "omni_forbidden": [
-          "^modules/DesktopEmbedderBrowserProcessChild\\.sys\\.mjs$",
-          "^modules/DesktopEmbedderWebRTC(Child|Parent)\\.sys\\.mjs$"
+        "omni_required": [
+          "modules/DesktopEmbedderBrowserProcessChild.sys.mjs",
+          "modules/DesktopEmbedderWebRTCChild.sys.mjs",
+          "modules/DesktopEmbedderWebRTCParent.sys.mjs"
         ],
-        "omni_content_required": {
+        "omni_content_forbidden": {
           "defaults/pref/navis.js": [
             "pref\\(\"media\\.navigator\\.enabled\", false, locked\\);",
             "pref\\(\"media\\.peerconnection\\.enabled\", false, locked\\);"
           ]
-        },
-        "omni_content_forbidden": {
+        }
+      }
+    },
+    {
+      "id": "screen-capture",
+      "classification": "excluded-web-capability",
+      "state": "excluded",
+      "contract": "Screen and window capture remain absent because Navis has no screen-sharing chooser, consent flow or recording-indicator lifecycle for the getDisplayMedia family.",
+      "checks": {
+        "omni_content_required": {
           "defaults/pref/navis.js": [
-            "^#ifn?def MOZ_WEBRTC$"
+            "pref\\(\"media\\.getdisplaymedia\\.enabled\", false, locked\\);",
+            "pref\\(\"media\\.getusermedia\\.screensharing\\.enabled\", false, locked\\);"
           ]
         }
       }
@@ -545,32 +382,21 @@
     {
       "id": "webrtc-peer-connection",
       "classification": "declared-web-capability",
-      "state": "excluded",
-      "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc are absent from the Navis 1.0 baseline.",
+      "state": "required",
+      "contract": "RTCPeerConnection, WebRTC signaling/data channels, and native libwebrtc remain available through Gecko's reviewed WebRTC graph.",
       "checks": {
         "config": {
-          "MOZ_WEBRTC": false
+          "MOZ_WEBRTC": true
         },
-        "graph_forbidden": [
+        "graph_required": [
           "^media/webrtc/",
           "^third_party/libwebrtc/"
         ],
-        "generated_required": {
-          "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-            "MediaEngineFake\\.cpp",
-            "MediaEngineSource\\.cpp",
-            "MediaTrackConstraints\\.cpp"
-          ]
-        },
-        "generated_forbidden": {
-          "dom/media/webrtc/Unified_cpp_dom_media_webrtc0.cpp": [
-            "MediaEngineRemoteVideoSource\\.cpp",
-            "MediaEngineWebRTCAudio\\.cpp",
-            "RTCCertificate\\.cpp",
-            "RTCIdentityProviderRegistrar\\.cpp",
-            "PWebrtcGlobal(Child|Parent)?\\.cpp"
-          ]
-        }
+        "omni_required": [
+          "modules/DesktopEmbedderBrowserProcessChild.sys.mjs",
+          "modules/DesktopEmbedderWebRTCChild.sys.mjs",
+          "modules/DesktopEmbedderWebRTCParent.sys.mjs"
+        ]
       }
     },
     {
@@ -608,24 +434,33 @@
       }
     },
     {
-      "id": "deferred-browser-mediated-web-apis",
-      "classification": "deferred-web-capability",
+      "id": "excluded-browser-mediated-web-apis",
+      "classification": "excluded-web-capability",
       "state": "excluded",
-      "contract": "Navis 1.0 retains the pinned ESR source for browser-mediated device, headset, payment, federated-identity and digital-credential APIs but exposes none of them to content until a later capability decision supplies the corresponding product permission, chooser and lifecycle contracts.",
+      "contract": "WebMIDI, WebUSB, WebBluetooth, WebHID, WebSerial, FedCM, Payment Request, Digital Credentials and WebXR are absent across native graphs, bindings, services and product UI.",
       "checks": {
-        "omni_content_required": {
-          "defaults/pref/navis.js": [
-            "pref\\(\"dom\\.webmidi\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.webmidi\\.gated\", true, locked\\);",
-            "pref\\(\"dom\\.webserial\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.webserial\\.gated\", true, locked\\);",
-            "pref\\(\"dom\\.vr\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.vr\\.webxr\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.payments\\.request\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.security\\.credentialmanagement\\.digital\\.enabled\", false, locked\\);",
-            "pref\\(\"dom\\.security\\.credentialmanagement\\.identity\\.enabled\", false, locked\\);"
-          ]
-        }
+        "config": {
+          "MOZ_WEB_DEVICE_APIS": false,
+          "MOZ_WEB_IDENTITY": false,
+          "MOZ_WEB_PAYMENTS": false,
+          "MOZ_WEBXR": false,
+          "MOZ_MIDIR": false
+        },
+        "graph_forbidden": [
+          "^dom/(?:midi|webserial|webusb|webhid|webbluetooth|vr|payments|interfaces/payments)(?:/|$)",
+          "^gfx/vr(?:/|$)",
+          "^dom/credentialmanagement/(?:digital|identity)(?:/|$)",
+          "^toolkit/components/credentialmanagement(?:/|$)",
+          "^dom/canvas/XRWebGLLayer"
+        ],
+        "rust_graph_forbidden": [
+          "^third_party/rust/(?:midir|openvr|openxr)(?:/|$)"
+        ],
+        "omni_forbidden": [
+          "(?:^|/)(?:DesktopIdentityPrompt|DesktopDeviceUse|WorkerDeviceUse(?:State)?|NavisAndroid(?:IdentityPrompt|HIDPrompt|DigitalCredentialService|WorkerDeviceUse)|GeckoViewIdentityCredential|IdentityCredentialPromptService|CredentialChooserService|XR(?:Parent|Child)|(?:HID|USB|Bluetooth)(?:Parent|Child))\\.sys\\.mjs$",
+          "web-bluetooth-registries\\.txt$",
+          "background-device-activity\\.mjs$"
+        ]
       }
     },
     {
@@ -841,27 +676,95 @@
     },
     {
       "id": "printing",
-      "classification": "optional-web-capability",
-      "state": "excluded",
-      "contract": "Printing and print-preview are not promised by the current runtime profile.",
+      "classification": "ordinary-browser-capability",
+      "state": "required",
+      "contract": "Local webpage/PDF printing, preview and Save as PDF use Gecko snapshots, pagination and native printers behind owned Session hosts. Standard window.print and cancellation preserve native document lifecycle.",
       "checks": {
         "config": {
-          "NS_PRINTING": false
+          "NS_PRINTING": true
         },
-        "generated_forbidden": {
+        "generated_required": {
           "dom/bindings/WindowBinding.cpp": [
             "JS_FNSPEC\\(\"print\"",
             "MOZ_KnownLive\\(self\\)->Print\\("
           ]
         },
-        "graph_forbidden": [
-          "^gfx/thebes/PrintTargetWindows\\.cpp$",
+        "graph_required": [
           "^layout/printing/",
-          "^toolkit/components/printing/"
+          "^toolkit/components/printing/",
+          "^toolkit/components/printingui/"
+        ],
+        "omni_required": [
+          "actors/PrintingChild.sys.mjs",
+          "actors/PrintingParent.sys.mjs",
+          "chrome/toolkit/content/global/print.html",
+          "chrome/toolkit/content/global/print.js",
+          "chrome/toolkit/content/global/printUtils.js",
+          "modules/DesktopPrinting.sys.mjs",
+          "chrome/navis/content/documents.css"
+        ],
+        "omni_content_required": {
+          "modules/DesktopEngine.sys.mjs": [
+            "printing: true",
+            "configurePrinting\\(",
+            "getDesktopPrinting\\("
+          ],
+          "modules/DesktopPrinting.sys.mjs": [
+            "SubDialogManager",
+            "bindBrowser\\(",
+            "inert = true"
+          ]
+        }
+      }
+    },
+    {
+      "id": "pdf-documents",
+      "classification": "ordinary-browser-capability",
+      "state": "required",
+      "contract": "The pinned complete PDF.js viewer reads local/remote/encrypted documents, fills forms and edits basic annotations. Authenticated current document actors save original/modified bytes through local pickers and existing downloads. AI/model downloads, signatures and telemetry remain absent.",
+      "checks": {
+        "graph_required": [
+          "^toolkit/components/pdfjs/"
+        ],
+        "omni_required": [
+          "chrome/pdfjs/content/PdfJs.sys.mjs",
+          "chrome/pdfjs/content/PdfStreamConverter.sys.mjs",
+          "chrome/pdfjs/content/PdfjsChild.sys.mjs",
+          "chrome/pdfjs/content/web/viewer.html",
+          "chrome/pdfjs/content/web/viewer.mjs",
+          "defaults/pref/PdfJsDefaultPrefs.js",
+          "modules/NavisDocuments.sys.mjs",
+          "modules/DesktopDocuments.sys.mjs",
+          "modules/NavisPdfjsChild.sys.mjs"
         ],
         "omni_forbidden": [
-          "(^|/)(Printing|PrintUtils)[^/]*\\.sys\\.mjs$"
-        ]
+          "/PdfJs(?:Telemetry|AIFeature)\\.sys\\.mjs$",
+          "/Pdfjs(?:Parent|ContextMenu)\\.sys\\.mjs$",
+          "/GeckoViewPdfjs(?:Child|Parent)\\.sys\\.mjs$"
+        ],
+        "omni_content_required": {
+          "modules/DesktopEngine.sys.mjs": [
+            "pdfViewer: true",
+            "openFile\\("
+          ],
+          "modules/NavisDocuments.sys.mjs": [
+            "registerWindowActor\\(\"Pdfjs\"",
+            "checkLoadURIWithPrincipal",
+            "currentWindowGlobal === manager"
+          ],
+          "defaults/pref/PdfJsDefaultPrefs.js": [
+            "pref\\(\"pdfjs.annotationEditorMode\", 0\\)",
+            "pref\\(\"pdfjs.enableAltTextModelDownload\", false, locked\\)",
+            "pref\\(\"pdfjs.enableSignatureEditor\", false, locked\\)",
+            "pref\\(\"pdfjs.altTextLearnMoreUrl\", \"\", locked\\)"
+          ],
+          "modules/NavisPdfjsChild.sys.mjs": [
+            "isContentPrincipal",
+            "principal.URI\\?\\.spec !== VIEWER",
+            "hasSubstitution\\(STYLE_HOST\\)",
+            "loadSheetUsingURIString"
+          ]
+        }
       }
     },
     {
@@ -987,11 +890,8 @@
       "id": "webextensions-runtime",
       "classification": "core-private-product-substrate",
       "state": "required",
-      "contract": "XPIProvider, remote application/profile extension lifecycle, the Navis 1.0 browser.* compatibility profile, extension storage and network interception are retained for reviewed built-ins and signed user-selected local XPI packages.",
+      "contract": "XPIProvider, remote application/profile extension lifecycle, the Navis browser.* compatibility profile, extension storage and network interception are retained for reviewed built-ins and signed user-selected local XPI packages.",
       "checks": {
-        "config": {
-          "MOZ_WEBEXTENSIONS_RUNTIME": true
-        },
         "graph_required": [
           "^toolkit/components/extensions/(schemas|storage|webidl-api)/",
           "^toolkit/mozapps/extensions/Unified_cpp_mozapps_extensions"
@@ -1026,6 +926,9 @@
             "^category webextension-modules navis chrome://navis-extensions/content/ext-navis\\.json$",
             "^category webextension-scripts c-navis chrome://navis-extensions/content/ext-navis\\.js$",
             "^category webextension-scripts-addon navis chrome://navis-extensions/content/ext-c-navis\\.js$"
+          ],
+          "modules/DesktopEngine.sys.mjs": [
+            "builtInExtensions: true"
           ]
         },
         "files_required": [
@@ -1141,6 +1044,19 @@
       "classification": "platform-contract",
       "state": "required",
       "contract": "The current default reduced runtime must build and replay on native Windows with launcher, View, Fission, and sandbox behavior intact."
+    },
+    {
+      "id": "deferred-document-picture-in-picture",
+      "classification": "product-capability",
+      "state": "excluded",
+      "contract": "Document Picture-in-Picture remains deferred. Lock its content entry point off; the generic engine substrate may remain until activation is explicitly approved.",
+      "checks": {
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"dom\\.documentpip\\.enabled\", false, locked\\);"
+          ]
+        }
+      }
     }
   ]
 }

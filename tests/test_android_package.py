@@ -30,6 +30,7 @@ package: name='org.navis.browser.debug' versionCode='310390400' versionName='0.2
 minSdkVersion:'26'
 targetSdkVersion:'36'
 application-label:'Navis'
+application-debuggable
 launchable-activity: name='org.navis.browser.LauncherActivity'  label='Navis' icon=''
 native-code: 'arm64-v8a'
 """
@@ -306,11 +307,96 @@ def omni(build_id: str, navis_prefs: bytes | None) -> bytes:
     with zipfile.ZipFile(output, "w") as archive:
         archive.writestr(
             VERIFY.OMNI_APP_CONSTANTS,
-            f'export const AppConstants = {{ MOZ_BUILDID: "{build_id}", }};\n',
+            f'export const AppConstants = {{ MOZ_BUILDID: "{build_id}", MOZ_WEB_DEVICE_APIS: false, MOZ_WEB_IDENTITY: false, MOZ_WEB_PAYMENTS: false, MOZ_WEBXR: false, }};\n',
         )
         if navis_prefs is not None:
             archive.writestr(VERIFY.OMNI_NAVIS_PREFS, navis_prefs)
+        for name in (
+            "modules/NavisDocuments.sys.mjs",
+            "modules/NavisAndroidDocuments.sys.mjs",
+            "modules/NavisPdfjsChild.sys.mjs",
+            "chrome/pdfjs/content/PdfJs.sys.mjs",
+            "chrome/pdfjs/content/PdfStreamConverter.sys.mjs",
+            "chrome/pdfjs/content/PdfjsChild.sys.mjs",
+            "chrome/pdfjs/content/web/viewer.html",
+            "chrome/pdfjs/content/web/viewer.css",
+            "chrome/pdfjs/content/web/viewer.mjs",
+            "chrome/navis-android/content/document-tokens.css",
+            "chrome/navis-android/content/pdf-reader.css",
+            "chrome/toolkit/content/global/printUtils.js",
+        ):
+            archive.writestr(name, "Fixture document resource\n")
     return output.getvalue()
+
+
+class RuntimeModuleDependencyTests(unittest.TestCase):
+    def check_modules(self, modules: dict[str, str]) -> None:
+        output = io.BytesIO()
+        with zipfile.ZipFile(output, "w") as archive:
+            for name, source in modules.items():
+                archive.writestr(name, source)
+        with zipfile.ZipFile(output) as archive:
+            VERIFY.inspect_runtime_module_dependencies(archive)
+
+    def test_rejects_missing_permission_origin_dependency(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "SitePermissionOrigins"):
+            self.check_modules({
+                "modules/NavisAndroidPermissions.sys.mjs":
+                    'import { permissionOrigins } from "resource://gre/modules/SitePermissionOrigins.sys.mjs";',
+            })
+
+    def test_accepts_packaged_shared_permission_dependency(self) -> None:
+        self.check_modules({
+            "modules/NavisAndroidPermissions.sys.mjs":
+                'import { permissionOrigins } from "resource://gre/modules/SitePermissionOrigins.sys.mjs";',
+            "modules/SitePermissionOrigins.sys.mjs": "export const permissionOrigins = () => [];",
+        })
+
+    def test_checks_host_imports_and_shared_module_dependencies(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "MissingShared"):
+            self.check_modules({
+                "chrome/navis-android/content/host.js":
+                    'ChromeUtils.importESModule("resource://gre/modules/DesktopShared.sys.mjs");',
+                "modules/DesktopShared.sys.mjs":
+                    'import { value } from "resource://gre/modules/MissingShared.sys.mjs";',
+            })
+
+    def test_leaves_optional_upstream_branches_to_their_own_gates(self) -> None:
+        self.check_modules({
+            "modules/NavisAndroidHost.sys.mjs":
+                'import { value } from "resource://gre/modules/Upstream.sys.mjs";',
+            "modules/Upstream.sys.mjs":
+                'if (false) ChromeUtils.importESModule("resource://gre/modules/Optional.sys.mjs");',
+        })
+
+
+class DocumentAssetTests(unittest.TestCase):
+    def check_assets(self, extra: str | None = None, missing: str | None = None) -> None:
+        output = io.BytesIO()
+        with zipfile.ZipFile(io.BytesIO(omni("20261029000000", None))) as source:
+            with zipfile.ZipFile(output, "w") as target:
+                for name in source.namelist():
+                    if name != missing:
+                        target.writestr(name, source.read(name))
+                if extra:
+                    target.writestr(extra, "Stale adapter\n")
+        with zipfile.ZipFile(output) as archive:
+            VERIFY.inspect_document_assets(archive)
+
+    def test_accepts_owned_reader_and_print_resources(self) -> None:
+        self.check_assets()
+
+    def test_rejects_stale_geckoview_pdf_adapter(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "excluded PDF adapters"):
+            self.check_assets(extra="chrome/pdfjs/content/GeckoViewPdfjsParent.sys.mjs")
+
+    def test_rejects_stale_pdf_telemetry(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "excluded PDF adapters"):
+            self.check_assets(extra="chrome/pdfjs/content/PdfJsTelemetry.sys.mjs")
+
+    def test_requires_the_interactive_reader(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "lacks document resources"):
+            self.check_assets(missing="chrome/pdfjs/content/web/viewer.mjs")
 
 
 class AndroidPackageTests(unittest.TestCase):
@@ -526,12 +612,60 @@ class AndroidPackageTests(unittest.TestCase):
         signing = VERIFY.parse_apksigner(legacy)
         self.assertEqual("a" * 64, signing["certificate_sha256"])
 
+    def test_parses_versioned_signer_certificate_labels(self) -> None:
+        for version in ("3.0", "3.1", "3.2"):
+            with self.subTest(version=version):
+                output = SIGNER_OUTPUT.replace(
+                    "V2 Signer: certificate", f"V{version} Signer: certificate"
+                )
+                report = VERIFY.parse_apksigner(output, "release", "a" * 64)
+                self.assertEqual("a" * 64, report["certificate_sha256"])
+                with self.assertRaisesRegex(VERIFY.PackageError, "certificate differs"):
+                    VERIFY.parse_apksigner(output, "release", "b" * 64)
+
     def test_rejects_wrong_native_abi(self) -> None:
         self.write_apk("x86_64")
         with mock.patch.object(
             VERIFY, "EXPECTED_UBLOCK_SHA256", self.ublock_hash
         ), self.assertRaisesRegex(VERIFY.PackageError, "ABI inventory"):
             VERIFY.inspect_apk(self.root, self.apk, self.build_id)
+
+    def test_release_signer_must_be_pinned(self) -> None:
+        with self.assertRaisesRegex(VERIFY.PackageError, "explicit signing certificate"):
+            VERIFY.parse_apksigner(SIGNER_OUTPUT, "release")
+        with self.assertRaisesRegex(VERIFY.PackageError, "certificate differs"):
+            VERIFY.parse_apksigner(SIGNER_OUTPUT, "release", "b" * 64)
+        report = VERIFY.parse_apksigner(SIGNER_OUTPUT, "release", "a" * 64)
+        self.assertEqual("android-release-test-candidate", report["policy"])
+
+    def test_release_rejects_debuggable_apk_before_package_inspection(self) -> None:
+        args = self.args()
+        args.variant = "release"
+        output = self.aapt_output.replace("org.navis.browser.debug", "org.navis.browser")
+        with mock.patch.object(VERIFY, "run_tool", return_value=output):
+            with self.assertRaisesRegex(VERIFY.PackageError, "debuggable flag"):
+                VERIFY.verify(args)
+        self.assertFalse(VERIFY.parse_aapt_badging(output.replace("application-debuggable\n", ""))["debuggable"])
+
+    def test_r8_outputs_require_real_optimization(self) -> None:
+        directory = self.root / "r8"
+        directory.mkdir()
+        contents = {"mapping.txt": "# compiler: R8\norg.example.Component -> a.b:\n",
+                    "configuration.txt": "-keep class org.example.NativePeer { *; }\n",
+                    "usage.txt": "org.example.Unused\n", "seeds.txt": "org.example.NativePeer\n"}
+        for name, data in contents.items():
+            (directory / name).write_text(data)
+        self.assertEqual(1, VERIFY.verify_r8_output(directory)["renamed_classes"])
+        for flag in ("-dontoptimize", "-dontshrink", "-dontobfuscate"):
+            (directory / "configuration.txt").write_text(contents["configuration.txt"] + flag + "\n")
+            with self.assertRaisesRegex(VERIFY.PackageError, "disables optimization"):
+                VERIFY.verify_r8_output(directory)
+        (directory / "configuration.txt").write_text(contents["configuration.txt"])
+        (directory / "mapping.txt").write_text("# compiler: R8\norg.example.Component -> org.example.Component:\n")
+        with self.assertRaisesRegex(VERIFY.PackageError, "effective R8"):
+            VERIFY.verify_r8_output(directory)
+        with self.assertRaisesRegex(VERIFY.PackageError, "actual R8 output"):
+            VERIFY.verify_r8_output(None)
 
     def test_exact_candidate_closure_passes(self) -> None:
         freeze = {
@@ -775,6 +909,61 @@ class AndroidPackageTests(unittest.TestCase):
         ):
             self.inspect_candidate()
 
+    def test_allows_retained_android_webauthn_provider(self) -> None:
+        for descriptor in (
+            "Lorg/mozilla/gecko/navis/NavisAndroidCredentialProvider;",
+            "Lorg/mozilla/gecko/navis/NavisAndroidCredentialProvider$Api34$1;",
+        ):
+            with self.subTest(descriptor=descriptor):
+                self.write_apk(
+                    dex_members=[
+                        ("classes.dex", dex_build_config(self.build_id)),
+                        ("classes2.dex", dex_build_config(
+                            self.build_id, class_descriptor=descriptor,
+                        )),
+                    ]
+                )
+                inventory = self.inspect_candidate()
+                self.assertEqual([], inventory["geckoview_lifecycle_classes"])
+                self.assertEqual([], inventory["geckoview_owner_type_references"])
+
+    def test_allows_retained_android_webauthn_provider_reference(self) -> None:
+        self.write_apk(
+            dex_members=[
+                ("classes.dex", dex_build_config(self.build_id)),
+                ("classes2.dex", dex_build_config(
+                    self.build_id,
+                    class_descriptor="Lorg/example/EnginePrimitive;",
+                    field_type_descriptor=(
+                        "[Lorg/mozilla/gecko/navis/NavisAndroidCredentialProvider$Api34;"
+                    ),
+                )),
+            ]
+        )
+        self.assertEqual([], self.inspect_candidate()["geckoview_owner_type_references"])
+
+    def test_rejects_digital_credentials_definition_and_reference(self) -> None:
+        for descriptor in (
+            "Lorg/mozilla/gecko/navis/NavisAndroidDigitalCredentials;",
+            "Lorg/mozilla/gecko/navis/NavisAndroidDigitalCredentials$Api34;",
+        ):
+            for definition in (True, False):
+                with self.subTest(descriptor=descriptor, definition=definition):
+                    extra = ({"class_descriptor": descriptor} if definition else {
+                        "class_descriptor": "Lorg/example/EnginePrimitive;",
+                        "field_type_descriptor": "[" + descriptor,
+                    })
+                    self.write_apk(
+                        dex_members=[
+                            ("classes.dex", dex_build_config(self.build_id)),
+                            ("classes2.dex", dex_build_config(self.build_id, **extra)),
+                        ]
+                    )
+                    with self.assertRaisesRegex(
+                        VERIFY.PackageError, "NavisAndroidDigitalCredentials",
+                    ):
+                        self.inspect_candidate()
+
     def test_rejects_forbidden_owner_type_reference(self) -> None:
         for descriptor in (
             "Lorg/mozilla/geckoview/GeckoWebExecutor;",
@@ -988,6 +1177,92 @@ class AndroidPackageTests(unittest.TestCase):
             return_value={"android_file_count": 1},
         ), self.assertRaisesRegex(VERIFY.PackageError, "artifact name differs"):
             VERIFY.verify(args)
+
+
+class GeneratedJniClassTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        self.root = Path(self.temporary.name)
+        self.headers = self.root / "GeneratedJNI"
+        self.headers.mkdir()
+        (self.headers / "LookupWrappers.h").write_text(
+            'static constexpr char name[] = "org/mozilla/geckoview/BuildConfig";'
+            'static constexpr char signature[] = "()V";'
+        )
+        self.apk = self.root / "test.apk"
+
+    def write_classes(self, descriptor=VERIFY.GECKOVIEW_BUILD_CONFIG, core=True):
+        with zipfile.ZipFile(self.apk, "w") as archive:
+            archive.writestr("classes.dex", dex_build_config(
+                "20261102080441", class_descriptor=descriptor,
+            ))
+            if core:
+                archive.writestr("classes2.dex", dex_build_config(
+                    "20261102080441",
+                    class_descriptor="Lorg/navis/browser/core/NativeCoreBridge;",
+                ))
+
+    def test_accepts_original_native_lookup_names(self):
+        self.write_classes()
+        result = VERIFY.verify_generated_jni_classes(self.apk, self.headers)
+        self.assertEqual(2, result["class_count"])
+
+    def test_rejects_removed_or_obfuscated_lookup_class(self):
+        self.write_classes("La/b;")
+        with self.assertRaisesRegex(VERIFY.PackageError, "removed or renamed.*BuildConfig"):
+            VERIFY.verify_generated_jni_classes(self.apk, self.headers)
+
+    def test_rejects_missing_generated_wrappers(self):
+        with self.assertRaisesRegex(VERIFY.PackageError, "requires generated JNI wrappers"):
+            VERIFY.verify_generated_jni_classes(self.apk, None)
+
+    def test_rejects_headers_without_native_lookups(self):
+        (self.headers / "LookupWrappers.h").write_text("// no generated class")
+        with self.assertRaisesRegex(VERIFY.PackageError, "no native class lookups"):
+            VERIFY.verify_generated_jni_classes(self.apk, self.headers)
+
+    def test_rejects_missing_core_jni_bridge(self):
+        self.write_classes(core=False)
+        with self.assertRaisesRegex(VERIFY.PackageError, "NativeCoreBridge"):
+            VERIFY.verify_generated_jni_classes(self.apk, self.headers)
+
+    def test_does_not_require_java_class_for_cpp_grouping_only(self):
+        source = (self.headers / "LookupWrappers.h").read_text()
+        (self.headers / "LookupWrappers.h").write_text(
+            'class Group { static constexpr char name[] = "org/mozilla/GroupingOnly"; };\n'
+            'class Child { ' + source + ' };\n'
+        )
+        self.write_classes()
+        self.assertEqual(2, VERIFY.verify_generated_jni_classes(self.apk, self.headers)["class_count"])
+
+
+class ApkMemberPathTests(unittest.TestCase):
+    def members(self, *names):
+        return mock.Mock(infolist=lambda: [zipfile.ZipInfo(name) for name in names])
+
+    def test_accepts_distinct_case_sensitive_compiled_resources(self):
+        archive = self.members("res/9N.9.png", "res/9n.9.png")
+        self.assertEqual(2, len(VERIFY.safe_members(archive)))
+
+    def test_rejects_duplicate_resource_and_asset_entries(self):
+        for name in ("res/9N.9.png", "assets/omni.ja"):
+            with self.subTest(name=name), self.assertRaisesRegex(VERIFY.PackageError, "duplicate member"):
+                VERIFY.safe_members(self.members(name, name))
+
+    def test_rejects_case_collisions_outside_compiled_resource_namespace(self):
+        for first, second in (("assets/omni.ja", "assets/OMNI.ja"), ("res/9N.9.png", "RES/9n.9.png")):
+            with self.subTest(second=second), self.assertRaisesRegex(VERIFY.PackageError, "case-colliding"):
+                VERIFY.safe_members(self.members(first, second))
+
+    def test_rejects_unsafe_paths_and_symbolic_links(self):
+        for name in ("res/../escape", "/res/escape", "res\\escape"):
+            with self.subTest(name=name), self.assertRaisesRegex(VERIFY.PackageError, "unsafe APK member"):
+                VERIFY.safe_members(self.members(name))
+        link = zipfile.ZipInfo("res/link")
+        link.external_attr = 0o120777 << 16
+        with self.assertRaisesRegex(VERIFY.PackageError, "symbolic link"):
+            VERIFY.safe_members(mock.Mock(infolist=lambda: [link]))
 
 
 if __name__ == "__main__":

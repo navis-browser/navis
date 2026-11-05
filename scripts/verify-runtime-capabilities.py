@@ -301,55 +301,13 @@ def resolve_profile(
             f"unknown capability profile {profile_name!r}; available: {available}"
         )
 
-    def collect_overrides(name: str, stack: tuple[str, ...] = ()) -> dict[str, object]:
-        if name in stack:
-            chain = " -> ".join((*stack, name))
-            raise ValueError(f"capability profile inheritance cycle: {chain}")
-        if name not in profiles:
-            raise ValueError(f"unknown inherited capability profile {name!r}")
-        profile = profiles[name]
-        if not isinstance(profile, dict):
-            raise ValueError(f"capability profile {name!r} is not an object")
-        parent = profile.get("inherits")
-        if parent is not None and not isinstance(parent, str):
-            raise ValueError(f"capability profile {name!r} has invalid inheritance")
-        combined = (
-            collect_overrides(parent, (*stack, name)) if parent is not None else {}
-        )
-        overrides = profile.get("overrides", {})
-        if not isinstance(overrides, dict):
-            raise ValueError(f"capability profile {name!r} overrides are invalid")
-        combined.update(copy.deepcopy(overrides))
-        return combined
-
-    overrides = collect_overrides(profile_name)
-
     capabilities = ledger.get("capabilities")
     if not isinstance(capabilities, list):
         raise ValueError("capability ledger is missing its capabilities array")
-    known_ids = {
-        item.get("id") for item in capabilities if isinstance(item, dict)
-    }
-    unknown_ids = sorted(set(overrides) - known_ids)
-    if unknown_ids:
-        raise ValueError(
-            f"capability profile {profile_name!r} overrides unknown IDs: "
-            + ", ".join(unknown_ids)
-        )
-
-    resolved: list[dict[str, object]] = []
-    for original in capabilities:
-        if not isinstance(original, dict) or not isinstance(original.get("id"), str):
+    for item in capabilities:
+        if not isinstance(item, dict) or not isinstance(item.get("id"), str):
             raise ValueError("every capability must be an object with a string id")
-        item = copy.deepcopy(original)
-        override = overrides.get(item["id"], {})
-        if not isinstance(override, dict):
-            raise ValueError(
-                f"override for capability {item['id']!r} is not an object"
-            )
-        item.update(copy.deepcopy(override))
-        resolved.append(item)
-    return profile_name, resolved
+    return profile_name, copy.deepcopy(capabilities)
 
 
 def infer_runtime_os(runtime: Path) -> str | None:

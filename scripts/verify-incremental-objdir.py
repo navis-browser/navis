@@ -57,7 +57,6 @@ PROFILES = {
             ("MOZ_USING_SCCACHE", "1"),
             ("MOZ_DESKTOP_EMBEDDER", "1"),
             ("MOZ_DESKTOP_EMBEDDER_DEVTOOLS", "1"),
-            ("MOZ_WEBEXTENSIONS_RUNTIME", "1"),
             ("MOZ_DEVTOOLS", "all"),
         ),
     ),
@@ -81,7 +80,6 @@ PROFILES = {
             ("MOZ_USING_SCCACHE", "1"),
             ("MOZ_DESKTOP_EMBEDDER", "1"),
             ("MOZ_DESKTOP_EMBEDDER_DEVTOOLS", "1"),
-            ("MOZ_WEBEXTENSIONS_RUNTIME", "1"),
             ("MOZ_DEVTOOLS", "all"),
         ),
     ),
@@ -108,10 +106,26 @@ PROFILES = {
             ("MOZ_USING_SCCACHE", "1"),
             ("MOZ_NAVIS_ANDROID_RUNTIME", "1"),
             ("MOZ_NAVIS_CORE", "1"),
-            ("MOZ_WEBEXTENSIONS_RUNTIME", "1"),
         ),
     ),
 }
+
+PROFILES["android-release"] = Profile(
+    object_name="obj-navis-android-aarch64-release",
+    mozconfig_name="mozconfig.android-aarch64.release",
+    build_app="mobile/android",
+    widget="android",
+    cpu="aarch64",
+    required_options=tuple(
+        "--enable-release" if value == "--disable-release" else value
+        for value in PROFILES["android"].required_options
+    ),
+    forbidden_options=("--disable-release", "--enable-debug"),
+    required_substs=PROFILES["android"].required_substs + (
+        ("MOZ_OPTIMIZE", "1"),
+        ("GRADLE_ANDROID_NAVIS_RUNTIME_VARIANT_NAME", "release"),
+    ),
+)
 
 
 def scalar(node: ast.expr) -> Any:
@@ -297,6 +311,8 @@ def verify(platform: str, phase: str, workspace: Path = WORKSPACE) -> list[str]:
             "DEVELOPER_OPTIONS"
         ):
             failures.append(f"{status} enables DEVELOPER_OPTIONS in a release graph")
+        if "--enable-release" in profile.required_options and substs.get("MOZ_DEBUG"):
+            failures.append(f"{status} enables MOZ_DEBUG in a release graph")
         for option in profile.forbidden_options:
             if option in option_set:
                 failures.append(f"{status} contains forbidden configured option {option}")

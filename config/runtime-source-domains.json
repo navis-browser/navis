@@ -7,7 +7,11 @@
     "^(?:@generated/)?services/(?:fxaccounts|sync)(?:/|$)",
     "^(?:@generated/)?toolkit/components/ml(?:/|$)",
     "^(?:@generated/)?toolkit/components/places/Unified_",
-    "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)"
+    "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)",
+    "^(?:@generated/)?dom/(?:midi|webserial|webusb|webhid|webbluetooth|vr|payments|interfaces/payments|credentialmanagement/(?:digital|identity))(?:/|$)",
+    "^(?:@generated/)?gfx/vr(?:/|$)",
+    "^(?:@generated/)?toolkit/components/credentialmanagement(?:/|$)",
+    "^(?:@generated/)?dom/canvas/XRWebGLLayer"
   ],
   "domains": [
     {
@@ -32,7 +36,7 @@
     {
       "id": "page-developer-tools",
       "classification": "product-page-debugging",
-      "state": "profile-dependent",
+      "state": "required",
       "requires_config": {
         "MOZ_DESKTOP_EMBEDDER_DEVTOOLS": "1",
         "MOZ_DEVTOOLS": "all"
@@ -54,8 +58,8 @@
     },
     {
       "id": "webrtc",
-      "classification": "optional-web-capability",
-      "state": "profile-dependent",
+      "classification": "declared-web-capability",
+      "state": "required",
       "patterns": [
         "^(?:@generated/)?dom/media/(?:webrtc|webrtc-js)(?:/|$)",
         "^(?:@generated/)?media/webrtc(?:/|$)",
@@ -65,27 +69,11 @@
     },
     {
       "id": "jpeg-xl",
-      "classification": "optional-web-capability",
-      "state": "profile-dependent",
+      "classification": "declared-web-capability",
+      "state": "required",
       "patterns": [
         "^(?:@generated/)?image/rust/jxl(?:/|$)",
         "^third_party/rust/jxl[^/]*(?:/|$)"
-      ]
-    },
-    {
-      "id": "virtual-reality-xr",
-      "classification": "web-capability",
-      "state": "review-required",
-      "patterns": [
-        "^(?:@generated/)?(?:dom|gfx)/vr(?:/|$)"
-      ]
-    },
-    {
-      "id": "web-midi",
-      "classification": "web-capability",
-      "state": "review-required",
-      "patterns": [
-        "^(?:@generated/)?dom/midi(?:/|$)"
       ]
     },
     {
@@ -93,13 +81,13 @@
       "classification": "web-capability",
       "state": "review-required",
       "patterns": [
-        "^(?:@generated/)?dom/(?:battery|documentpip|gamepad|geolocation|modelcontext|payments|privateattribution|webserial|webtransport)(?:/|$)"
+        "^(?:@generated/)?dom/(?:battery|documentpip|gamepad|geolocation|modelcontext|privateattribution|webtransport)(?:/|$)"
       ]
     },
     {
       "id": "spellcheck",
-      "classification": "optional-toolkit-capability",
-      "state": "review-required",
+      "classification": "declared-browsing-capability",
+      "state": "required",
       "patterns": [
         "^(?:@generated/)?extensions/spellcheck(?:/|$)"
       ]
@@ -287,7 +275,7 @@
         "^extensions/permissions(?:/|$)",
         "^services/(?:common|crypto|interfaces|settings)(?:/|$)",
         "^services/(?:Makefile|backend\\.mk)$",
-        "^toolkit/components/(?:antitracking|cascade_bloom_filter|cleardata|clearsitedata|content-classifier|credentialmanagement|doh|httpsonlyerror|reputationservice|resistfingerprinting|url-classifier)(?:/|$)"
+        "^toolkit/components/(?:antitracking|cascade_bloom_filter|cleardata|clearsitedata|content-classifier|doh|httpsonlyerror|reputationservice|resistfingerprinting|url-classifier)(?:/|$)"
       ]
     },
     {
@@ -356,7 +344,7 @@
     },
     {
       "id": "extension-and-package-substrate",
-      "classification": "core-private-built-in-runtime",
+      "classification": "local-extension-runtime",
       "state": "required",
       "patterns": [
         "^extensions/pref(?:/|$)",
@@ -391,6 +379,15 @@
       "state": "required",
       "patterns": [
         "^toolkit/components/certviewer(?:/|$)"
+      ]
+    },
+    {
+      "id": "local-documents-and-printing",
+      "classification": "ordinary-browser-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?toolkit/components/(?:pdfjs|printing|printingui)(?:/|$)",
+        "^(?:@generated/)?layout/printing(?:/|$)"
       ]
     },
     {

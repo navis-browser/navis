@@ -288,7 +288,7 @@ def verify_semantic_port() -> None:
         if isinstance(port, dict)
         and port.get("id") == "unified-product-query-stripping-policy"
     ]
-    if len(matches) != 1 or matches[0].get("order") != 21:
+    if len(matches) != 1 or matches[0].get("order") != 20:
         raise PolicyError("Clean Links semantic port is missing or misordered")
     if not PATCH_PATH.is_file():
         raise PolicyError("Clean Links semantic patch is missing")

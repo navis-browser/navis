@@ -110,7 +110,7 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str], set[str]]:
             f"missing={sorted(expected_keys - set(policy))}, "
             f"extra={sorted(set(policy) - expected_keys)}"
         )
-    if policy["schema_version"] != 2 or policy["product"] != "Navis 1.0":
+    if policy["schema_version"] != 2 or policy["product"] != "Navis":
         raise PolicyError("unsupported Remote Settings policy identity")
 
     provider = policy["provider"]
@@ -123,7 +123,7 @@ def validate_policy() -> tuple[dict[str, Any], list[str], set[str], set[str]]:
     if not isinstance(provider, dict) or set(provider) != provider_keys:
         raise PolicyError("provider metadata is incomplete")
     if provider["production_server"] != (
-        "https://firefox.settings.services.mozilla.com/v1"
+        "data:,#navis-local-settings/v1"
     ):
         raise PolicyError("the production Remote Settings endpoint changed")
     if provider["signature_algorithm"] != "p384ecdsa":
@@ -304,7 +304,7 @@ def verify_semantic_port() -> None:
         if isinstance(port, dict)
         and port.get("id") == "navis-remote-settings-policy"
     ]
-    if len(matches) != 1 or matches[0].get("order") != 17:
+    if len(matches) != 1 or matches[0].get("order") != 16:
         raise PolicyError("Remote Settings semantic port is missing or misordered")
     digest = hashlib.sha256(PATCH_PATH.read_bytes()).hexdigest()
     if matches[0].get("sha256") != digest:

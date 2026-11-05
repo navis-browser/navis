@@ -1,0 +1,7 @@
+{
+  "schema_version": 1,
+  "ct_mode": 2,
+  "minimum_ct_validity_days": 42,
+  "maximum_maintenance_interval_days": 28,
+  "remote_updates": false
+}

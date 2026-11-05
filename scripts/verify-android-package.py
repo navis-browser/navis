@@ -2,7 +2,7 @@
 # SPDX-License-Identifier: MPL-2.0
 
 
-"""Verify and describe an exact-source Navis Android test-candidate APK."""
+"""Verify and describe an exact-source Navis Android Debug or Release candidate APK."""
 
 from __future__ import annotations
 
@@ -39,12 +39,29 @@ LOCKED_BUILTIN_IDS_PREF = (
 GECKOVIEW_BUILD_CONFIG = "Lorg/mozilla/geckoview/BuildConfig;"
 GECKOVIEW_BUILD_ID_FIELD = "MOZ_APP_BUILDID"
 FORBIDDEN_GECKOVIEW_LIFECYCLE_CLASSES = (
+    "Lorg/mozilla/geckoview/GeckoVRManager;",
     "Lorg/mozilla/geckoview/GeckoRuntime;",
     "Lorg/mozilla/geckoview/GeckoSession;",
     "Lorg/mozilla/geckoview/GeckoView;",
     "Lorg/mozilla/geckoview/GeckoDisplay;",
     "Lorg/mozilla/geckoview/SessionAccessibility;",
     "Lorg/mozilla/geckoview/WebExtensionController;",
+    "Lorg/mozilla/gecko/AndroidMIDIManager;",
+    "Lorg/mozilla/gecko/MIDIStreamFramer;",
+    "Lorg/mozilla/gecko/AndroidSerialManager;",
+    "Lorg/mozilla/gecko/USBSerialProtocol;",
+    "Lorg/mozilla/gecko/AndroidUSBManager;",
+    "Lorg/mozilla/gecko/AndroidUSBHIDManager;",
+    "Lorg/mozilla/gecko/AndroidUSBClient;",
+    "Lorg/mozilla/gecko/AndroidUSBAccess;",
+    "Lorg/mozilla/gecko/AndroidBluetoothManager;",
+    "Lorg/mozilla/gecko/AndroidBluetoothClient;",
+    "Lorg/mozilla/gecko/AndroidBluetoothDiscovery;",
+    "Lorg/mozilla/gecko/AndroidBluetoothGatt;",
+    # NavisAndroidCredentialProvider is the retained WebAuthn/passkey OS seam.
+    # Only its independent Digital Credentials counterpart is excluded here.
+    "Lorg/mozilla/gecko/navis/NavisAndroidDigitalCredentials;",
+    "Lorg/mozilla/gecko/navis/NavisAndroidWorkerDeviceUse;",
 )
 FORBIDDEN_GECKOVIEW_OWNER_TYPE_REFERENCES = (
     *FORBIDDEN_GECKOVIEW_LIFECYCLE_CLASSES,
@@ -165,6 +182,7 @@ def parse_aapt_badging(output: str) -> dict[str, Any]:
     abis = re.findall(r"'([^']+)'", native.group(1))
     return {
         "application_id": package.group(1),
+        "debuggable": bool(re.search(r"^application-debuggable$", output, re.MULTILINE)),
         "version_code": int(package.group(2)),
         "version_name": package.group(3),
         "launcher": launcher.group(1),
@@ -174,15 +192,17 @@ def parse_aapt_badging(output: str) -> dict[str, Any]:
     }
 
 
-def parse_apksigner(output: str) -> dict[str, Any]:
+def parse_apksigner(
+    output: str, variant: str = "debug", expected_sha256: str | None = None
+) -> dict[str, Any]:
     digest = re.search(
-        r"^(?:Signer #1 certificate|V[2-4] Signer: certificate) "
+        r"^(?:Signer #1 certificate|V[2-4](?:\.[0-9]+)? Signer: certificate) "
         r"SHA-256 digest: ([0-9a-fA-F]{64})$",
         output,
         re.MULTILINE,
     )
     distinguished_name = re.search(
-        r"^(?:Signer #1 certificate|V[2-4] Signer: certificate) DN: (.+)$",
+        r"^(?:Signer #1 certificate|V[2-4](?:\.[0-9]+)? Signer: certificate) DN: (.+)$",
         output,
         re.MULTILINE,
     )
@@ -198,12 +218,17 @@ def parse_apksigner(output: str) -> dict[str, Any]:
         )
     if not any(scheme in {"v2", "v3", "v4"} for scheme in schemes):
         raise PackageError("APK is not covered by an APK Signature Scheme v2 or newer")
-    if "Android Debug" not in distinguished_name.group(1):
+    if variant == "debug" and "Android Debug" not in distinguished_name.group(1):
         raise PackageError(
             "test candidate is not signed by an Android debug certificate"
         )
+    if variant == "release":
+        if not expected_sha256 or not re.fullmatch(r"[0-9a-f]{64}", expected_sha256):
+            raise PackageError("Release candidate requires an explicit signing certificate SHA-256")
+        if digest.group(1).lower() != expected_sha256:
+            raise PackageError("Release candidate signing certificate differs")
     return {
-        "policy": "android-debug-test-candidate",
+        "policy": f"android-{variant}-test-candidate",
         "certificate_sha256": digest.group(1).lower(),
         "certificate_dn": distinguished_name.group(1),
         "verified_schemes": schemes,
@@ -213,7 +238,7 @@ def parse_apksigner(output: str) -> dict[str, Any]:
 def safe_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
     members = archive.infolist()
     names: set[str] = set()
-    casefolded: set[str] = set()
+    casefolded: dict[str, str] = {}
     for member in members:
         name = member.filename
         path = PurePosixPath(name)
@@ -231,10 +256,16 @@ def safe_members(archive: zipfile.ZipFile) -> list[zipfile.ZipInfo]:
         if name in names:
             raise PackageError(f"APK contains a duplicate member: {name}")
         folded = name.casefold()
-        if folded in casefolded:
+        previous = casefolded.get(folded)
+        # AAPT2 shortens compiled resource paths using a case-sensitive
+        # alphabet. Android reads these entries directly from the APK.
+        # Keep the portable-path check for all other package namespaces.
+        if previous is not None and not (
+            name.startswith("res/") and previous.startswith("res/")
+        ):
             raise PackageError(f"APK contains a case-colliding member: {name}")
         names.add(name)
-        casefolded.add(folded)
+        casefolded[folded] = name
     return members
 
 
@@ -833,12 +864,79 @@ def inspect_file_elf(path: Path) -> dict[str, Any]:
         raise PackageError(f"cannot inspect staged native library {path}: {error}") from error
 
 
+def inspect_runtime_module_dependencies(omni: zipfile.ZipFile) -> None:
+    """Check literal gre-module dependencies of the packaged Navis host modules.
+
+    Upstream modules can contain optional platform/build branches; their own
+    policy gates govern those. Every dependency named by Navis-owned modules
+    must be present, including shared modules consumed by the Android host.
+    """
+    names = set(omni.namelist())
+    owned_prefixes = (
+        "modules/Navis", "modules/Desktop", "modules/navis/",
+        "modules/CertificateSecurity", "modules/SitePermissionOrigins",
+        "chrome/navis-android/content/",
+    )
+    missing = []
+    for name in sorted(names):
+        if not name.startswith(owned_prefixes) or not name.endswith((".mjs", ".js")):
+            continue
+        source = omni.read(name).decode("utf-8")
+        for dependency in sorted(set(re.findall(
+            r'''["']resource://gre/([^"'\s]+\.mjs)["']''', source,
+        ))):
+            if dependency not in names:
+                missing.append(f"{name} -> {dependency}")
+    if missing:
+        raise PackageError("APK lacks runtime module dependencies: " + "; ".join(missing))
+
+
+def inspect_document_assets(omni: zipfile.ZipFile) -> None:
+    names = set(omni.namelist())
+    excluded = {
+        "chrome/pdfjs/content/" + name + ".sys.mjs"
+        for name in (
+            "PdfjsParent", "PdfJsTelemetry", "PdfJsAIFeature",
+            "GeckoViewPdfjsParent", "GeckoViewPdfjsChild",
+        )
+    }
+    if stale := names & excluded:
+        raise PackageError("APK contains excluded PDF adapters: " + ", ".join(sorted(stale)))
+    required = {
+        "modules/NavisDocuments.sys.mjs",
+        "modules/NavisAndroidDocuments.sys.mjs",
+        "modules/NavisPdfjsChild.sys.mjs",
+        "chrome/pdfjs/content/PdfJs.sys.mjs",
+        "chrome/pdfjs/content/PdfStreamConverter.sys.mjs",
+        "chrome/pdfjs/content/PdfjsChild.sys.mjs",
+        "chrome/pdfjs/content/web/viewer.html",
+        "chrome/pdfjs/content/web/viewer.css",
+        "chrome/pdfjs/content/web/viewer.mjs",
+        "chrome/navis-android/content/document-tokens.css",
+        "chrome/navis-android/content/pdf-reader.css",
+        "chrome/toolkit/content/global/printUtils.js",
+    }
+    if missing := required - names:
+        raise PackageError("APK lacks document resources: " + ", ".join(sorted(missing)))
+
+
 def inspect_runtime_assets(
     workspace: Path, apk: zipfile.ZipFile, expected_build_id: str
 ) -> dict[str, Any]:
     try:
         with zipfile.ZipFile(io.BytesIO(apk.read("assets/omni.ja"))) as omni:
             source = omni.read(OMNI_APP_CONSTANTS).decode("utf-8")
+            spec = importlib.util.spec_from_file_location(
+                "excluded_web_apis", Path(__file__).with_name("verify-excluded-web-apis.py")
+            )
+            policy = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(policy)
+            failures = []
+            policy.verify_omni(omni, failures, "APK omni.ja")
+            if failures:
+                raise PackageError("; ".join(failures))
+            inspect_runtime_module_dependencies(omni)
+            inspect_document_assets(omni)
             packaged_prefs = omni.read(OMNI_NAVIS_PREFS)
     except (KeyError, UnicodeError, zipfile.BadZipFile) as error:
         raise PackageError(
@@ -925,7 +1023,9 @@ def verify_ublock_assets(
     }
 
 
-def verify_dependency_notices(workspace: Path, archive: zipfile.ZipFile) -> dict[str, Any]:
+def verify_dependency_notices(
+    workspace: Path, archive: zipfile.ZipFile, variant: str = "debug"
+) -> dict[str, Any]:
     prefix = "assets/navis-licenses/"
     try:
         text_info = archive.getinfo(prefix + "android-dependencies.txt")
@@ -935,7 +1035,7 @@ def verify_dependency_notices(workspace: Path, archive: zipfile.ZipFile) -> dict
         text = archive.read(text_info)
         report = json.loads(archive.read(manifest_info))
         policy = json.loads((workspace / "../platform/android/licenses/dependencies.json").read_text())
-        if report.get("schema") != "navis-android-license-report-v1" or report.get("variant") != "debug":
+        if report.get("schema") != "navis-android-license-report-v1" or report.get("variant") != variant:
             raise PackageError("Android candidate license report schema/variant differs")
         if hashlib.sha256(text).hexdigest() != report.get("text_sha256"):
             raise PackageError("Android license report content hash differs")
@@ -953,7 +1053,7 @@ def verify_dependency_notices(workspace: Path, archive: zipfile.ZipFile) -> dict
                 raise PackageError(f"Android license report differs from reviewed metadata: {key}")
             if key.encode() not in text:
                 raise PackageError(f"Android dependency omitted from readable notices: {key}")
-        if seen != set(policy.get("variants", {}).get("debug", [])):
+        if seen != set(policy.get("variants", {}).get(variant, [])):
             raise PackageError("Android license report dependency set differs from reviewed variant")
         for license_id in {item for c in components for item in c["licenses"]}:
             license_data = policy["licenses"][license_id]
@@ -966,13 +1066,13 @@ def verify_dependency_notices(workspace: Path, archive: zipfile.ZipFile) -> dict
 
 
 def inspect_apk(
-    workspace: Path, apk_path: Path, expected_build_id: str
+    workspace: Path, apk_path: Path, expected_build_id: str, variant: str = "debug"
 ) -> dict[str, Any]:
     try:
         with zipfile.ZipFile(apk_path) as archive:
             members = safe_members(archive)
             names = {member.filename for member in members}
-            dependency_notices = verify_dependency_notices(workspace, archive)
+            dependency_notices = verify_dependency_notices(workspace, archive, variant)
             for required in (
                 "AndroidManifest.xml",
                 "assets/omni.ja",
@@ -1218,6 +1318,75 @@ def atomic_json(path: Path, value: dict[str, Any]) -> None:
             temporary.unlink()
 
 
+def verify_r8_output(directory: Path | None) -> dict[str, Any]:
+    if directory is None or directory.is_symlink() or not directory.is_dir():
+        raise PackageError("Release candidate requires the actual R8 output directory")
+    hashes = {}
+    for name in ("configuration.txt", "mapping.txt", "usage.txt", "seeds.txt"):
+        path = directory / name
+        if path.is_symlink() or not path.is_file() or not 0 < path.stat().st_size <= 256 * 1024**2:
+            raise PackageError(f"Release R8 output is missing or invalid: {name}")
+        hashes[name] = sha256_file(path)
+    configuration = (directory / "configuration.txt").read_text(encoding="utf-8")
+    if re.search(r"(?m)^\s*-(?:dontoptimize|dontshrink|dontobfuscate)\b", configuration):
+        raise PackageError("Release R8 configuration disables optimization, shrinking or obfuscation")
+    renamed = 0
+    compiler = False
+    with (directory / "mapping.txt").open(encoding="utf-8") as stream:
+        for line in stream:
+            compiler |= line.strip() == "# compiler: R8"
+            match = re.fullmatch(r"([^\s#]+) -> ([^\s]+):\n?", line)
+            if match and match[1] != match[2]:
+                renamed += 1
+    if not compiler or renamed == 0:
+        raise PackageError("Release candidate lacks an effective R8 compiler mapping")
+    return {"enabled": True, "renamed_classes": renamed, "outputs_sha256": hashes}
+
+
+def verify_generated_jni_classes(apk: Path, directory: Path | None) -> dict[str, Any]:
+    if directory is None or directory.is_symlink() or not directory.is_dir():
+        raise PackageError("Release candidate requires generated JNI wrappers")
+    headers = sorted(directory.glob("*.h"))
+    if not headers or len(headers) > 4096:
+        raise PackageError("Generated JNI wrapper header inventory is missing or too large")
+    expected = set()
+    hashes = {}
+    for path in headers:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > 16 * 1024**2:
+            raise PackageError(f"Invalid generated JNI wrapper: {path.name}")
+        source = path.read_text(encoding="utf-8")
+        # Enclosing C++ grouping classes and inlined constants do not perform
+        # Java lookups. Actual members carry a JNI signature; descriptor types
+        # must retain their names too, including callback interfaces.
+        for block in re.split(r"(?m)^class ", source):
+            signatures = re.findall(
+                r'static constexpr char signature\[\]\s*=\s*"([^"\n]+)"', block,
+            )
+            if not signatures:
+                continue
+            owner = re.search(
+                r'static constexpr char name\[\]\s*=\s*"((?:org/mozilla|org/navis)/[^"() ;]+)"',
+                block,
+            )
+            if owner:
+                expected.add(owner[1])
+            for signature in signatures:
+                expected.update(re.findall(r"L((?:org/mozilla|org/navis)/[^;]+);", signature))
+        hashes[path.name] = sha256_file(path)
+    if not expected:
+        raise PackageError("Generated JNI wrappers contain no native class lookups")
+    expected.add("org/navis/browser/core/NativeCoreBridge")
+    actual = set()
+    with zipfile.ZipFile(apk) as archive:
+        for name in archive.namelist():
+            if re.fullmatch(r"classes(?:[2-9]|[1-9][0-9]+)?\.dex", name):
+                actual.update(DexReader(archive.read(name), name).class_descriptors())
+    missing = sorted(name for name in expected if f"L{name};".encode() not in actual)
+    if missing:
+        raise PackageError(f"R8 removed or renamed native JNI lookup classes: {missing}")
+    return {"class_count": len(expected), "classes": sorted(expected), "headers_sha256": hashes}
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--apk", type=Path, required=True)
@@ -1227,6 +1396,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--aapt2", type=Path, required=True)
     parser.add_argument("--apksigner", type=Path, required=True)
     parser.add_argument("--native-dir", type=Path, required=True)
+    parser.add_argument("--variant", choices=("debug", "release"), default="debug")
+    parser.add_argument("--signer-sha256")
+    parser.add_argument("--r8-output", type=Path)
+    parser.add_argument("--jni-wrappers", type=Path)
     parser.add_argument("--artifact-name")
     parser.add_argument("--json-output", type=Path)
     parser.add_argument("--workspace", type=Path, default=WORKSPACE)
@@ -1236,6 +1409,7 @@ def parse_args() -> argparse.Namespace:
 
 def verify(args: argparse.Namespace) -> dict[str, Any]:
     workspace = args.workspace.resolve()
+    variant = getattr(args, "variant", "debug")
     apk = args.apk.resolve()
     if not apk.is_file() or apk.is_symlink():
         raise PackageError(f"APK is not a regular file: {apk}")
@@ -1255,7 +1429,10 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
     badging = parse_aapt_badging(
         run_tool([str(args.aapt2), "dump", "badging", str(apk)])
     )
-    if badging["application_id"] != EXPECTED_APPLICATION_ID:
+    expected_application_id = EXPECTED_APPLICATION_ID if variant == "debug" else "org.navis.browser"
+    if badging["debuggable"] != (variant == "debug"):
+        raise PackageError(f"Android {variant} candidate debuggable flag differs")
+    if badging["application_id"] != expected_application_id:
         raise PackageError(
             f"Android application ID differs: {badging['application_id']}"
         )
@@ -1277,9 +1454,11 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
     signing = parse_apksigner(
         run_tool(
             [str(args.apksigner), "verify", "--verbose", "--print-certs", str(apk)]
-        )
+        ), variant, getattr(args, "signer_sha256", None),
     )
-    inventory = inspect_apk(workspace, apk, args.build_id)
+    inventory = inspect_apk(workspace, apk, args.build_id, variant)
+    optimization = verify_r8_output(getattr(args, "r8_output", None)) if variant == "release" else None
+    jni_classes = verify_generated_jni_classes(apk, getattr(args, "jni_wrappers", None)) if variant == "release" else None
     staged_native_count = verify_staged_native_libraries(
         args.native_dir.resolve(), inventory["native_libraries"]
     )
@@ -1287,8 +1466,9 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
     inventory["staged_native_library_count"] = staged_native_count
     source_freeze = load_source_freeze(workspace, args.source_freeze.resolve())
     artifact_name = args.artifact_name or apk.name
+    variant_tag = "release-test-candidate" if variant == "release" else "test-candidate"
     expected_name = (
-        f"navis-{display_version}-android-{EXPECTED_ABI}-test-candidate-"
+        f"navis-{display_version}-android-{EXPECTED_ABI}-{variant_tag}-"
         f"{args.build_id}.apk"
     )
     if artifact_name != expected_name:
@@ -1298,7 +1478,10 @@ def verify(args: argparse.Namespace) -> dict[str, Any]:
         )
     return {
         "schema_version": 1,
-        "kind": "navis-android-test-candidate",
+        "kind": "navis-android-release-test-candidate" if variant == "release" else "navis-android-test-candidate",
+        "build_variant": variant,
+        "r8": optimization,
+        "jni_lookup_classes": jni_classes,
         "build_id": args.build_id,
         "source_date_epoch": epoch_seconds,
         "product": {
@@ -1321,6 +1504,13 @@ def main() -> int:
     args = parse_args()
     try:
         report = verify(args)
+        # Recheck real-time CT validity and native/offline data together at the
+        # distribution boundary, in addition to the APK's source/ABI gates.
+        report["certificate_security"] = json.loads(run_tool([
+            sys.executable,
+            str(Path(__file__).with_name("verify-certificate-security.py")),
+            "--apk", str(args.apk.resolve()),
+        ]))
         if args.json_output:
             atomic_json(args.json_output.resolve(), report)
         print("Navis Android package verification passed.")

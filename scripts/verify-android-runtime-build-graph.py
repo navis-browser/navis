@@ -16,8 +16,8 @@ from pathlib import Path
 
 
 DEFAULT_ROOT = Path(__file__).resolve().parents[2]
-PORT_ID = "direct-navis-android-runtime-build-graph"
-PORT_PATH = "patches/gecko/0025-direct-navis-android-runtime-build-graph.patch"
+PORT_ID = "direct-navis-android-runtime"
+PORT_PATH = "patches/gecko/0024-direct-navis-android-runtime.patch"
 WORKSPACE_PORT_PATH = f"runtime/{PORT_PATH}"
 PRIMITIVE_LIST_PATH = "runtime/android/gecko-java-primitives.list"
 GECKO_JAVA_SOURCE_ROOT = (
@@ -54,7 +54,6 @@ REVIEWED_GECKOVIEW_PRIMITIVES = frozenset(
         "org/mozilla/geckoview/CrashReport.java",
         "org/mozilla/geckoview/GeckoInputStream.java",
         "org/mozilla/geckoview/GeckoResult.java",
-        "org/mozilla/geckoview/GeckoVRManager.java",
         "org/mozilla/geckoview/GeckoViewInputStream.java",
         "org/mozilla/geckoview/Image.java",
         "org/mozilla/geckoview/NavisAndroidAccessibility.java",
@@ -363,7 +362,6 @@ def verify_modules(
         "org/mozilla/geckoview/AndroidWebExecutorBridge.java",
         "org/mozilla/geckoview/NavisAndroidWebExecutor.java",
         "org/mozilla/geckoview/GeckoResult.java",
-        "org/mozilla/geckoview/GeckoVRManager.java",
         "org/mozilla/geckoview/CrashHandler.java",
         "org/mozilla/geckoview/internal/NavisCoreBridge.java",
     ):
@@ -488,7 +486,6 @@ def verify_wrapper_graph(failures: list[str], widget_mozbuild: str) -> None:
     for stem in (
         "AndroidAccessibilityBridge",
         "AndroidWebExecutorBridge",
-        "GeckoVRManager",
     ):
         marker = f'"{stem}"'
         require(
@@ -660,6 +657,9 @@ def verify_generated_graph(
         gradle_configure,
         (
             "GRADLE_ANDROID_NAVIS_RUNTIME_VARIANT_NAME",
+            "@depends(developer_options)",
+            "def gradle_android_build_config(developer_options):",
+            'variant=variant("debug" if developer_options else "release")',
             '@depends(android_subproject)',
             'if subproject == "navis":',
             '"navis-runtime-android:generateSDKBindings"',

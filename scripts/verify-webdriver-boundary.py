@@ -16,7 +16,6 @@ WORKSPACE = pathlib.Path(__file__).resolve().parent.parent
 PRODUCT_MOZCONFIGS = (
     "../runtime/mozconfig.runtime",
     "../runtime/mozconfig.runtime.release",
-    "../runtime/mozconfig.runtime.no-webrtc.sccache",
     "../runtime/mozconfig.win64",
     "../runtime/mozconfig.win64.release",
 )
@@ -54,7 +53,7 @@ def verify_source(failures: list[str]) -> None:
             f"{relative} enables Gecko test-only product access",
         )
 
-    test_config = (WORKSPACE / "../runtime/mozconfig.runtime.no-webrtc.tests.sccache").read_text(
+    test_config = (WORKSPACE / "../runtime/mozconfig.linux-test-fixtures").read_text(
         encoding="utf-8"
     )
     require(

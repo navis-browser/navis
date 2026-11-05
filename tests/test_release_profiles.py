@@ -28,10 +28,13 @@ ac_add_options --enable-release
 ac_add_options --disable-cargo-incremental
 ac_add_options --with-ccache=sccache
 ac_add_options --enable-desktop-embedder
-ac_add_options --enable-webextensions-runtime
 ac_add_options --enable-webdriver
 ac_add_options --disable-observability-runtime
-ac_add_options --disable-webrtc
+ac_add_options --disable-web-push
+ac_add_options --disable-web-device-apis
+ac_add_options --disable-web-identity
+ac_add_options --disable-web-payments
+ac_add_options --disable-webxr
 """
 
 
@@ -44,10 +47,10 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         (root / "platform/gecko-chrome/config").mkdir(parents=True)
         (root / "runtime").mkdir()
         (root / "platform/gecko-chrome/config/version.txt").write_text(
-            "0.2.0\n", encoding="utf-8"
+            "0.3.0\n", encoding="utf-8"
         )
         (root / "platform/gecko-chrome/config/version_display.txt").write_text(
-            "0.2.0-dev\n", encoding="utf-8"
+            "0.3.0-dev\n", encoding="utf-8"
         )
         (root / "runtime/mozconfig.runtime.release").write_text(
             COMMON
@@ -77,13 +80,22 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             + "ac_add_options --disable-tests\n"
             + "ac_add_options --disable-release\n"
             + "ac_add_options --disable-cargo-incremental\n"
-            + "ac_add_options --enable-webextensions-runtime\n"
             + "ac_add_options --with-ccache=sccache\n"
+            + "ac_add_options --disable-web-push\n"
+            + "ac_add_options --disable-web-device-apis\n"
+            + "ac_add_options --disable-web-identity\n"
+            + "ac_add_options --disable-web-payments\n"
+            + "ac_add_options --disable-webxr\n"
             + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/"
             + "obj-navis-android-aarch64-sccache\n"
             + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
         )
+        release = (root / "runtime/mozconfig.android-aarch64.sccache").read_text().replace(
+            "ac_add_options --disable-release\n",
+            "ac_add_options --enable-release\nac_add_options --disable-debug\nac_add_options --enable-optimize\n",
+        ).replace("obj-navis-android-aarch64-sccache", "obj-navis-android-aarch64-release")
+        (root / "runtime/mozconfig.android-aarch64.release").write_text(release)
         return root
 
     def run_verifier(self, root: Path) -> tuple[int, str]:
@@ -99,6 +111,14 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         self.assertEqual(result, 0, output)
         self.assertIn("Windows x86_64", output)
         self.assertIn("Android aarch64", output)
+
+    def test_rejects_android_release_using_developer_options(self) -> None:
+        root = self.make_workspace()
+        path = root / "runtime/mozconfig.android-aarch64.release"
+        path.write_text(path.read_text().replace("--enable-release", "--disable-release"))
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("mozconfig.android-aarch64.release lacks ac_add_options --enable-release", output)
 
     def test_rejects_desktop_release_without_sccache(self) -> None:
         root = self.make_workspace()
@@ -116,11 +136,11 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
     def test_rejects_product_version_drift(self) -> None:
         root = self.make_workspace()
         (root / "platform/gecko-chrome/config/version_display.txt").write_text(
-            "0.2.0-preview\n", encoding="utf-8"
+            "0.3.0-preview\n", encoding="utf-8"
         )
         result, output = self.run_verifier(root)
         self.assertEqual(result, 1)
-        self.assertIn("must be 0.2.0-dev", output)
+        self.assertIn("must be 0.3.0-dev", output)
 
     def test_rejects_android_candidate_without_source_signing_policy(self) -> None:
         root = self.make_workspace()
@@ -189,6 +209,31 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         result, output = self.run_verifier(root)
         self.assertEqual(result, 1)
         self.assertIn("must own exactly MOZ_OBJDIR", output)
+
+    def test_rejects_desktop_release_without_web_push_cut(self) -> None:
+        root = self.make_workspace()
+        path = root / "runtime/mozconfig.runtime.release"
+        path.write_text(
+            path.read_text(encoding="utf-8").replace(
+                "ac_add_options --disable-web-push\n", ""
+            ),
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("lacks ac_add_options --disable-web-push", output)
+
+    def test_rejects_android_candidate_with_disabled_webrtc(self) -> None:
+        root = self.make_workspace()
+        path = root / "runtime/mozconfig.android-aarch64.sccache"
+        path.write_text(
+            path.read_text(encoding="utf-8")
+            + "ac_add_options --disable-webrtc\n",
+            encoding="utf-8",
+        )
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("contains ac_add_options --disable-webrtc", output)
 
 
 

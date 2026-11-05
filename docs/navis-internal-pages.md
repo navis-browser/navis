@@ -20,7 +20,7 @@ The registry is not a wildcard. A build may add a page only by adding an owned r
 
 `navis://settings/` is a bounded route family rather than permission for arbitrary paths. Core recognizes only registered subroutes; every other path fails closed. The settings shell follows Chrome's observable information architecture and Material behavior, but its controls come exclusively from the Navis capability matrix. It does not load, frame or re-skin Firefox preferences or support documents.
 
-`navis://support/` follows the same capability boundary. It is a concise local troubleshooting report for the Navis application, retained Gecko engine paths, graphics/media/network paths Navis actually hosts, current capability switches, and the operating environment. It is not a reconstruction of Firefox `about:support`, nor a place to speculate about future Navis features. Updater/channel state, account sync, Safe Browsing, Push, Widevine, telemetry, crash submission, user-installable add-ons, enterprise policy and other absent product systems have no row or placeholder. Adding a diagnostic requires an implemented capability or a concrete runtime dependency plus a regression that proves the value comes from the active package rather than a hard-coded claim. Development-only interfaces such as WebDriver stay out of the default user report even when the release package retains them for automation.
+`navis://support/` follows the same capability boundary. It is a concise local troubleshooting report for the Navis application, retained Gecko engine paths, graphics/media/network paths Navis actually hosts, current capability switches, and the operating environment. It is not a reconstruction of Firefox `about:support`, nor a place to speculate about future Navis features. Updater/channel state, account sync, Safe Browsing, Web Push, Widevine, telemetry, crash submission, an online extension store, enterprise policy and other absent product systems have no row or placeholder. Retained local-extension, WebRTC and media-capture facts may appear only as diagnostics backed by the active package. Adding a diagnostic requires an implemented capability or a concrete runtime dependency plus a regression that proves the value comes from the active package rather than a hard-coded claim. Development-only interfaces such as WebDriver stay out of the default user report even when the release package retains them for automation.
 
 `navis://settings/help` is the Navis-owned About surface. Its footer is part of the localized page, not imported Firefox chrome: the `en-US` catalogue credits William Varmus and the `zh-CN` catalogue credits 冷曜. The following localized line attributes the Mozilla Gecko open-source project and the other open-source software that makes Navis possible. This preserves the distinction between Navis product authorship and the engine/software provenance; it neither rebrands Gecko as Navis code nor restores a Firefox About page. Footer presence and both language variants are deterministic internal-page test fixtures.
 
@@ -43,7 +43,7 @@ The omnibox and site-information panel never classify an internal page by testin
 3. the resulting channel and document principal carry the Navis internal-page identity; and
 4. Core froze that identity into the current navigation/security snapshot.
 
-Platform may then show a dedicated product mark and the label “Navis internal page”. It must not reuse wording or artwork that means an HTTPS peer was authenticated. The identity means that the page code and assets came from the installed Navis package; it does not describe a remote encrypted connection.
+Platform then shows a small functional shield and the label “Navis internal page”. The same shield is used in the toolbar and site-information summary, while in-page product marks and favicons retain the Navis brand. The shield identifies locally packaged page code and assets; it does not describe a remote encrypted connection or authenticate an HTTPS peer. Internal, extension, Web and error identities retain distinct labels and artwork.
 
 A title, path, fragment, user-info field, percent-encoded string, redirect parameter or DOM mutation containing the characters `navis://` can never produce this identity. A web document cannot embed or top-level navigate to a privileged internal page. Browser-owned navigation and links from another authorized internal page are explicit protocol-handler operations.
 
@@ -55,6 +55,7 @@ Navis deliberately does **not** rename that Gecko ABI to `navis-extension://` an
 
 - The protocol handler resolves exact page identifiers to packaged resources; it has no DNS, network, file-system or search fallback.
 - Each internal page has an explicit privilege/bridge allowlist. Merely using the scheme does not grant every page every Core command.
+- Internal-page link activation is routed through the authenticated page actor to the owning browser Session. The parent revalidates the current document, principal, Session and exact destination before browser-owned navigation; ordinary content-triggered loads never gain permission to load the dangerous protocol. The listener uses system-group capture so content handlers can cancel first and the link's native default action has not yet run. Trusted primary, keyboard, modified and middle-button activations retain their navigation dispositions, while synthetic and malformed internal activations fail closed. Same-document fragments and settings SPA route changes retain their existing behavior.
 - Page scripts and styles are packaged. Remote scripts, inline script created from remote data and untrusted HTML injection are forbidden by a restrictive Content Security Policy.
 - Internal documents are not normal Web origins. Web content cannot obtain their principal, read them, frame them, open a scripting relationship with them or use them as a privilege trampoline.
 - URL query/fragment values and data returned by Core are untrusted display data until validated and escaped. No secret, password or certificate object is serialized into an internal-page URL.
@@ -64,6 +65,8 @@ Navis deliberately does **not** rename that Gecko ABI to `navis-extension://` an
 ## Certificate and site-information presentation
 
 The toolbar's leading identity control opens a Chrome/Material-style site-information surface. HTTPS pages receive connection and certificate facts from Gecko/NSS through the Core security snapshot. A certificate-details action opens a Navis-owned Platform dialog or internal component using sanitized immutable certificate records; it does not restore Firefox's `about:certificate`/certificate-viewer frontend.
+
+Appearance provides a persistent, default-enabled “Show certificate organization” switch. It immediately controls only the HTTPS toolbar Organization label: enabled uses the available width, disabled keeps the site-information icon alone. The site-information surface and certificate details retain the organization value independently of this display choice. Other identity labels and warnings are unaffected.
 
 On a `navis://` document the same anchor instead shows the Navis internal-page identity, page name and package provenance. It does not invent certificate fields. On a registered built-in extension it shows the distinct built-in extension identity. These three states have separate accessible names and regression fixtures.
 
@@ -78,7 +81,7 @@ The Linux and Windows release gates must prove at least:
 1. every registry entry opens from direct entry and from `navis://urls`;
 2. every unknown or malformed `navis://` URL fails closed without network fallback;
 3. web content cannot frame, script, fetch or spoof the internal identity;
-4. `about:blank` and `about:srcdoc` retain their Web-platform behavior but do not receive a Navis mark;
+4. `about:blank` and `about:srcdoc` retain their Web-platform behavior but do not receive the internal-page identity;
 5. excluded Firefox pages and product aliases are unreachable;
 6. internal, built-in-extension, valid HTTPS, HTTP and certificate-error identities are distinguishable in Core, accessibility and screenshots; and
 7. pages pass keyboard, scale, theme, long-CJK-value and packaged-resource audits under the common Navis UI standard.

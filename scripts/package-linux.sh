@@ -60,7 +60,8 @@ fi
 export MOZ_BUILD_DATE="$build_id"
 
 python3 "$navis_dir/../runtime/scripts/verify-core-abi.py"
-python3 "$navis_dir/scripts/verify-deferred-web-apis.py"
+python3 "$navis_dir/scripts/verify-excluded-web-apis.py"
+python3 "$navis_dir/scripts/verify-certificate-security.py"
 python3 "$navis_dir/scripts/verify-remote-settings-policy.py"
 python3 "$navis_dir/scripts/verify-clean-links-policy.py"
 python3 "$navis_dir/scripts/verify-builtin-extensions.py"

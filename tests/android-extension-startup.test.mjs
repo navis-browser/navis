@@ -27,6 +27,7 @@ const settle = () => new Promise(resolve => setImmediate(resolve));
 
 function harness(source = moduleSource) {
   const events = [];
+  const initializers = [];
   const tasks = [];
   const observers = new Map();
   const ExtensionParent = {};
@@ -52,6 +53,12 @@ function harness(source = moduleSource) {
           vm.runInContext(resetSource, context);
         }
         return { ExtensionParent };
+      }
+      if (path === "resource://gre/modules/CertificateSecurity.sys.mjs") {
+        return { initializeCertificateSecurity: () => initializers.push("certificate-security") };
+      }
+      if (path === "resource://gre/modules/NavisDocuments.sys.mjs") {
+        return { initializeNavisPDF: () => initializers.push("pdf") };
       }
       assert.ok(path.endsWith("/NavisAndroidExtensionTabTopology.sys.mjs"));
       return { NavisAndroidExtensionTabTopology: context.topologyUnderTest };
@@ -116,11 +123,12 @@ function harness(source = moduleSource) {
     await context.backgroundAPI.onManifestEntry();
     return { extension, builds: () => builds };
   }
-  return { startup, window, publish, tick, events, tasks, background, ExtensionParent };
+  return { startup, window, publish, tick, events, initializers, tasks, background, ExtensionParent };
 }
 
 test("cold persistent background remains primed until product startup then starts once", async () => {
   const state = harness();
+  assert.deepEqual(state.initializers, ["certificate-security", "pdf"]);
   const host = state.window(1);
   const background = await state.background();
   assert.equal(background.builds(), 0, "APP_STARTUP is not ADDON_ENABLE");

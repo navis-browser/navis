@@ -14,8 +14,8 @@ import sys
 from pathlib import Path
 
 
-BASE_VERSION = "0.2.0"
-DISPLAY_VERSION = "0.2.0-dev"
+BASE_VERSION = "0.3.0"
+DISPLAY_VERSION = "0.3.0-dev"
 ANDROID_VERSION_CODE_EPOCH = 1_577_836_800
 ANDROID_VERSION_CODE_BASE = 100_000_000
 ANDROID_VERSION_CODE_MAX = 2_100_000_000
@@ -267,6 +267,9 @@ def verify(root: Path) -> list[str]:
         ),
     )
     allowed_paths = {
+        "intl/l10n/rust/l10nregistry-ffi/src/registry.rs",
+        "intl/l10n/test/test_l10nregistry_ipc_index.js",
+        "intl/l10n/test/xpcshell.toml",
         "mobile/android/branding/unofficial/content/jar.mn",
         "mobile/android/branding/unofficial/locales/jar.mn",
         "mobile/android/geckoview/build.gradle",
@@ -302,10 +305,10 @@ def verify(root: Path) -> list[str]:
         entry = matches[0]
         require(
             failures,
-            entry.get("order") == 23
-            and len(ports) >= 23
-            and ports[22].get("id") == PORT_ID,
-            "product identity semantic port is not the contiguous order-23 entry",
+            entry.get("order") == 22
+            and len(ports) >= 22
+            and ports[21].get("id") == PORT_ID,
+            "product identity semantic port is not the contiguous order-22 entry",
         )
         require(
             failures,
@@ -341,7 +344,7 @@ def main() -> int:
             print(f"FAIL: {failure}", file=sys.stderr)
         return 1
     print(
-        "Navis product identity passes: 0.2.0-dev, Android version policy, "
+        f"Navis product identity passes: {DISPLAY_VERSION}, Android version policy, "
         "Firefox-compatible Navis UA and WebExtension projection"
     )
     return 0

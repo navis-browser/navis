@@ -134,7 +134,11 @@ const support = renderNavisInternalPage({
     ],
     media: [["diagnostics.audioBackend", "PipeWire"]],
     network: [["diagnostics.proxyMode", "System proxy"]],
-    capabilities: [["diagnostics.webAuthn", "Included"]],
+    capabilities: [
+      ["diagnostics.webAuthn", "Included"],
+      ["diagnostics.mediaCapture", "Included"],
+      ["diagnostics.peerConnection", "Included"],
+    ],
     system: [["diagnostics.operatingSystem", "Linux"]],
   },
   nonce: "test-nonce",
@@ -158,6 +162,8 @@ assert.match(support, /Loading…/u);
 assert.match(support, /GPU process/u);
 assert.match(support, /Copy diagnostic information/u);
 assert.match(support, /Security and capabilities/u);
+assert.match(support, /Camera and microphone capture/u);
+assert.match(support, /WebRTC PeerConnection/u);
 assert.match(support, /state\.diagnostics/u);
 assert.match(support, /<script nonce="test-nonce">/u);
 assert.equal(support.match(/<script nonce="test-nonce">/gu)?.length, 4);

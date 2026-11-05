@@ -17,6 +17,8 @@ if [[ ! -d "$runtime_dir" ]]; then
   fail "directory does not exist: $runtime_dir"
 fi
 
+python3 "$workspace_dir/scripts/verify-certificate-security.py" --runtime "$runtime_dir"
+
 python3 "$workspace_dir/scripts/verify-remote-settings-policy.py" \
   --runtime "$runtime_dir"
 python3 "$workspace_dir/scripts/verify-clean-links-policy.py" \
@@ -25,7 +27,7 @@ python3 "$workspace_dir/scripts/verify-spellcheck.py" \
   --runtime "$runtime_dir"
 python3 "$workspace_dir/scripts/verify-webauthn.py" \
   --runtime "$runtime_dir"
-python3 "$workspace_dir/scripts/verify-deferred-web-apis.py" \
+python3 "$workspace_dir/scripts/verify-excluded-web-apis.py" \
   --runtime "$runtime_dir"
 
 required_common=(
@@ -299,15 +301,23 @@ for registration in "${required_extension_registrations[@]}"; do
 done
 
 if rg --quiet \
-  '(^browser/|^chrome/toolkit/content/global/(?:ml/|about(?:Glean|Telemetry)|gmp-sources/)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|GMPInstallManager|GMPUtils|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/GMPExtractor\.worker\.js$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/addons/GMPProvider\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$|^actors/Printing[^/]*\.sys\.mjs$)' \
+  '(^browser/|^chrome/toolkit/content/global/(?:ml/|about(?:Glean|Telemetry)|gmp-sources/widevinecdm(?:_l1)?\.json$)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$)' \
   "$omni_file"; then
   fail "disabled Firefox product subsystem entered omni.ja"
 fi
 
+if rg --quiet \
+  '^modules/(?:ChromePushSubscription|Push(?:BroadcastService|Components|Crypto|DB|Record|Service|ServiceWebSocket)?)\.sys\.mjs$' \
+  "$omni_file"; then
+  fail "disabled Web Push runtime entered omni.ja"
+fi
+
 if rg --fixed-strings --line-regexp --quiet \
   'category addon-provider-module GMPProvider resource://gre/modules/addons/GMPProvider.sys.mjs' \
-  "$extension_manifest_file"; then
-  fail "disabled GMP product provider entered omni.ja"
+  "$extension_manifest_file" && ! rg --quiet \
+  '^modules/(?:DesktopEmbedderWebRTCChild|DesktopEmbedderWebRTCParent)\.sys\.mjs$' \
+  "$omni_file"; then
+  fail "GMP product provider entered a runtime without WebRTC or EME"
 fi
 
 if awk '

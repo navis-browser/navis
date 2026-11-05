@@ -49,6 +49,9 @@ function fixture(initialAccent = NAVIS_DEFAULT_ACCENT) {
   const routes = ["search", "privacy", "appearance", "downloads", "help"];
   const links = routes.map(route => Object.assign(new Control(), { href: `navis://settings/${route}`, textContent: route, dataset: { settingsRoute: route } }));
   const sections = routes.map(route => Object.assign(new Control(), { dataset: { settingsSection: route } }));
+  const organizationToggle = Object.assign(node("appearance-showCertificateOrganization"), {
+    dataset: { settingGroup: "appearance", settingKey: "showCertificateOrganization" },
+  });
   const window = new Control();
   window.NavisL10n = { text: key => key };
   const requests = [];
@@ -61,7 +64,8 @@ function fixture(initialAccent = NAVIS_DEFAULT_ACCENT) {
     documentElement: { dataset: {}, style: { setProperty() {} } },
     getElementById: node,
     querySelectorAll: selector => selector === "[data-settings-route]" ? links
-      : selector === "[data-settings-section]" ? sections : [],
+      : selector === "[data-settings-section]" ? sections
+      : selector === "[data-setting-key]" ? [organizationToggle] : [],
     querySelector: () => null,
     dispatchEvent(event) {
       const request = structuredClone(event.detail);
@@ -212,4 +216,19 @@ function fixture(initialAccent = NAVIS_DEFAULT_ACCENT) {
   assert.equal(f.node("appearance-accent-reset").disabled, true);
 }
 
-console.log("PASS actual settings script with event stubs: focus/read/change races, preview draft, coalesced pending writes, cancel without save, and explicit default reset; no browser or page inspection");
+// The boolean control uses the same authenticated operation and snapshot flow.
+{
+  const f = fixture();
+  const toggle = f.node("appearance-showCertificateOrganization");
+  assert.equal(toggle.getAttribute("aria-checked"), "true");
+  assert.equal(toggle.disabled, false);
+  for (const visible of [false, true]) {
+    toggle.fire("click");
+    assert.deepEqual(f.writes().at(-1).value, { key: "showCertificateOrganization", value: visible });
+    f.reply();
+    assert.equal(toggle.getAttribute("aria-checked"), String(visible));
+    assert.equal(f.values.get("navis.appearance.showCertificateOrganization"), visible);
+  }
+}
+
+console.log("PASS actual settings script with event stubs: focus/read/change races, preview draft, coalesced pending writes, cancel without save, explicit default reset, and certificate organization switch; no browser or page inspection");

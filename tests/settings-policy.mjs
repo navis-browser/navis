@@ -67,7 +67,15 @@ assert.equal(readSearchProviders(prefs), NAVIS_BUILTIN_SEARCH_PROVIDERS);
 prefs.setStringPref("navis.search.providers", "broken");
 assert.equal(readSearchProviders(prefs), NAVIS_BUILTIN_SEARCH_PROVIDERS);
 
-assert.deepEqual(readAppearanceSettings(prefs), { theme: "system", accent: "#0b57d0", defaultAccent: NAVIS_DEFAULT_ACCENT, bookmarkBar: "always", historyButton: false });
+assert.deepEqual(readAppearanceSettings(prefs), { theme: "system", accent: "#0b57d0", defaultAccent: NAVIS_DEFAULT_ACCENT, bookmarkBar: "always", historyButton: false, showCertificateOrganization: true });
+for (const visible of [false, false, true]) {
+  const snapshot = setAppearanceSetting(prefs, "showCertificateOrganization", visible);
+  assert.equal(snapshot.showCertificateOrganization, visible);
+  assert.equal(prefs.values.get("navis.appearance.showCertificateOrganization"), visible);
+  const reopened = preferences();
+  for (const [key, value] of prefs.values) reopened.values.set(key, value);
+  assert.equal(readAppearanceSettings(reopened).showCertificateOrganization, visible, "A new settings reader retains the explicit choice");
+}
 prefs.setBoolPref("navis.history.sidebar.visible", true);
 assert.equal(readAppearanceSettings(prefs).historyButton, true, "Legacy visibility remains the fallback until the new preference is explicitly chosen");
 prefs.setBoolPref("navis.history.button.visible", false);
@@ -82,7 +90,7 @@ setAppearanceSetting(prefs, "accent", "#AB12cd");
 assert.equal(readAppearanceSettings(prefs).accent, "#ab12cd");
 setAppearanceSetting(prefs, "bookmarkBar", "newtab");
 assert.equal(readAppearanceSettings(prefs).bookmarkBar, "newtab");
-for (const [key, value] of [["theme", "other"], ["accent", "red"], ["historyButton", 1], ["unknown", true]]) {
+for (const [key, value] of [["theme", "other"], ["accent", "red"], ["historyButton", 1], ["showCertificateOrganization", "false"], ["showCertificateOrganization", 0], ["showCertificateOrganization", null], ["unknown", true]]) {
   const before = new Map(prefs.values);
   assert.throws(() => setAppearanceSetting(prefs, key, value));
   assert.deepEqual(prefs.values, before);
@@ -104,6 +112,9 @@ for (const locale of ["en-US", "zh-CN"]) {
     assert.equal(nav.includes('href="navis://downloads/"'), false);
     assert.equal(nav.includes('href="navis://history/"'), false);
     assert.equal([...html.matchAll(/data-settings-section="/g)].length, 5);
+    const organizationToggle = html.match(/<button[^>]*data-setting-key="showCertificateOrganization"[^>]*>/)?.[0] ?? "";
+    assert.match(organizationToggle, /role="switch"/);
+    assert.match(organizationToggle, /data-setting-group="appearance"/);
     assert.match(html, /history\.pushState\(null, "", link\.href\)/);
     assert.match(html, /addEventListener\("popstate"/);
     assert.match(html, /if \(!provider\.builtIn\)/);
@@ -353,5 +364,23 @@ actor.receiveMessage({ name: "DesktopInternalPage:DownloadsChanged", data: { rev
 sendActorCommand("NavisManagementCommand", "downloads:acknowledge", [{ id: "x", token: "x" }]);
 assert.equal(responses.length, responseCount, "Download pushes cannot leak to another internal route");
 assert.equal(requests.length, requestCount);
-console.log("PASS settings policy: provider CRUD/rejection, appearance, downloads, six SPA entries in two languages, successful/rejected SPA click handling, download cleanup ownership, and independent settings/diagnostic responses");
+setActorRoute("settings", "appearance");
+for (const value of [false, true]) {
+  const before = requests.length;
+  sendActorCommand("NavisSettingsCommand", "settings:set-appearance", { key: "showCertificateOrganization", value });
+  assert.equal(requests.length, before + 1, "The authenticated appearance bridge accepts boolean choices");
+  assert.deepEqual(structuredClone(requests.at(-1).data.value), { key: "showCertificateOrganization", value });
+  requests.at(-1).resolve({ pageKey: "settings/appearance", outcome: "appearance-updated", appearance: { showCertificateOrganization: value } });
+  await settleActor();
+  assert.equal(responses.at(-1).detail.appearance.showCertificateOrganization, value);
+}
+const organizationRequestCount = requests.length;
+for (const value of ["false", 0, null, {}, undefined]) {
+  sendActorCommand("NavisSettingsCommand", "settings:set-appearance", { key: "showCertificateOrganization", value });
+}
+sendActorCommand("NavisSettingsCommand", "settings:set-download", { key: "showCertificateOrganization", value: false });
+setActorRoute("credits");
+sendActorCommand("NavisSettingsCommand", "settings:set-appearance", { key: "showCertificateOrganization", value: false });
+assert.equal(requests.length, organizationRequestCount, "Wrong types, groups and page identities cannot write the setting");
+console.log("PASS settings policy: provider CRUD/rejection, appearance persistence/type validation, downloads, six SPA entries in two languages, successful/rejected SPA click handling, download cleanup ownership, and independent settings/diagnostic responses");
 console.log("PASS download actor: bounded foreground receipts, mutation replies preserved, route-scoped live pushes");

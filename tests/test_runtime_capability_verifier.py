@@ -21,6 +21,69 @@ SPEC.loader.exec_module(VERIFIER)
 
 
 class RuntimeCapabilityVerifierTests(unittest.TestCase):
+    def test_maintained_profiles_follow_the_single_product_contract(self) -> None:
+        ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
+        self.assertEqual(set(ledger["profiles"]), {ledger["profile"]})
+        _, capabilities = VERIFIER.resolve_profile(ledger, None)
+        selected = {item["id"]: item for item in capabilities}
+        for capability in ("media-capture", "webrtc-peer-connection", "jpeg-xl-image-decoding"):
+            self.assertEqual(selected[capability]["state"], "required", capability)
+        for config in (WORKSPACE.parent / "runtime").glob("mozconfig.*"):
+            self.assertNotIn("ac_add_options --disable-webrtc", config.read_text(), config.name)
+
+    def test_default_profile_cuts_push_and_retains_media_graphs(self) -> None:
+        ledger = json.loads(
+            (WORKSPACE / "config/runtime-capabilities.json").read_text(
+                encoding="utf-8"
+            )
+        )
+        profile, capabilities = VERIFIER.resolve_profile(ledger, None)
+        self.assertEqual(profile, "desktop-embedder-core")
+        selected = {
+            item["id"]: item
+            for item in capabilities
+            if item["id"] in {"web-push", "media-capture", "screen-capture", "webrtc-peer-connection"}
+        }
+        self.assertEqual(selected["screen-capture"]["state"], "excluded")
+        self.assertEqual(selected["web-push"]["state"], "excluded")
+        self.assertEqual(
+            {selected[key]["state"] for key in ("media-capture", "webrtc-peer-connection")},
+            {"required"},
+        )
+        self.assertEqual(selected["web-push"]["checks"]["config"], {"MOZ_WEB_PUSH": False})
+        self.assertEqual(selected["web-push"]["checks"]["graph_forbidden"], ["^dom/push/"])
+        self.assertEqual(
+            selected["web-push"]["checks"]["omni_forbidden"],
+            [
+                "^modules/(?:ChromePushSubscription|Push(?:BroadcastService|Components|Crypto|DB|Record|Service|ServiceWebSocket)?)\\.sys\\.mjs$"
+            ],
+        )
+        self.assertEqual(
+            selected["media-capture"]["checks"]["config"], {"MOZ_WEBRTC": True}
+        )
+        self.assertEqual(
+            selected["webrtc-peer-connection"]["checks"]["config"],
+            {"MOZ_WEBRTC": True},
+        )
+        self.assertIn(
+            "modules/DesktopEmbedderWebRTCParent.sys.mjs",
+            selected["media-capture"]["checks"]["omni_required"],
+        )
+        self.assertEqual(
+            selected["screen-capture"]["checks"]["omni_content_required"][
+                "defaults/pref/navis.js"
+            ],
+            [
+                'pref\\("media\\.getdisplaymedia\\.enabled", false, locked\\);',
+                'pref\\("media\\.getusermedia\\.screensharing\\.enabled", false, locked\\);',
+            ],
+        )
+
+    def test_unknown_profile_is_rejected(self) -> None:
+        ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
+        with self.assertRaisesRegex(ValueError, "unknown capability profile"):
+            VERIFIER.resolve_profile(ledger, "unknown-profile")
+
     def test_managed_storage_guard_retains_unconditional_desktop_rejection(self) -> None:
         ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
         entry = "chrome/toolkit/content/extensions/parent/ext-storage.js"
@@ -95,8 +158,6 @@ class RuntimeCapabilityVerifierTests(unittest.TestCase):
 
         forbidden_entries = [
             "chrome/toolkit/content/global/gmp-sources/widevinecdm.json",
-            "modules/GMPInstallManager.sys.mjs",
-            "modules/addons/GMPProvider.sys.mjs",
         ]
         failures: list[str] = []
         VERIFIER.forbid_patterns(
@@ -108,21 +169,6 @@ class RuntimeCapabilityVerifierTests(unittest.TestCase):
         )
         self.assertEqual(len(failures), len(forbidden_entries))
 
-        with tempfile.TemporaryDirectory() as temporary:
-            omni = pathlib.Path(temporary) / "omni.ja"
-            with zipfile.ZipFile(omni, "w") as archive:
-                archive.writestr(
-                    "components/components.manifest",
-                    "category addon-provider-module GMPProvider "
-                    "resource://gre/modules/addons/GMPProvider.sys.mjs\n",
-                )
-
-            content_failures: list[str] = []
-            VERIFIER.verify_omni_contents(
-                "encrypted-media", checks, omni, content_failures
-            )
-            self.assertEqual(len(content_failures), 1)
-            self.assertIn("forbidden omni file", content_failures[0])
 
     def test_observability_policy_rejects_the_complete_dap_closure(self) -> None:
         ledger = json.loads(

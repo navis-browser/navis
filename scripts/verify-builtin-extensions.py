@@ -22,8 +22,7 @@ REQUIRED_SIGNATURES = {
 PRODUCTION_MOZCONFIGS = (
     "../runtime/mozconfig.runtime",
     "../runtime/mozconfig.runtime.release",
-    "../runtime/mozconfig.runtime.no-webrtc.sccache",
-    "../runtime/mozconfig.runtime.no-webrtc.tests.sccache",
+    "../runtime/mozconfig.linux-test-fixtures",
     "../runtime/mozconfig.win64",
     "../runtime/mozconfig.win64.release",
 )
@@ -240,8 +239,6 @@ def main() -> int:
             mozconfig = mozconfig_path.read_text(encoding="utf-8")
         except OSError as error:
             fail(f"cannot read production profile {mozconfig_path}: {error}")
-        if "ac_add_options --enable-webextensions-runtime" not in mozconfig:
-            fail(f"production profile does not retain built-ins: {relative}")
         if "ac_add_options --disable-webextensions-runtime" in mozconfig:
             fail(f"production profile disables built-ins: {relative}")
 

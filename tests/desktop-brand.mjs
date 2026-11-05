@@ -19,7 +19,7 @@ for (const path of [NAVIS_MARK.channel.path, ...NAVIS_MARK.seams.paths]) {
 }
 const markup = renderNavisMark("navis-test", { animated: true });
 assert.match(markup, /viewBox="0 0 220 220"/);
-assert.match(markup, /x="22" y="22" width="176" height="176" rx="40"/);
+assert.match(markup, /x="22" y="22" width="176" height="176" rx="88"/);
 assert.match(markup, /transform="rotate\(42 110 110\)"/);
 assert.match(markup, /stroke-width="22\.5"/);
 assert.equal((markup.match(/stroke-width="6\.8"/g) || []).length, 2);
@@ -69,7 +69,33 @@ assert(walk(first).some(node => node.attributes.d === NAVIS_MARK.channel.path));
 const reusedChildren = first.children;
 setIcon(container, "navis");
 assert.equal(first.children, reusedChildren, "Repeated Session identity updates reuse brand filters and gradients");
+setIcon(container, "navisTab");
+const tabViewBox = first.attributes.viewBox.split(" ").map(Number);
+assert.deepEqual(tabViewBox, NAVIS_MARK.tabIcon.viewBox);
+assert.equal(first.attributes["data-icon"], "navisTab");
+assert(Math.abs(NAVIS_MARK.contour.width / tabViewBox[2] * 16 - 15) < 0.05,
+  "The Tab mark fills approximately 15px of the unchanged 16px icon slot");
+const tabSeams = walk(first).filter(node => node.attributes.stroke === NAVIS_MARK.seams.color);
+assert.deepEqual(tabSeams.map(node => node.attributes.d), NAVIS_MARK.seams.paths,
+  "Optical correction retains both canonical seam centerlines");
+assert(tabSeams.every(node => node.attributes["stroke-width"] / tabViewBox[2] * 16 === 1),
+  "Both Tab seams remain one CSS pixel at the normal icon size");
+assert(!walk(first).some(node => node.localName === "filter" || node.localName === "feDropShadow"));
+const tabChildren = first.children;
+setIcon(container, "navisTab");
+assert.equal(first.children, tabChildren, "Frequent Tab updates retain the scoped SVG nodes");
+setIcon(container, "loading");
+assert.equal(first.attributes.viewBox, "0 0 20 20", "Loading restores the functional-icon viewport");
+setIcon(container, "navisTab");
+assert.deepEqual(first.attributes.viewBox.split(" ").map(Number), tabViewBox);
+setIcon(container, "navis");
+assert.equal(first.attributes.viewBox, "0 0 220 220", "Other compact brand icons retain their original padding");
+assert(walk(first).filter(node => node.attributes.stroke === NAVIS_MARK.seams.color)
+  .every(node => node.attributes["stroke-width"] === NAVIS_MARK.seams.strokeWidth));
 assert.throws(() => createIcon(document, "unknown"), /Unknown Navis icon/);
+const iconStyle = await readFile(new URL("../../platform/gecko-chrome/chrome/content/design-system.css", import.meta.url), "utf8");
+assert.match(iconStyle, /\.navis-icon\[data-icon="navis"\],\s*\.navis-icon\[data-icon="navisTab"\]\s*\{\s*stroke: none;/,
+  "Both brand variants suppress the functional-icon stroke inherited by SVG clip geometry");
 
 const diagnostics = { application: [], engine: [], graphics: [], media: [], network: [], capabilities: [], system: [] };
 for (const locale of ["en-US", "zh-CN"]) {
@@ -88,6 +114,8 @@ for (const locale of ["en-US", "zh-CN"]) {
 }
 const shell = await readFile(new URL("../../platform/gecko-chrome/chrome/content/main.mjs", import.meta.url), "utf8");
 assert.match(shell, /const useFavicon = icon === "globe" && Boolean\(state\.favicon\)/);
+assert.match(shell, /state\.identity === "internal-page"\) \{\s+icon = "navisTab";/,
+  "Only authenticated internal-page Tabs select the small-size brand variant");
 assert.match(shell, /if \(hasVisibleLoading\(state\)\) \{\s+icon = "loading";/, "Ordinary web loading retains its semantic progress icon");
 const jar = await readFile(new URL("../../platform/gecko-chrome/chrome/jar.mn", import.meta.url), "utf8");
 assert.match(jar, /content\/brand\.mjs\s+\(content\/brand\.mjs\)/);
@@ -157,6 +185,15 @@ preference.intersection(true);
 preference.media.matches = true;
 preference.media.emit("change");
 assert.equal(preference.mark.dataset.brandEntrance, "done");
+const unloading = lifecycle();
+unloading.intersection(true);
+let writes = 0;
+unloading.mark.dataset = new Proxy(unloading.mark.dataset, { set(target, key, value) { writes++; target[key] = value; return true; } });
+unloading.owner.emit("pagehide");
+assert.equal(writes, 0, "pagehide only releases resources; no style/attribute writes to a dying page");
+assert.equal(unloading.observer.disconnected, true);
+unloading.owner.emit("pageshow");
+assert.equal(unloading.mark.dataset.brandEntrance, "done", "BFCache return must not restart the entrance");
 assert.match(NAVIS_BRAND_STYLE, /prefers-reduced-motion: reduce/);
 assert.match(NAVIS_BRAND_STYLE, /720ms/);
 assert.match(NAVIS_BRAND_STYLE, /920ms 420ms/);

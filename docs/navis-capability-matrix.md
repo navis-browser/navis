@@ -46,17 +46,17 @@ Navigation to arbitrary HTTP and HTTPS URLs, including user-entered public or pr
 | WebAuthn/passkeys/security keys | MUST | Retain Gecko's WebAuthn path and expose failures as product-safe state. |
 | Accessibility tree and keyboard access | MUST | Gecko platform accessibility remains compiled; Navis chrome must also be operable without pointer-only controls. |
 | Clipboard, text selection, keyboard, pointer, wheel and IME input | MUST | Includes CJK input and ordinary user-activated copy/paste. |
-| Remote security/compatibility data with signature validation | RETAIN | Certificate/security data and justified Remote Settings collections are not telemetry. Endpoints and ownership remain auditable. |
+| Packaged security/compatibility data | RETAIN | Reviewed trust, OneCRL, CT and justified settings snapshots update with user-installed application packages. No background Remote Settings service. CT expiry and maintenance gates follow [certificate security](certificate-security-maintenance.md). |
 | Gecko WebExtensions execution runtime | MUST | Retain XPIProvider, remote extension lifecycle, content scripts, network interception, extension storage and the bounded `browser.*` profile in `navis-extension-platform.md`. The runtime remains Core-private while generic frozen inventory/action/permission contracts are product-visible. |
 | Upstream uBlock Origin | MUST | A reviewed, unmodified official Firefox XPI is loaded from an immutable application-owned location in every production build. It cannot be uninstalled, can be disabled/re-enabled by the user, and is shared by desktop and the Android backend. |
 | Safe-browsing/reputation protection | EXCLUDE | Navis has no phishing/malware URL-reputation provider, dangerous-download reputation service, or product claim that such protection exists. Provider/list updates, reputation warnings and provider attribution are absent. TLS validation, certificate errors, same-origin enforcement, sandboxing and the built-in blocker remain separate protections. |
 | WebTransport and other Gecko Web-platform APIs | RETAIN | Follow the pinned ESR's supported implementation and exposure policy unless this matrix explicitly records an exclusion. Target-site observation is regression evidence, not a standards-selection mechanism. |
 | Geolocation provider | MUST | Core retains Gecko's Web API and per-origin permission boundary; Platform obtains coordinates from the native OS path: XDG Location Portal/GeoClue on Linux and `Windows.Devices.Geolocation` on Windows. Navis sends no location query to a Google/Mozilla endpoint and returns the standard unavailable result when the OS cannot provide a position. |
 | Web Notifications and native delivery | MUST | Permission, page-created notifications and Linux/Windows native delivery are required. |
-| Web Push | EXCLUDE | The entire content-facing Push API is absent, including `pushManager`, `PushManager`, Push subscription objects/events and Service Worker `onpush`/`onpushsubscriptionchange` entry points. No Mozilla Autopush endpoint, replacement Push service, subscription store or background connection is present. Service Workers, Cache Storage and Notifications remain independent capabilities. |
-| WebUSB, WebBluetooth, WebSerial, WebHID and WebMIDI | DEFER | No device-permission/product UI promise. Pinned-ESR source may remain, but content exposure is locked absent until a later capability decision supplies the full permission and chooser contract. |
-| WebXR | DEFER | No headset/session product contract. Legacy WebVR and WebXR content exposure are locked absent while their source may remain. |
-| Payment Request, federated identity and digital-credential product integrations | DEFER | Their content exposure is locked absent. Ordinary site forms, OAuth redirects/popups and WebAuthn remain available. |
+| Web Push | EXCLUDE | `PushManager`, Push subscription objects/events, push-service runtime and Service Worker push event handlers are absent. Service Workers, Cache Storage and Web Notifications remain independent capabilities. |
+| WebUSB, WebBluetooth, WebSerial, WebHID and WebMIDI | EXCLUDE | Dedicated Web bindings, IPC, native device services and product permission/chooser/use UI are absent on Linux, Windows and Android. Ordinary input, gamepads, Bluetooth audio and camera/microphone use remain available. |
+| WebXR | EXCLUDE | WebXR, legacy WebVR and their dedicated native runtimes, GPU IPC and JNI are absent. Ordinary WebGL, WebGPU, graphics and gamepads remain available. |
+| Payment Request, federated identity and digital credentials | EXCLUDE | Payment Request, FedCM and Digital Credentials bindings, native services and product UI are absent. Ordinary forms, website sign-in/OAuth redirects, local passwords and WebAuthn/passkeys/security keys remain available. |
 
 ## Graphics, images and media
 
@@ -74,9 +74,9 @@ Navigation to arbitrary HTTP and HTTPS URLs, including user-entered public or pr
 | Encrypted Media Extensions, including ClearKey | EXCLUDE | Navis exposes no EME surface to content: no `navigator.requestMediaKeySystemAccess`, `MediaKeys` family, encrypted-media members on `HTMLMediaElement`, or encrypted key-system branch through Media Capabilities. Ordinary unencrypted HTML media, codecs and Media Source Extensions remain required. |
 | Widevine DRM/CDM | EXCLUDE | No Widevine module, identifier advertisement, download/distribution path, DRM product UI or CDM sandbox integration is present. The exclusion is part of the wider EME capability cut rather than a ClearKey-only browser profile. |
 | Picture-in-picture, casting and remote playback | DEFER | Optional media UX, not a primary-flow blocker. |
-| Camera/microphone capture | EXCLUDE | No real capture backend, permission/indicator actors, or functional `getUserMedia` promise. |
+| Camera/microphone capture | MUST | Gecko's real capture backends, `getUserMedia`, device enumeration and track lifecycle remain available through Navis's permission, device-selection and recording-indicator delegates. |
 | Screen capture/sharing | EXCLUDE | No capture product surface. |
-| RTCPeerConnection, data channels and native libwebrtc | EXCLUDE | Explicit Navis graph exclusion. |
+| RTCPeerConnection, data channels and native libwebrtc | MUST | Retain Gecko's signaling, PeerConnection/data-channel and native libwebrtc graph. |
 
 ## Navis Core contract
 
@@ -90,7 +90,7 @@ Navigation to arbitrary HTTP and HTTPS URLs, including user-entered public or pr
 | Live View detach/attach and host-window ownership | MUST | The existing cross-window-safe Core contract remains valid even if the first Platform UI is conservative about exposing it. |
 | Focus, visibility and host geometry | MUST | Rendering activation and input focus remain separate. Resize/maximize must update the presented View. |
 | Popup/new-session policy | MUST | Gecko user-activation policy runs first; an accepted popup becomes an owned Session and all other paths fail closed. |
-| Generic permissions | MUST | Frozen request data, bounded allow/block/dismiss decisions, cancellation and per-Session serialization. Unsupported permission kinds fail closed. |
+| Generic permissions | MUST | Frozen request data, offered allow/block/dismiss decisions, explicit device selection, cancellation and per-Session serialization. Site permission inspection/reset and capture revocation stay local and separate normal/private principals. Unsupported permission kinds fail closed. |
 | Extension-independent public Core | MUST | Rust Core contains no extension identity, lifecycle, action or built-in-specific state. The complete WebExtensions host remains behind the target's Core-private Binding, so another Platform can reuse Core without reproducing desktop extension internals. |
 | JavaScript modal, HTTP-auth and before-unload prompts | MUST | Product-owned Delegate UI; no Firefox Login Manager or native Gecko objects across the boundary. |
 | File input/native file picker | MUST | Reuse platform picker plumbing without exposing file handles through Core. |
@@ -172,12 +172,12 @@ These rows are explicit requirements, not optional visual polish. They refine th
 | Local user-installed extensions and standalone manager | MUST | `navis://extensions/` is the sole install/management entry point for signed local XPI files. It provides permission confirmation, inventory, enable/disable, local update, uninstall, options and action pinning while preserving immutable built-ins. Web/MIME install, foreign-directory sideloading, an online store and autonomous extension-code updates remain absent. |
 | Privileged and Firefox-product extension integrations | EXCLUDE | WebExtension Experiments, native messaging, PKCS#11, DevTools/profiler extensions, Firefox themes/sidebar, containers/tab groups, Accounts/sync, recommendations and store/abuse services are outside this compatibility profile. Required unsupported capabilities reject installation visibly. |
 | Local password manager and autofill | MUST | Save, update, select, fill, reveal and delete local credentials behind explicit Platform UI and OS-appropriate at-rest protection. A Gecko password-management substrate may remain Core-private; no credential object crosses Core and no account sync is implied. |
-| Printing and print preview | EXCLUDE | Not part of the current runtime graph or product contract. |
+| Printing and print preview | MUST | Local webpage/PDF printing and Save as PDF retain Gecko snapshots, print events, pagination, settings and cancellation. Desktop uses an owned preview/settings host and OS printer integration; Android uses the system print spooler through a bounded PDF stream. No document service is involved. |
 | Built-in updater/background maintenance | EXCLUDE | Security releases use externally replaced, explicitly packaged artifacts until a Navis-owned updater is designed. |
 | Crash submission | EXCLUDE | Local content-process recovery is required; submission is not. |
 | Restricted WebDriver BiDi and Marionette content automation | RETAIN | Production packages retain dormant loopback-only protocol endpoints so the exact release runtime can be automated. Desktop Embedder permanently denies parent/chrome scope and registers no extension install, uninstall or mutation command. |
 | geckodriver, privileged WebDriver surfaces and test products | EXCLUDE | No geckodriver or test executable is packaged; parent-process/chrome automation, WebDriver extension mutation and test harness products remain absent. The retained desktop page DevTools closure does not grant the production WebDriver endpoint any additional authority. |
-| PDF viewer | DEFER | PDF navigation may download/open externally; an integrated PDF.js-style product is not a release requirement. |
+| PDF viewer | MUST | The pinned PDF.js reader provides navigation, zoom/rotation, outline/thumbnails, find, selection/copy, passwords and accessibility on every required platform. Ordinary navigation to a PDF resource invokes the reader through MIME handling, without a PDF-specific Open menu command. Local file access follows platform permissions; original/modified save, form filling and basic annotations use existing download/save integration. Model downloads, AI, signature storage and telemetry remain absent; document processing is local. Existing explicit MIME handling choices are preserved. |
 | Reader mode, translation and Firefox content recommendations | DEFER | Not part of the current product contract. |
 | Spellcheck | RETAIN | Keep the ordinary text-editing substrate for now; it is not an independent product feature or a compile-time optimization target. |
 

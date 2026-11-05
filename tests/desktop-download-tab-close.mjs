@@ -36,7 +36,7 @@ function fixture() {
   }
   const window = { closed: false, CustomEvent: ChromeEvent,
     dispatchEvent(event) { requests.push(event); } };
-  const browser = { isRemoteBrowser: true, ownerGlobal: window, documentGlobal: window,
+  const browser = { isRemoteBrowser: true, documentGlobal: window,
     browsingContext: { parent: null },
     dispatchEvent(event) { event.target = this; session.handle(event); } };
   const session = new Session(browser);
@@ -91,7 +91,7 @@ assert.equal(source.split('browser.removeEventListener("DOMWindowClose", this.#w
 // background selection, and retain the deliberate last-tab-closes-window rule.
 const main = read("../platform/gecko-chrome/chrome/content/main.mjs");
 assert.match(main, /"NavisBindingTabCloseRequested", \(event\) => \{\s*closeSession\(records\.get\(event\.detail\.session\.id\)\)/);
-const close = main.slice(main.indexOf("  const closeSession = (record) => {"),
+const close = main.slice(main.indexOf("  // Runtime can close a Session through window or content lifecycle."),
   main.indexOf("  const showTabContextMenu ="));
 for (const [count, activeIndex, closeIndex] of [[3, 1, 1], [3, 0, 2], [1, 0, 0]]) {
   const records = new Map();
