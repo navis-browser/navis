@@ -19,6 +19,7 @@ Personal host configuration and agent-operation preferences are not contributor 
 - [Source packaging](https://github.com/navis-browser/runtime/blob/main/docs/desktop-embedder-source-package.md) and [upstream maintenance](https://github.com/navis-browser/runtime/blob/main/docs/gecko-esr-update-review.md).
 - [Runtime validation](https://github.com/navis-browser/runtime/blob/main/docs/runtime-validation.md): reproducible checks and evidence boundaries, not private host logs or a machine-specific acceptance record.
 - [Android builds](android-build.md): separate Debug/Release graphs, candidate signing, R8 evidence and device-test boundaries.
+- [Windows builds](windows-build.md): app-local VC Runtime provenance, PE dependency gates and clean-system acceptance.
 
 Additional policy/API documents in this directory apply when the selected version implements that capability. Android is absent at the 0.1.0 baseline; desktop DevTools and Android enter on the 0.2.0 development line.
 

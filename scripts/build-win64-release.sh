@@ -70,6 +70,8 @@ NAVIS_MOZCONFIG="$release_mozconfig" \
   "$navis_dir/scripts/mach.sh" configure
 python3 "$navis_dir/scripts/verify-incremental-objdir.py" \
   --platform win64 --phase configured
+python3 "$navis_dir/scripts/verify-windows-runtime.py" \
+  --objdir "$release_objdir"
 python3 "$navis_dir/scripts/verify-source-freeze.py" \
   --manifest "$source_freeze"
 

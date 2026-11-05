@@ -42,6 +42,7 @@ def main() -> int:
                 "ac_add_options --target=x86_64-pc-windows-msvc",
                 "ac_add_options --enable-bootstrap",
                 "ac_add_options --disable-bits-download",
+                "ac_add_options --with-redist",
             ),
         ),
     }

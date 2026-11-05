@@ -71,6 +71,8 @@ python3 "$runtime_dir/scripts/prepare-desktop-embedder.py" \
   --source-root "$navis_dir" --runtime-root "$runtime_dir" \
   --gecko "$gecko_dir" --no-clone --no-mount
 make -C "$objdir" -s stage-package
+install -m 644 "$navis_dir/THIRD_PARTY_NOTICES.md" \
+  "$source_dir/THIRD_PARTY_NOTICES.md"
 if [[ -n "${NAVIS_SOURCE_FREEZE:-}" ]]; then
   python3 "$navis_dir/scripts/verify-source-freeze.py" \
     --manifest "$NAVIS_SOURCE_FREEZE"

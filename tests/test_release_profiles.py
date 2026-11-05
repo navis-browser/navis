@@ -65,6 +65,7 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
             + "ac_add_options --target=x86_64-pc-windows-msvc\n"
             + "ac_add_options --enable-bootstrap\n"
             + "ac_add_options --disable-bits-download\n"
+            + "ac_add_options --with-redist\n"
             + "mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/obj-navis-win64-release\n"
             + "mk_add_options AUTOCLOBBER=\n",
             encoding="utf-8",
@@ -169,6 +170,14 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         self.assertEqual(result, 1)
         self.assertIn("lacks ac_add_options --enable-release", output)
         self.assertIn("contains ac_add_options --disable-release", output)
+
+    def test_rejects_windows_release_without_app_local_runtime(self) -> None:
+        root = self.make_workspace()
+        path = root / "runtime/mozconfig.win64.release"
+        path.write_text(path.read_text().replace("ac_add_options --with-redist\n", ""))
+        result, output = self.run_verifier(root)
+        self.assertEqual(result, 1)
+        self.assertIn("lacks ac_add_options --with-redist", output)
 
     def test_rejects_release_without_immutable_addon_signing(self) -> None:
         root = self.make_workspace()

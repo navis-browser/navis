@@ -83,6 +83,11 @@ for path in "${required_platform[@]}"; do
   fi
 done
 
+if [[ "$platform" == win64 ]]; then
+  python3 "$workspace_dir/scripts/verify-windows-runtime.py" \
+    --runtime "$runtime_dir"
+fi
+
 remaining_link="$(find "$runtime_dir" -type l -print -quit)"
 if [[ -n "$remaining_link" ]]; then
   fail "symbolic link remains: $remaining_link"
