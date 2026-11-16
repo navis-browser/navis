@@ -155,7 +155,7 @@ def verify(manifest_path: Path) -> dict[str, dict[str, str]]:
         raise RepositorySetError("repository-set manifest keys differ")
     if manifest.get("schema") != "navis-repository-set-v1":
         raise RepositorySetError("unsupported repository-set schema")
-    if manifest.get("product_version") not in {"0.1.0", "0.2.0-dev", "0.3.0-dev"}:
+    if manifest.get("product_version") not in {"0.1.0", "0.2.0-dev", "0.3.0-dev", "0.3.1"}:
         raise RepositorySetError("repository-set product version differs")
     if manifest.get("organization") != "navis-browser":
         raise RepositorySetError("repository-set organization differs")

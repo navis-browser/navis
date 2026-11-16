@@ -17,8 +17,8 @@ WORKSPACE = Path(__file__).resolve().parents[2]
 def main() -> int:
     failures: list[str] = []
     expected_versions = {
-        "platform/gecko-chrome/config/version.txt": "0.3.0",
-        "platform/gecko-chrome/config/version_display.txt": "0.3.0-dev",
+        "platform/gecko-chrome/config/version.txt": "0.3.1",
+        "platform/gecko-chrome/config/version_display.txt": "0.3.1",
     }
     for relative, expected in expected_versions.items():
         try:

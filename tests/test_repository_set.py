@@ -51,7 +51,7 @@ class RepositorySetManifestTests(unittest.TestCase):
                 return MODULE.verify(path)
 
     def test_supported_product_versions_pass_verification(self) -> None:
-        for version in ("0.1.0", "0.2.0-dev", "0.3.0-dev"):
+        for version in ("0.1.0", "0.2.0-dev", "0.3.0-dev", "0.3.1"):
             with self.subTest(version=version):
                 payload = self.manifest()
                 payload["product_version"] = version
@@ -61,7 +61,7 @@ class RepositorySetManifestTests(unittest.TestCase):
                 self.assertEqual(set(result), {"navis", "runtime", "platform"})
 
     def test_unsupported_product_versions_are_rejected(self) -> None:
-        for version in (None, "", "0.3.0", "0.4.0-dev"):
+        for version in (None, "", "0.3.0", "0.3.1-dev", "0.4.0-dev"):
             with self.subTest(version=version):
                 payload = self.manifest()
                 payload["product_version"] = version
@@ -71,7 +71,7 @@ class RepositorySetManifestTests(unittest.TestCase):
                     self.verify_with_checkout(payload, android_present=True)
 
     def test_android_presence_must_match_product_version(self) -> None:
-        for version in ("0.1.0", "0.2.0-dev", "0.3.0-dev"):
+        for version in ("0.1.0", "0.2.0-dev", "0.3.0-dev", "0.3.1"):
             with self.subTest(version=version):
                 payload = self.manifest()
                 payload["product_version"] = version

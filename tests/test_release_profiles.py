@@ -47,10 +47,10 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
         (root / "platform/gecko-chrome/config").mkdir(parents=True)
         (root / "runtime").mkdir()
         (root / "platform/gecko-chrome/config/version.txt").write_text(
-            "0.3.0\n", encoding="utf-8"
+            "0.3.1\n", encoding="utf-8"
         )
         (root / "platform/gecko-chrome/config/version_display.txt").write_text(
-            "0.3.0-dev\n", encoding="utf-8"
+            "0.3.1\n", encoding="utf-8"
         )
         (root / "runtime/mozconfig.runtime.release").write_text(
             COMMON
@@ -137,11 +137,11 @@ class ReleaseProfileVerifierTests(unittest.TestCase):
     def test_rejects_product_version_drift(self) -> None:
         root = self.make_workspace()
         (root / "platform/gecko-chrome/config/version_display.txt").write_text(
-            "0.3.0-preview\n", encoding="utf-8"
+            "0.3.1-preview\n", encoding="utf-8"
         )
         result, output = self.run_verifier(root)
         self.assertEqual(result, 1)
-        self.assertIn("must be 0.3.0-dev", output)
+        self.assertIn("must be 0.3.1", output)
 
     def test_rejects_android_candidate_without_source_signing_policy(self) -> None:
         root = self.make_workspace()
