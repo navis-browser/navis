@@ -63,6 +63,14 @@ def locked_policy(text: str) -> None:
             raise SecurityDataError(f"missing locked certificate policy: {key}")
 
 
+def desktop_error_defaults(text: str) -> None:
+    # The upstream error-page action reads this Firefox-owned default without
+    # a fallback. It controls persistence after explicit consent, not TLS trust.
+    entries = re.findall(r'^pref\("security\.certerrors\.permanentOverride",\s*([^;]+)\);', text, re.M)
+    if entries != ["true"]:
+        raise SecurityDataError("missing desktop certificate-exception persistence default")
+
+
 def verify_android_security_modules(source: str) -> None:
     required = {f"/desktop-embedder/modules/{name}.sys.mjs"
                 for name in ("CertificateSecurity", "CertificateSecurityData")}
@@ -154,6 +162,7 @@ def verify_source(now: dt.datetime) -> dict:
     for path in (ROOT / "platform/gecko-chrome/app/profile/navis.js",
                  gecko / "mobile/android/app/navis-prefs.js"):
         locked_policy(path.read_text())
+    desktop_error_defaults((ROOT / "platform/gecko-chrome/app/profile/navis.js").read_text())
     verify_android_security_modules(
         (gecko / "mobile/shared/modules/navis/moz.build").read_text())
     rs = json.loads((ROOT / "platform/gecko-chrome/config/navis-remote-settings-policy.json").read_text())
@@ -169,7 +178,10 @@ def verify_omni(archive: zipfile.ZipFile, manifest: dict, android: bool = False)
     if hashlib.sha256(archive.read("defaults/settings/security-state/onecrl.json")).hexdigest() != manifest["onecrl"]["sha256"]:
         raise SecurityDataError("packaged OneCRL differs")
     prefs = "defaults/pref/arm64-v8a/navis-prefs.js" if android else "defaults/pref/navis.js"
-    locked_policy(archive.read(prefs).decode())
+    text = archive.read(prefs).decode()
+    locked_policy(text)
+    if not android:
+        desktop_error_defaults(text)
     for name in ("modules/services-settings/Utils.sys.mjs", "modules/services-settings/RemoteSettingsClient.sys.mjs"):
         if "isLocalOnly" not in archive.read(name).decode():
             raise SecurityDataError(f"packaged offline boundary is absent: {name}")

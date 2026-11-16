@@ -119,6 +119,16 @@ class CertificateSecurityTests(unittest.TestCase):
                     with self.assertRaises(SECURITY.SecurityDataError):
                         SECURITY.locked_policy(original.replace(required, replacement))
 
+    def test_desktop_error_page_has_an_unlocked_exception_default(self):
+        source = (SECURITY.ROOT / "platform/gecko-chrome/app/profile/navis.js").read_text()
+        required = 'pref("security.certerrors.permanentOverride", true);'
+        SECURITY.desktop_error_defaults(source)
+        for replacement in ("", required.replace("true", "false"),
+                            required.replace("true", '"true"'),
+                            required.replace("true", "true, locked"), required + "\n" + required):
+            with self.subTest(replacement=replacement), self.assertRaises(SECURITY.SecurityDataError):
+                SECURITY.desktop_error_defaults(source.replace(required, replacement))
+
     def test_new_metadata_beside_a_stale_native_engine_is_rejected(self):
         digest = "abcdef01" * 8
         manifest = {"onecrl": {"sha256": digest}}
