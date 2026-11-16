@@ -104,6 +104,7 @@ for (const [count, activeIndex, closeIndex] of [[3, 1, 1], [3, 0, 2], [1, 0, 0]]
   const record = records.get(closeIndex);
   const invoke = vm.runInNewContext(`${close}; closeSession;`, {
     records, tabHoverRecord: null, hideTabHoverCard() {}, activeRecord: records.get(activeIndex),
+    closingWindow: false, restoreQueue: { remove() {} },
     orderedSessionRecords: () => [...records.values()],
     window: { close() { windowClosed++; } },
     runtime: { closeDeveloperTools: async () => {} },

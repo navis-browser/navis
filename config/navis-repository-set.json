@@ -13,7 +13,7 @@
     "runtime": {
       "slug": "navis-browser/runtime",
       "path": "../runtime",
-      "revision": "c90474d80e1268cf1256ae10f303a49b8d25c0ac",
+      "revision": "d51d4bda952c802a27203f8c0a352a57f389bc5b",
       "baseline_revision": "5d6b7b32aa54cc747f06006c441895ebb88f0367"
     },
     "platform": {
