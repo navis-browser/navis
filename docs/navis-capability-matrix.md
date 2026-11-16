@@ -118,7 +118,7 @@ Navigation to arbitrary HTTP and HTTPS URLs, including user-entered public or pr
 | Session/tab presentation | MUST | Create, switch and close Sessions; accepted popups are visible and owned. |
 | History and bookmark surfaces | MUST | Query/open/delete history and create/edit/delete/organize bookmarks without exposing Gecko storage objects. |
 | Password-manager and autofill surfaces | MUST | Save/update prompts, credential selection, fill, reveal and deletion are explicit Navis UI, including a way to inspect and clear local credentials. |
-| Startup Session restoration | MUST | Platform restores the last normal Session set through Core and never restores private Sessions. |
+| Startup Session restoration | MUST | Platform restores the last normal Session set through Core and never restores private Sessions. It starts the selected restored Session first, then yields before filling automatic restoration slots in the window. The automatic concurrency ceiling equals the host's reported logical processor count; missing or invalid counts fall back to 1. Ongoing restoration loads and any selected ongoing navigation occupy slots. Selecting a pending tab starts it immediately even when automatic slots are full. Pending URLs, order and selection survive saving or closing before all loads finish. |
 | Native window behaviour | MUST | Move, resize, minimize, maximize, close, fullscreen, DPI scaling and View geometry must work on both Platforms. |
 | Permission, prompt, download and crash surfaces | MUST | Every required Core Delegate has a usable keyboard-accessible Platform presentation. |
 | Native file/save pickers | MUST | Linux portal/native integration and Windows native integration. |
