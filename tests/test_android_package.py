@@ -1180,6 +1180,15 @@ class AndroidPackageTests(unittest.TestCase):
 
 
 class GeneratedJniClassTests(unittest.TestCase):
+    # These names are resolved by the pinned handwritten camera JNI, which is
+    # independent of the generated org.mozilla/org.navis wrapper headers.
+    WEBRTC_CLASSES = (
+        "Lorg/webrtc/videoengine/VideoCaptureDeviceInfoAndroid;",
+        "Lorg/webrtc/videoengine/CaptureCapabilityAndroid;",
+        "Lorg/webrtc/videoengine/VideoCaptureAndroid;",
+        "Lorg/webrtc/JniCommon;",
+    )
+
     def setUp(self) -> None:
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)
@@ -1192,7 +1201,7 @@ class GeneratedJniClassTests(unittest.TestCase):
         )
         self.apk = self.root / "test.apk"
 
-    def write_classes(self, descriptor=VERIFY.GECKOVIEW_BUILD_CONFIG, core=True):
+    def write_classes(self, descriptor=VERIFY.GECKOVIEW_BUILD_CONFIG, core=True, webrtc=None):
         with zipfile.ZipFile(self.apk, "w") as archive:
             archive.writestr("classes.dex", dex_build_config(
                 "20261102080441", class_descriptor=descriptor,
@@ -1202,11 +1211,26 @@ class GeneratedJniClassTests(unittest.TestCase):
                     "20261102080441",
                     class_descriptor="Lorg/navis/browser/core/NativeCoreBridge;",
                 ))
+            for index, name in enumerate(self.WEBRTC_CLASSES if webrtc is None else webrtc, 3):
+                archive.writestr(f"classes{index}.dex", dex_build_config(
+                    "20261102080441", class_descriptor=name,
+                ))
 
     def test_accepts_original_native_lookup_names(self):
         self.write_classes()
         result = VERIFY.verify_generated_jni_classes(self.apk, self.headers)
-        self.assertEqual(2, result["class_count"])
+        self.assertEqual(6, result["class_count"])
+
+    def test_rejects_removed_handwritten_webrtc_jni_classes(self):
+        for descriptor in self.WEBRTC_CLASSES:
+            with self.subTest(descriptor=descriptor):
+                self.write_classes(webrtc=tuple(
+                    name for name in self.WEBRTC_CLASSES if name != descriptor
+                ))
+                with self.assertRaisesRegex(
+                    VERIFY.PackageError, "removed or renamed.*" + descriptor.rsplit("/", 1)[1][:-1],
+                ):
+                    VERIFY.verify_generated_jni_classes(self.apk, self.headers)
 
     def test_rejects_removed_or_obfuscated_lookup_class(self):
         self.write_classes("La/b;")
@@ -1234,7 +1258,7 @@ class GeneratedJniClassTests(unittest.TestCase):
             'class Child { ' + source + ' };\n'
         )
         self.write_classes()
-        self.assertEqual(2, VERIFY.verify_generated_jni_classes(self.apk, self.headers)["class_count"])
+        self.assertEqual(6, VERIFY.verify_generated_jni_classes(self.apk, self.headers)["class_count"])
 
 
 class ApkMemberPathTests(unittest.TestCase):

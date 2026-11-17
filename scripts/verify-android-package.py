@@ -38,6 +38,14 @@ LOCKED_BUILTIN_IDS_PREF = (
 )
 GECKOVIEW_BUILD_CONFIG = "Lorg/mozilla/geckoview/BuildConfig;"
 GECKOVIEW_BUILD_ID_FIELD = "MOZ_APP_BUILDID"
+# GetClassRef in Gecko's android_video_capture resolves these names directly;
+# unlike generated JNI wrappers, those handwritten lookups have no header.
+WEBRTC_JNI_LOOKUP_CLASSES = (
+    "org/webrtc/videoengine/VideoCaptureDeviceInfoAndroid",
+    "org/webrtc/videoengine/CaptureCapabilityAndroid",
+    "org/webrtc/videoengine/VideoCaptureAndroid",
+    "org/webrtc/JniCommon",
+)
 FORBIDDEN_GECKOVIEW_LIFECYCLE_CLASSES = (
     "Lorg/mozilla/geckoview/GeckoVRManager;",
     "Lorg/mozilla/geckoview/GeckoRuntime;",
@@ -1376,6 +1384,7 @@ def verify_generated_jni_classes(apk: Path, directory: Path | None) -> dict[str,
     if not expected:
         raise PackageError("Generated JNI wrappers contain no native class lookups")
     expected.add("org/navis/browser/core/NativeCoreBridge")
+    expected.update(WEBRTC_JNI_LOOKUP_CLASSES)
     actual = set()
     with zipfile.ZipFile(apk) as archive:
         for name in archive.namelist():
