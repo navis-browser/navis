@@ -21,6 +21,30 @@ SPEC.loader.exec_module(VERIFIER)
 
 
 class RuntimeCapabilityVerifierTests(unittest.TestCase):
+    def test_spelling_exclusion_preserves_only_layout_hyphenation_patterns(self) -> None:
+        ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
+        spelling = next(
+            item for item in ledger["capabilities"] if item["id"] == "builtin-spellchecking"
+        )
+        cases = {
+            "hyphenation/hyph_en-US.dic": False,
+            "hyphenation/hyph_de-1996.dic": False,
+            "dictionaries/en-US.dic": True,
+            "en-US.dic": True,
+            "hyphenation/unrecognized.dic": True,
+            "hyphenation/hyph_en-US.aff": True,
+            "other/hyphenation/hyph_en-US.dic": True,
+        }
+        for key in ("omni_forbidden", "files_forbidden"):
+            for entry, forbidden in cases.items():
+                with self.subTest(check=key, entry=entry):
+                    failures = []
+                    VERIFIER.forbid_patterns(
+                        "builtin-spellchecking", key, spelling["checks"][key],
+                        [entry], failures,
+                    )
+                    self.assertEqual(bool(failures), forbidden)
+
     def test_maintained_profiles_follow_the_single_product_contract(self) -> None:
         ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
         self.assertEqual(set(ledger["profiles"]), {ledger["profile"]})
@@ -78,6 +102,25 @@ class RuntimeCapabilityVerifierTests(unittest.TestCase):
                 'pref\\("media\\.getusermedia\\.screensharing\\.enabled", false, locked\\);',
             ],
         )
+
+    def test_devtools_rejects_missing_console_stack_and_debugger_modules(self) -> None:
+        ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())
+        checks = next(item for item in ledger["capabilities"]
+                      if item["id"] == "desktop-page-developer-tools")["checks"]
+        prefix = "chrome/devtools/modules/devtools/client/debugger/src/"
+        for module in (
+            "main.js",
+            "components/SecondaryPanes/Frames/Frames.js",
+            "utils/pause/frames/annotateFrames.js",
+            "utils/sources-tree/getURL.js",
+            "utils/source.js",
+        ):
+            missing = prefix + module
+            with self.subTest(module=module):
+                entries = [entry for entry in checks["omni_required"] if entry != missing]
+                failures = []
+                VERIFIER.require_patterns("devtools", "omni", checks["omni_required"], entries, failures)
+                self.assertEqual(failures, [f"devtools: required omni pattern absent: {missing}"])
 
     def test_unknown_profile_is_rejected(self) -> None:
         ledger = json.loads((WORKSPACE / "config/runtime-capabilities.json").read_text())

@@ -45,8 +45,9 @@ class RemoteSettingsPolicyTest(unittest.TestCase):
         policy, allowed, packaged, syncable = POLICY.validate_policy()
         POLICY.verify_product_declaration(policy, allowed, syncable)
         POLICY.verify_semantic_port()
-        self.assertEqual(len(allowed), 10)
-        self.assertEqual(len(packaged), 10)
+        self.assertEqual(len(allowed), 12)
+        self.assertEqual(len(packaged), 12)
+        self.assertTrue({"main/translations-models-v2", "main/translations-wasm-v2"}.issubset(packaged))
         self.assertEqual(len(syncable), 0)
         self.assertEqual(packaged, set(allowed))
 

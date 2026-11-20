@@ -48,7 +48,7 @@ class PublicInputsTest(unittest.TestCase):
                          '../platform/gecko-chrome/chrome/content/main.mjs'):
             self.assertTrue((NAVIS / relative).is_file(), relative)
 
-    def test_spellcheck_fails_closed_without_pinned_dictionary(self):
+    def test_spellcheck_rejects_dictionary_payload_without_generated_gecko(self):
         spell = module('verify-spellcheck.py')
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -57,10 +57,8 @@ class PublicInputsTest(unittest.TestCase):
                                  '{"dictionaries":{"en-US":"dictionaries/en-US.dic"}}')
                 archive.writestr('dictionaries/en-US.dic', b'untrusted')
                 archive.writestr('dictionaries/en-US.aff', b'untrusted')
-            with patch.object(spell, 'SOURCE_DICTIONARIES', {
-                    name: root / name for name in ('en-US.aff', 'en-US.dic')}):
-                failures = spell.verify_runtime(root)
-            self.assertTrue(any('source dictionary is missing' in f for f in failures))
+            failures = spell.verify_runtime(root)
+            self.assertTrue(any('forbidden spellchecking resource' in f for f in failures))
 
 
 if __name__ == '__main__':

@@ -29,7 +29,8 @@
         "omni_required": [
           "modules/DesktopEngine.sys.mjs",
           "modules/DesktopDevTools.sys.mjs",
-          "modules/DesktopEmbedderStartup.sys.mjs"
+          "modules/DesktopEmbedderStartup.sys.mjs",
+          "modules/DesktopBlockedNavigation.sys.mjs"
         ],
         "omni_content_required": {
           "modules/DesktopEngine.sys.mjs": [
@@ -53,7 +54,14 @@
             "#cancelAllPrompts\\(\"session-closed\"\\)[\\s\\S]*?#syncNavigationState\\(\\{[\\s\\S]*?closed: true[\\s\\S]*?#destroyBrowser\\(\\)",
             "\\bonSessionCreated\\b",
             "permanentKey = new \\(Cu\\.getGlobalForObject\\(Services\\)\\.Object\\)\\(\\)",
-            "destinationBrowser\\.permanentKey = sourcePermanentKey"
+            "destinationBrowser\\.permanentKey = sourcePermanentKey",
+            "\"copy-image\": \"image\""
+          ],
+          "modules/DesktopContextMenuChild.sys.mjs": [
+            "command\\(\"copy-image\", \"image\", image\\.complete && image\\.naturalWidth > 0\\)",
+            "editor\\.setCommandNode\\(target\\)",
+            "COPY_IMAGE_DATA\\s*\\|\\s*Ci\\.nsIDocumentViewerEdit\\.COPY_IMAGE_HTML",
+            "finally\\s*\\{\\s*editor\\.setCommandNode\\(null\\)"
           ]
         },
         "omni_content_forbidden": {
@@ -85,6 +93,11 @@
           "chrome/devtools/content/framework/toolbox.xhtml",
           "chrome/devtools/content/inspector/index.xhtml",
           "chrome/devtools/content/webconsole/index.html",
+          "chrome/devtools/modules/devtools/client/debugger/src/main.js",
+          "chrome/devtools/modules/devtools/client/debugger/src/components/SecondaryPanes/Frames/Frames.js",
+          "chrome/devtools/modules/devtools/client/debugger/src/utils/pause/frames/annotateFrames.js",
+          "chrome/devtools/modules/devtools/client/debugger/src/utils/sources-tree/getURL.js",
+          "chrome/devtools/modules/devtools/client/debugger/src/utils/source.js",
           "chrome/devtools-startup/content/DevToolsShim.sys.mjs",
           "chrome/toolkit/content/global/viewSourceUtils.js",
           "defaults/pref/debugger.js",
@@ -610,20 +623,21 @@
       "id": "local-machine-learning",
       "classification": "product-capability",
       "state": "excluded",
-      "contract": "ONNX Runtime, llama.cpp inference, translations and Firefox local-ML features are absent.",
+      "contract": "General ONNX Runtime, llama.cpp inference and Firefox local-ML product features are absent. Page translation separately retains Bergamot/WASM and the shared process host.",
       "checks": {
         "config": {
           "MOZ_LOCAL_ML": false
         },
         "graph_forbidden": [
-          "^toolkit/components/ml/",
+          "^toolkit/components/ml/(?!(?:AIFeature\\.sys\\.mjs|content/EngineProcess\\.sys\\.mjs)$)",
           "^dom/(ai|ml)/"
         ],
         "files_forbidden": [
           "(?i)(onnxruntime|mozinference)"
         ],
         "omni_forbidden": [
-          "(^|/)(MLEngine|ModelHubProvider)[^/]*$"
+          "(^|/)(MLEngine|ModelHubProvider)[^/]*$",
+          "(^|/)(?:ModelHub|ONNXPipeline|LlamaPipeline|LlamaCppPipeline|transformers|wllama-module)\\.(?:sys\\.)?m?js$"
         ]
       }
     },
@@ -1054,6 +1068,101 @@
         "omni_content_required": {
           "defaults/pref/navis.js": [
             "pref\\(\"dom\\.documentpip\\.enabled\", false, locked\\);"
+          ]
+        }
+      }
+    },
+    {
+      "id": "builtin-spellchecking",
+      "classification": "excluded-browser-feature",
+      "state": "excluded",
+      "contract": "Built-in browser spelling detection, suggestions, dictionaries and native spellchecking services are absent. ABI-only editor declarations preserve ordinary text editing and native input-method behavior.",
+      "checks": {
+        "config": {
+          "MOZ_SPELLCHECK": false
+        },
+        "graph_forbidden": [
+          "^extensions/spellcheck/",
+          "^editor/spellchecker/.*\\.(?:cpp|o)$"
+        ],
+        "omni_forbidden": [
+          "(?:^|/)dictionaries/",
+          "(?:^|/)InlineSpellChecker(?:Content|Child|Parent)?\\.sys\\.mjs$",
+          "(?:^|/)built_in_addons\\.json$",
+          "^(?!hyphenation/hyph_[A-Za-z0-9_-]+\\.dic$).*\\.(?:aff|dic)$"
+        ],
+        "files_forbidden": [
+          "(?:^|/)dictionaries/",
+          "^(?!hyphenation/hyph_[A-Za-z0-9_-]+\\.dic$).*\\.(?:aff|dic)$"
+        ],
+        "omni_content_required": {
+          "defaults/pref/navis.js": [
+            "pref\\(\"layout\\.spellcheckDefault\", 0, locked\\);"
+          ]
+        },
+        "omni_content_forbidden": {
+          "modules/DesktopEngine.sys.mjs": [
+            "spell-replace-[0-4]",
+            "misspelled:"
+          ],
+          "modules/DesktopContextMenuChild.sys.mjs": [
+            "InlineSpellChecker",
+            "spell-replace-[0-4]",
+            "spellSuggestions"
+          ],
+          "chrome/navis/content/main.mjs": [
+            "item\\.group === \"spelling\""
+          ]
+        },
+        "generated_forbidden": {
+          "ipc/ipdl/_ipdlheaders/mozilla/dom/PContent.h": [
+            "PRemoteSpellcheckEngine",
+            "UpdateDictionaryList",
+            "\\bdictionaries\\b"
+          ],
+          "ipc/ipdl/_ipdlheaders/mozilla/dom/PContentChild.h": [
+            "PRemoteSpellcheckEngine",
+            "UpdateDictionaryList",
+            "\\bdictionaries\\b"
+          ],
+          "ipc/ipdl/_ipdlheaders/mozilla/dom/PContentParent.h": [
+            "PRemoteSpellcheckEngine",
+            "UpdateDictionaryList",
+            "\\bdictionaries\\b"
+          ]
+        }
+      }
+    },
+    {
+      "id": "local-page-translation",
+      "classification": "ordinary-browser-capability",
+      "state": "required",
+      "contract": "Explicit document-scoped local Bergamot page translation with language choice, offline model cache, download/failure states and native original-page reload. Catalog-owned asset downloads never upload page text.",
+      "checks": {
+        "config": {
+          "MOZ_DESKTOP_EMBEDDER": true
+        },
+        "graph_required": [
+          "^toolkit/components/translations/"
+        ],
+        "omni_required": [
+          "actors/TranslationsParent.sys.mjs",
+          "actors/TranslationsChild.sys.mjs",
+          "actors/TranslationsEngineParent.sys.mjs",
+          "actors/TranslationsEngineChild.sys.mjs",
+          "modules/NavisTranslations.sys.mjs",
+          "chrome/toolkit/content/global/translations/translations-document.sys.mjs",
+          "chrome/toolkit/content/global/translations/translations-engine.sys.mjs",
+          "chrome/toolkit/content/global/ml/EngineProcess.sys.mjs",
+          "defaults/settings/main/translations-models-v2.json",
+          "defaults/settings/main/translations-wasm-v2.json"
+        ],
+        "omni_content_required": {
+          "modules/NavisTranslations.sys.mjs": [
+            "getSupportedLanguages",
+            "getDetectedLanguages",
+            "restorePage",
+            "TranslationsParent:LanguageState"
           ]
         }
       }

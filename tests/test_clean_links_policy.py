@@ -12,6 +12,7 @@ import tempfile
 import unittest
 import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 
 WORKSPACE = Path(__file__).resolve().parent.parent
@@ -47,6 +48,13 @@ class CleanLinksPolicyTest(unittest.TestCase):
                     POLICY.validate_policy()
             finally:
                 POLICY.POLICY_PATH = original
+
+    def test_semantic_port_rejects_noncontiguous_ledger(self) -> None:
+        ledger = json.loads(POLICY.PORTS_PATH.read_text(encoding="utf-8"))
+        ledger["ports"][-1]["order"] += 1
+        with patch.object(POLICY, "load_json", return_value=ledger):
+            with self.assertRaisesRegex(POLICY.PolicyError, "missing or misordered"):
+                POLICY.verify_semantic_port()
 
     def test_runtime_rejects_live_query_stripping_data(self) -> None:
         policy = POLICY.validate_policy()

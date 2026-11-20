@@ -1,29 +1,25 @@
-# Navis spellcheck boundary
+# Built-in spellchecking exclusion
 
-Pinned Gecko: Firefox ESR 153.7.0 (`9aecd40e03ebf6e866e32a0a3001488ed751228d`)
+Navis excludes browser-owned spelling detection, inline misspelling underlines, correction suggestions, Hunspell dictionaries and dictionary add-ons. This decision is independent of ordinary text editing and native input-method services.
 
-## Product boundary
+## Native boundary
 
-Navis retains Gecko's ordinary inline spellchecking for multiline Web editors. It packages exactly the pinned ESR `en-US.aff` and `en-US.dic` files. It does not restore Firefox's dictionary manager, remote dictionary catalogue, add-ons UI or user-installable dictionary extensions. Additional packaged dictionaries require an explicit later policy change.
+The Runtime semantic-port series defines a default-on `--disable-spellchecking` configure gate. All Navis development and release profiles select it off. Other upstream consumers retain their normal enabled behavior unless they explicitly select the gate.
 
-The browser-shell path is:
+Disabled builds omit the Hunspell and spellchecker implementation graph, editor checking implementations, remote spellcheck protocol and dictionary-update IPC. They package no spelling dictionaries, inline spellchecker modules/actors or dictionary-only built-in registry. Text-layout hyphenation patterns remain available; the `.dic` extension alone does not make them spelling dictionaries. Add-on startup avoids requesting the unavailable service or interface, and dictionary add-ons are unusable. Ordinary extensions, language packs and non-Navis product built-in manifests preserve their independent lifecycle.
 
-```text
-trusted contextmenu event over a spellchecked editor
-  -> content-process Gecko InlineSpellChecker/Hunspell
-  -> at most five bounded suggestion strings
-  -> frozen Core ContextMenuDelegate descriptor
-  -> Navis Gecko menupopup presentation
-  -> selected fixed command slot
-  -> original content-process Gecko editor replacement
-```
+The existing `nsIEditorSpellCheck`, `nsIInlineSpellChecker` and editor/XPConnect method declarations remain for native interface compatibility. They provide no spellchecker instance: the editor getter returns null and the privileged factory fails with `NS_ERROR_NOT_AVAILABLE`. HTML `spellcheck` attributes retain their standard DOM semantics, but cannot create a removed checking engine. Navis also locks `layout.spellcheckDefault` to 0 so existing Profile preferences do not request inline checks.
 
-Gecko continues to own misspelling detection, underline selection, language selection, suggestion generation and editor replacement semantics. Navis owns only the public projection and browser-menu presentation.
+## Product and input boundary
 
-## Contract and security rules
+Context-menu descriptors expose no misspelling state, suggestion strings or spelling command slots. Ordinary editing, selection, undo/redo, clipboard operations, local Find and navigation keep their existing Runtime and Platform paths.
 
-- Suggestions are accepted only for the five fixed `spell-replace-0` through `spell-replace-4` command slots.
-- Each suggestion is a nonempty string of at most 128 UTF-16 code units; control characters and duplicates are rejected.
-- The public item is immutable and contains only its command ID, semantic `spelling` group, enabled state and bounded dictionary suggestion. No editor, DOM range, node, principal, actor or XPCOM object crosses the Core contract.
-- The content actor retains the live editor and misspelled range. Replacement succeeds only while the matching short-lived menu token and connected target remain current. Navigation, competing input, popup replacement or actor destruction invalidates it.
-- The dictionary suggestion is user/content-adjacent data, not Navis UI copy; Platform presents it verbatim and does not translate it.
+Android continues using its real native input connection and input-method composition. Keyboard candidates, language input and keyboard-provided autocorrection follow the selected input method and webpage input hints; removing the browser checker does not disable them. Navis provides no browser spellchecking setting, dictionary manager or spelling menu.
+
+Existing Profile data, including any old personal dictionary file, are preserved. Such files cannot restore the excluded native feature.
+
+## Verification
+
+The capability and source-domain ledgers require the feature off and reject its native implementation graph. `scripts/verify-spellcheck.py` rejects dictionary payloads, helper/actor modules, dictionary registries and obsolete suggestion commands in an extracted package; it does not depend on a generated Gecko tree.
+
+A changed capability graph requires regenerated build metadata and fresh distribution staging, followed by package audits. Native acceptance must reject the spellchecker service/factory and suggestion path while preserving textarea/contenteditable editing, undo, selection, clipboard and Find. Android additionally verifies input-method behavior on its own target. Source checks, incremental builds, native checks and manual acceptance are separate evidence.

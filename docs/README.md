@@ -9,6 +9,8 @@ Personal host configuration and agent-operation preferences are not contributor 
 - [Architecture](navis-architecture.md): Runtime/Core and Platform ownership.
 - [Capability matrix](navis-capability-matrix.md): requirements, retained substrate and deliberate exclusions; it takes precedence over historical tests.
 - [Excluded browser-mediated APIs](navis-excluded-web-apis.md): build, binding, package and content absence.
+- [Built-in spellchecking exclusion](navis-spellcheck.md): native engine/package absence while retaining ordinary editing and input methods.
+- [Local page translation](https://github.com/navis-browser/runtime/blob/main/docs/page-translation.md): native document ownership, model downloads and verification.
 - [Extension platform](navis-extension-platform.md): local extension compatibility and security boundaries.
 - [Desktop API](https://github.com/navis-browser/runtime/blob/main/docs/desktop-embedder-api.md): Runtime, Session, View and Delegates.
 - [UI standard](https://github.com/navis-browser/platform/blob/main/docs/navis-ui-standard.md) and [localization](https://github.com/navis-browser/platform/blob/main/docs/navis-i18n.md).

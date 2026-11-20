@@ -244,6 +244,20 @@ required_omni=(
   chrome/toolkit/content/global/viewSourceUtils.js
   defaults/pref/debugger.js
   defaults/pref/navis-devtools.js
+  modules/NavisTranslations.sys.mjs
+  modules/translations/LanguageDetector.sys.mjs
+  modules/translations/cld-worker.js
+  modules/translations/cld-worker.js.mem
+  actors/TranslationsParent.sys.mjs
+  actors/TranslationsChild.sys.mjs
+  actors/TranslationsEngineParent.sys.mjs
+  actors/TranslationsEngineChild.sys.mjs
+  chrome/toolkit/content/global/ml/AIFeature.sys.mjs
+  chrome/toolkit/content/global/ml/EngineProcess.sys.mjs
+  chrome/navis/content/page-translation.mjs
+  chrome/navis/content/page-translation.css
+  defaults/settings/main/translations-models-v2.json
+  defaults/settings/main/translations-wasm-v2.json
 )
 
 for path in "${required_omni[@]}"; do
@@ -305,8 +319,16 @@ for registration in "${required_extension_registrations[@]}"; do
   fi
 done
 
+while IFS= read -r path; do
+  case "$path" in
+    chrome/toolkit/content/global/ml/AIFeature.sys.mjs|\
+    chrome/toolkit/content/global/ml/EngineProcess.sys.mjs) ;;
+    *) fail "general inference resource entered omni.ja: $path" ;;
+  esac
+done < <(rg '^chrome/toolkit/content/global/ml/' "$omni_file" || true)
+
 if rg --quiet \
-  '(^browser/|^chrome/toolkit/content/global/(?:ml/|about(?:Glean|Telemetry)|gmp-sources/widevinecdm(?:_l1)?\.json$)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$)' \
+  '(^browser/|^chrome/toolkit/content/global/(?:about(?:Glean|Telemetry)|gmp-sources/widevinecdm(?:_l1)?\.json$)|^chrome/toolkit/skin/classic/mozapps/extensions/|desktop-embedder-test-shell|^modules/(?:BHRTelemetryService|BrowserTelemetryUtils|ClientID|CoveragePing|EventPing|HealthPing|Telemetry[^/]*|UninstallPing|UntrustedModulesPing|UpdatePing|UsageReporting)\.sys\.mjs$|^modules/backgroundtasks/BackgroundTask_pingsender\.sys\.mjs$|^modules/(?:NativeManifests|NativeMessaging)\.sys\.mjs$|^modules/amInstallTrigger\.sys\.mjs$|/(MLEngine|ModelHubProvider|Rust|FxAccounts|ExtensionStorageSync)[^/]*$|/(LoginManager|LoginAutoComplete|LoginFormFactory|LoginHelper|LoginRecipes|LoginStore|PasswordGenerator)[^/]*\.sys\.mjs$|/(BookmarkHTMLUtils|BookmarkJSONUtils|BookmarkList|Bookmarks|ExtensionSearchHandler|History|PlacesBackups|PlacesDBUtils|PlacesExpiration|PlacesFrecencyRecalculator|PlacesPreviews|PlacesQuery|PlacesSemanticHistoryDatabase|PlacesSemanticHistoryManager|PlacesSyncUtils|PlacesTransactions|PlacesUtils|SyncedBookmarksMirror|TaggingService)\.sys\.mjs$)' \
   "$omni_file"; then
   fail "disabled Firefox product subsystem entered omni.ja"
 fi

@@ -305,10 +305,8 @@ def verify(root: Path) -> list[str]:
         entry = matches[0]
         require(
             failures,
-            entry.get("order") == 22
-            and len(ports) >= 22
-            and ports[21].get("id") == PORT_ID,
-            "product identity semantic port is not the contiguous order-22 entry",
+            all(port.get("order") == index for index, port in enumerate(ports, 1)),
+            "product identity semantic port ledger is not contiguously ordered",
         )
         require(
             failures,

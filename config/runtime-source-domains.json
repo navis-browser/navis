@@ -5,13 +5,15 @@
     "^@foreign-generated(?:/|$)",
     "^(?:@generated/)?browser/(?!app/winlauncher(?:/|$))",
     "^(?:@generated/)?services/(?:fxaccounts|sync)(?:/|$)",
-    "^(?:@generated/)?toolkit/components/ml(?:/|$)",
+    "^(?:@generated/)?toolkit/components/ml(?:$|/(?!(?:AIFeature\\.sys\\.mjs|content/EngineProcess\\.sys\\.mjs)$))",
     "^(?:@generated/)?toolkit/components/places/Unified_",
     "^(?:@generated/)?dom/(?:ai|ml)(?:/|$)",
     "^(?:@generated/)?dom/(?:midi|webserial|webusb|webhid|webbluetooth|vr|payments|interfaces/payments|credentialmanagement/(?:digital|identity))(?:/|$)",
     "^(?:@generated/)?gfx/vr(?:/|$)",
     "^(?:@generated/)?toolkit/components/credentialmanagement(?:/|$)",
-    "^(?:@generated/)?dom/canvas/XRWebGLLayer"
+    "^(?:@generated/)?dom/canvas/XRWebGLLayer",
+    "^(?:@generated/)?extensions/spellcheck(?:/|$)",
+    "^(?:@generated/)?editor/spellchecker/.*\\.(?:cpp|c|rs)$"
   ],
   "domains": [
     {
@@ -31,6 +33,15 @@
         "^(?:@generated/)?devtools/platform(?:/|$)",
         "^(?:@generated/)?testing/(?:firefox-ui|marionette)(?:/|$)",
         "^(?:@generated/)?toolkit/components/telemetry/tests/marionette(?:/|$)"
+      ]
+    },
+    {
+      "id": "local-page-translation",
+      "classification": "ordinary-browser-capability",
+      "state": "required",
+      "patterns": [
+        "^(?:@generated/)?toolkit/components/translations(?:/|$)",
+        "^(?:@generated/)?toolkit/components/ml/(?:AIFeature\\.sys\\.mjs|content/EngineProcess\\.sys\\.mjs)$"
       ]
     },
     {
@@ -86,10 +97,11 @@
     },
     {
       "id": "spellcheck",
-      "classification": "declared-browsing-capability",
-      "state": "required",
+      "classification": "excluded-browser-feature",
+      "state": "forbidden",
       "patterns": [
-        "^(?:@generated/)?extensions/spellcheck(?:/|$)"
+        "^(?:@generated/)?extensions/spellcheck(?:/|$)",
+        "^(?:@generated/)?editor/spellchecker/.*\\.(?:cpp|c|rs)$"
       ]
     },
     {

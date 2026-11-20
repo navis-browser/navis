@@ -941,6 +941,12 @@ def inspect_runtime_assets(
             spec.loader.exec_module(policy)
             failures = []
             policy.verify_omni(omni, failures, "APK omni.ja")
+            spec = importlib.util.spec_from_file_location(
+                "excluded_spellchecking", Path(__file__).with_name("verify-spellcheck.py")
+            )
+            spellchecking = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(spellchecking)
+            spellchecking.verify_omni(omni, failures, "APK omni.ja")
             if failures:
                 raise PackageError("; ".join(failures))
             inspect_runtime_module_dependencies(omni)

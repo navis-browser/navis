@@ -137,6 +137,14 @@ class ProductIdentityTest(unittest.TestCase):
         path.write_text(json.dumps(ledger), encoding="utf-8")
         self.assertEqual([], VERIFY.verify(self.root))
 
+    def test_identity_port_rejects_noncontiguous_ledger(self) -> None:
+        path = self.root / "runtime/config/gecko-semantic-ports.json"
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+        entry = next(port for port in ledger["ports"] if port["id"] == VERIFY.PORT_ID)
+        entry["order"] += 1
+        path.write_text(json.dumps(ledger), encoding="utf-8")
+        self.assert_failure("not contiguously ordered")
+
     def write_identity_patch(self, content: str) -> None:
         (self.root / VERIFY.WORKSPACE_PORT_PATH).write_text(content, encoding="utf-8")
         path = self.root / "runtime/config/gecko-semantic-ports.json"
